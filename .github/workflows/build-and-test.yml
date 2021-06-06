@@ -11,7 +11,7 @@ jobs:
       - name: Checking out
         uses: actions/checkout@v2.3.4
         with:
-          path: aruku
+          path: suiryoku
 
       - name: Build and test workspace
         uses: ichiro-its/ros2-build-and-test-action@main
