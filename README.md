@@ -1,2 +1,2 @@
 # suiryoku
-Locomotion Pakcage for ROS 2 Porject.
+Locomotion Package for ROS 2 Project.
