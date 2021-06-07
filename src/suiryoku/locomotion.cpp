@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <unistd.h>
+
 #include <aruku/walking.hpp>
 #include <kansei/imu.hpp>
 #include <suiryoku/locomotion.hpp>
