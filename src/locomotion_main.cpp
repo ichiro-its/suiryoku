@@ -19,8 +19,9 @@
 // THE SOFTWARE.
 
 #include <aruku/walking.hpp>
-#include <kansei/imu.hpp>
 #include <atama/head.hpp>
+#include <kansei/imu.hpp>
+#include <suiryoku/locomotion.hpp>
 #include <robocup_client/robocup_client.hpp>
 
 #include <nlohmann/json.hpp>
@@ -32,14 +33,13 @@
 
 int main(int argc, char * argv[])
 {
-  if (argc < 4) {
+  if (argc < 3) {
     std::cerr << "Please specify the host, the port, and the path!" << std::endl;
     return 0;
   }
 
   std::string host = argv[1];
   int port = std::stoi(argv[2]);
-  std::string path = argv[3];
 
   robocup_client::RobotClient client(host, port);
   if (!client.connect()) {
@@ -74,12 +74,9 @@ int main(int argc, char * argv[])
   client.send(*message.get_actuator_request());
 
   auto imu = std::make_shared<kansei::Imu>();
-
   auto walking = std::make_shared<aruku::Walking>(imu);
   auto head = std::make_shared<atama::Head>(walking, imu);
-  auto locommotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
-
-  // .load_data(path);
+  auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
 
   while (client.get_tcp_socket()->is_connected()) {
     try {

@@ -34,7 +34,8 @@ class Locomotion
 {
 public:
   Locomotion(
-    std::shared_ptr<aruku::Walking> walking, std::shared_ptr<atama::Head> head,
+    std::shared_ptr<aruku::Walking> walking, 
+    std::shared_ptr<atama::Head> head,
     std::shared_ptr<kansei::Imu> imu);
 
   float get_position_x() {return walking->POSITION_X;}
@@ -67,7 +68,7 @@ public:
   void stop() {move_finished = rotate_finished = true;}
   bool is_finished() {return move_finished && rotate_finished;}
 
-  void load_data(const std::string & path);
+  void load_data();
 
 private:
   std::shared_ptr<kansei::Imu> imu;

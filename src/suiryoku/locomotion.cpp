@@ -18,12 +18,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <unistd.h>
+
 #include <aruku/walking.hpp>
 #include <kansei/imu.hpp>
 #include <nlohmann/json.hpp>
 #include <suiryoku/locomotion.hpp>
 
 #include <cmath>
+#include <fstream>
+#include <iostream>
 #include <memory>
 
 #include "common/algebra.h"
@@ -32,12 +36,15 @@ namespace suiryoku
 {
 
 Locomotion::Locomotion(
-  std::shared_ptr<aruku::Walking> walking, std::shared_ptr<atama::Head> head,
+  std::shared_ptr<aruku::Walking> walking, 
+  std::shared_ptr<atama::Head> head,
   std::shared_ptr<kansei::Imu> imu)
 {
   imu = imu;
   walking = walking;
   head = head;
+
+  load_data();
 
   position_prev_delta_pan = 0.0;
   position_prev_delta_tilt = 0.0;
@@ -394,76 +401,76 @@ bool Locomotion::move_to_position_left_right(float direction)
   return move_to_position_until_pan_tilt(right_kick_target_pan, right_kick_target_tilt, direction);
 }
 
-void Locomotion::load_data(const std::string & path) 
+void Locomotion::load_data() 
 {
-  std::string file_name = path + "suiryoku.json";
+  std::string file_name = "/home/finesa/ichiro-2021/src/suiryoku/config/suiryoku.json";
   std::ifstream file(file_name);
-  nlohmann::json walking_data = nlohmann::json::parse(file);
+  nlohmann::json locomotion_data = nlohmann::json::parse(file);
 
-  for (auto &[key, val] : walking_data.items()) {
+  for (auto &[key, val] : locomotion_data.items()) {
     if (key == "Move") {
       try {
-        val.at("min_x").get_to(move_min_x_); 
-        val.at("max_x").get_to(move_max_x_); 
-        val.at("max_y").get_to(move_max_y_); 
-        val.at("max_a").get_to(move_max_a_); 
+        val.at("min_x").get_to(move_min_x); 
+        val.at("max_x").get_to(move_max_x); 
+        val.at("max_y").get_to(move_max_y); 
+        val.at("max_a").get_to(move_max_a); 
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
     } else if (key == "Follow") {
       try {
-        val.at("max_x").get_to(follow_max_x_);
-        val.at("max_a").get_to(follow_max_a_);
-        val.at("min_tilt_").get_to(follow_min_tilt_);
+        val.at("max_x").get_to(follow_max_x);
+        val.at("max_a").get_to(follow_max_a);
+        val.at("min_tilt_").get_to(follow_min_tilt);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
     } else if (key == "Dribble") {
       try {
-        val.at("min_x").get_to(dribble_min_x_);
-        val.at("max_x").get_to(dribble_max_x_);
-        val.at("min_ly").get_to(dribble_min_ly_);
-        val.at("max_ly").get_to(dribble_max_ly_);
-        val.at("min_ry").get_to(dribble_min_ry_);
-        val.at("max_ry").get_to(dribble_max_ry_);
-        val.at("max_a").get_to(dribble_max_a_);
+        val.at("min_x").get_to(dribble_min_x);
+        val.at("max_x").get_to(dribble_max_x);
+        val.at("min_ly").get_to(dribble_min_ly);
+        val.at("max_ly").get_to(dribble_max_ly);
+        val.at("min_ry").get_to(dribble_min_ry);
+        val.at("max_ry").get_to(dribble_max_ry);
+        val.at("max_a").get_to(dribble_max_a);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
     } else if (key == "Pivot") {
       try {
-        val.at("min_x").get_to(pivot_min_x_);
-        val.at("max_x").get_to(pivot_max_x_);
-        val.at("max_ly").get_to(pivot_max_ly_);
-        val.at("max_ry").get_to(pivot_max_ry_);
-        val.at("max_a").get_to(pivot_max_a_);
-        val.at("target_tilt").get_to(pivot_target_tilt_);
+        val.at("min_x").get_to(pivot_min_x);
+        val.at("max_x").get_to(pivot_max_x);
+        val.at("max_ly").get_to(pivot_max_ly);
+        val.at("max_ry").get_to(pivot_max_ry);
+        val.at("max_a").get_to(pivot_max_a);
+        val.at("target_tilt").get_to(pivot_target_tilt);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
     } else if (key == "Position") {
       try {
-        val.at("min_x").get_to(position_min_x_);
-        val.at("max_x").get_to(position_max_x_);
-        val.at("min_ly").get_to(position_min_ly_);
-        val.at("max_ly").get_to(position_max_ly_);
-        val.at("min_ry").get_to(position_min_ry_);
-        val.at("max_ry").get_to(position_max_ry_);
-        val.at("max_a").get_to(position_max_a_);
+        val.at("min_x").get_to(position_min_x);
+        val.at("max_x").get_to(position_max_x);
+        val.at("min_ly").get_to(position_min_ly);
+        val.at("max_ly").get_to(position_max_ly);
+        val.at("min_ry").get_to(position_min_ry);
+        val.at("max_ry").get_to(position_max_ry);
+        val.at("max_a").get_to(position_max_a);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
     } else if (key == "LeftKick") {
       try {
-        val.at("target_pan").get_to(left_kick_target_pan_);
-        val.at("target_tilt").get_to(left_kick_target_tilt_);
+        val.at("target_pan").get_to(left_kick_target_pan);
+        val.at("target_tilt").get_to(left_kick_target_tilt);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
     } else if (key == "RightKick") {
       try {
-        val.at("target_pan").get_to(right_kick_target_pan_);
-        val.at("target_tilt").get_to(right_kick_target_tilt_);
+        val.at("target_pan").get_to(right_kick_target_pan);
+        val.at("target_tilt").get_to(right_kick_target_tilt);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
