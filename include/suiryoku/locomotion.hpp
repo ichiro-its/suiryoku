@@ -67,6 +67,8 @@ public:
   void stop() {move_finished = rotate_finished = true;}
   bool is_finished() {return move_finished && rotate_finished;}
 
+  void load_data(const std::string & path);
+
 private:
   std::shared_ptr<kansei::Imu> imu;
   std::shared_ptr<aruku::Walking> walking;
