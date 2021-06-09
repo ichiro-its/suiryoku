@@ -63,7 +63,7 @@ public:
   bool move_to_position_until_pan_tilt(float target_pan, float target_tilt, float direction);
 
   bool move_to_position_left_kick(float direction);
-  bool move_to_position_left_right(float direction);
+  bool move_to_position_right_kick(float direction);
 
   void stop() {move_finished = rotate_finished = true;}
   bool is_finished() {return move_finished && rotate_finished;}

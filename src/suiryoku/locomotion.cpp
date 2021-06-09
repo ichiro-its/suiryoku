@@ -396,7 +396,7 @@ bool Locomotion::move_to_position_left_kick(float direction)
   return move_to_position_until_pan_tilt(left_kick_target_pan, left_kick_target_tilt, direction);
 }
 
-bool Locomotion::move_to_position_left_right(float direction)
+bool Locomotion::move_to_position_right_kick(float direction)
 {
   return move_to_position_until_pan_tilt(right_kick_target_pan, right_kick_target_tilt, direction);
 }
