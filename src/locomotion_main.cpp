@@ -173,6 +173,7 @@ int main(int argc, char * argv[])
         }
       }
       client.send(*message.get_actuator_request());
+      is_running = false;
 
       cmds[0].clear();
       cmds[1].clear();
