@@ -50,6 +50,9 @@ int main(int argc, char * argv[])
   }
 
   robocup_client::MessageHandler message;
+  message.add_sensor_time_step("gyro", 8);
+  message.add_sensor_time_step("accelerometer", 8);
+
   message.add_sensor_time_step("neck_yaw_s", 8);
   message.add_sensor_time_step("neck_pitch_s", 8);
   message.add_sensor_time_step("left_shoulder_pitch_s", 8);
@@ -74,9 +77,39 @@ int main(int argc, char * argv[])
   client.send(*message.get_actuator_request());
 
   auto imu = std::make_shared<kansei::Imu>();
+
   auto walking = std::make_shared<aruku::Walking>(imu);
+  walking->initialize();
+  walking->start();
+
   auto head = std::make_shared<atama::Head>(walking, imu);
+
   auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
+
+  std::string cmds[3] = {};
+
+  bool is_running = false;
+  std::thread input_handler([&cmds, &is_running] {
+    while (true) {
+      if (!is_running) {
+        std::cout << "> run : ";
+        std::cin >> cmds[0];
+
+        if (cmds[0].find("move") != std::string::npos) {
+          std::cout << "  target x : ";
+          std::cin >> cmds[1];
+          std::cout << "  target y : ";
+          std::cin >> cmds[2];
+        } else {
+          std::cout << "  direction : ";
+          std::cin >> cmds[1];
+          cmds[2] = "empty";
+        }
+
+        is_running = true;
+      }
+    }
+  });
 
   while (client.get_tcp_socket()->is_connected()) {
     try {
@@ -84,8 +117,66 @@ int main(int argc, char * argv[])
 
       auto sensors = client.receive();
 
+      float gy[3];
+      if (sensors.get()->gyros_size() > 0) {
+        auto gyro = sensors.get()->gyros(0);
+        gy[0] = gyro.value().x();
+        gy[1] = gyro.value().y();
+        gy[2] = gyro.value().z();
+      }
+
+      float acc[3];
+      if (sensors.get()->accelerometers_size() > 0) {
+        auto accelerometer = sensors.get()->accelerometers(0);
+        acc[0] = accelerometer.value().x();
+        acc[1] = accelerometer.value().y();
+        acc[2] = accelerometer.value().z();
+      }
+
       auto time = sensors.get()->time();
 
+      imu->compute_rpy(gy, acc, time);
+      head->process();
+      walking->process();
+
+      if (!cmds[0].empty() && !cmds[1].empty() && !cmds[2].empty()) {
+        if (cmds[0] == "q") { 
+          break;
+        }
+
+        locomotion->load_data();
+        std::cout << "loaded data\n";
+
+        if (cmds[0] == "pivot" && !cmds[1].empty()) {
+          locomotion->pivot(std::stof(cmds[1]));
+        } else if (cmds[0] == "move_follow_head" && !cmds[1].empty()) {
+          locomotion->move_follow_head(std::stof(cmds[1]));
+        } else if (cmds[0] == "move_to_target" && !cmds[2].empty()) {
+          locomotion->move_to_target(std::stof(cmds[1]), std::stof(cmds[2]));
+        } else if (cmds[0] == "set_position" && !cmds[2].empty()) {
+          locomotion->set_position(std::stof(cmds[1]), std::stof(cmds[2]));
+        } else {
+          std::cout << "-ERR command was not valid\n" << std::endl;
+          is_running = false;
+        }
+      }
+
+      for (auto joint : walking->get_joints()) {
+        if (joint.get_joint_name().find("shoulder_pitch") != std::string::npos) {
+          message.add_motor_position_in_radian(
+            joint.get_joint_name() + " [shouder]", joint.get_goal_position());
+        } else if (joint.get_joint_name().find("hip_yaw") != std::string::npos) {
+          message.add_motor_position_in_radian(
+            joint.get_joint_name() + " [hip]", joint.get_goal_position());
+        } else {
+          message.add_motor_position_in_radian(joint.get_joint_name(), joint.get_goal_position());
+        }
+      }
+      client.send(*message.get_actuator_request());
+
+      cmds[0].clear();
+      cmds[1].clear();
+      cmds[2].clear();
     } catch (const std::runtime_error & exc) {
       std::cerr << "Runtime error: " << exc.what() << std::endl;
     }
