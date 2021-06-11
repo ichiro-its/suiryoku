@@ -52,38 +52,16 @@ int main(int argc, char * argv[])
   robocup_client::MessageHandler message;
   message.add_sensor_time_step("gyro", 8);
   message.add_sensor_time_step("accelerometer", 8);
-
-  message.add_sensor_time_step("neck_yaw_s", 8);
-  message.add_sensor_time_step("neck_pitch_s", 8);
-  message.add_sensor_time_step("left_shoulder_pitch_s", 8);
-  message.add_sensor_time_step("left_shoulder_roll_s", 8);
-  message.add_sensor_time_step("left_elbow_s", 8);
-  message.add_sensor_time_step("right_shoulder_pitch_s", 8);
-  message.add_sensor_time_step("right_shoulder_roll_s", 8);
-  message.add_sensor_time_step("right_elbow_s", 8);
-  message.add_sensor_time_step("left_hip_yaw_s", 8);
-  message.add_sensor_time_step("left_hip_roll_s", 8);
-  message.add_sensor_time_step("left_hip_pitch_s", 8);
-  message.add_sensor_time_step("left_knee_s", 8);
-  message.add_sensor_time_step("left_ankle_roll_s", 8);
-  message.add_sensor_time_step("left_ankle_pitch_s", 8);
-  message.add_sensor_time_step("right_hip_yaw_s", 8);
-  message.add_sensor_time_step("right_hip_roll_s", 8);
-  message.add_sensor_time_step("right_hip_pitch_s", 8);
-  message.add_sensor_time_step("right_knee_s", 8);
-  message.add_sensor_time_step("right_ankle_roll_s", 8);
-  message.add_sensor_time_step("right_ankle_pitch_s", 8);
-
   client.send(*message.get_actuator_request());
 
   auto imu = std::make_shared<kansei::Imu>();
-
   auto walking = std::make_shared<aruku::Walking>(imu);
+
   walking->initialize();
+  walking->load_data("/home/finesa/configuration/walking/");
   walking->start();
 
   auto head = std::make_shared<atama::Head>(walking, imu);
-
   auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
 
   std::string cmds[3] = {};
@@ -113,8 +91,6 @@ int main(int argc, char * argv[])
 
   while (client.get_tcp_socket()->is_connected()) {
     try {
-      message.clear_actuator_request();
-
       auto sensors = client.receive();
 
       float gy[3];
@@ -133,9 +109,9 @@ int main(int argc, char * argv[])
         acc[2] = accelerometer.value().z();
       }
 
-      auto time = sensors.get()->time();
+      auto seconds = (sensors.get()->time() + 0.0) / 1000;
 
-      imu->compute_rpy(gy, acc, time);
+      imu->compute_rpy(gy, acc, seconds);
       head->process();
       walking->process();
 
@@ -148,36 +124,49 @@ int main(int argc, char * argv[])
         std::cout << "loaded data\n";
 
         if (cmds[0] == "pivot" && !cmds[1].empty()) {
-          locomotion->pivot(std::stof(cmds[1]));
+          float direction = std::stof(cmds[1]);
+          std::cout << "pivot at " << direction << "\n";
+          locomotion->pivot(direction);
         } else if (cmds[0] == "move_follow_head" && !cmds[1].empty()) {
-          locomotion->move_follow_head(std::stof(cmds[1]));
+          float direction = std::stof(cmds[1]);
+          std::cout << "move follow head at " << direction << "\n";
+          locomotion->move_follow_head(direction);
         } else if (cmds[0] == "move_to_target" && !cmds[2].empty()) {
-          locomotion->move_to_target(std::stof(cmds[1]), std::stof(cmds[2]));
+          float target_x = std::stof(cmds[1]);
+          float target_y = std::stof(cmds[2]);
+          std::cout << "move to target at x" << target_x << " - y " << target_y << "\n";
+          locomotion->move_to_target(target_x, target_y);
         } else if (cmds[0] == "set_position" && !cmds[2].empty()) {
-          locomotion->set_position(std::stof(cmds[1]), std::stof(cmds[2]));
+           float target_x = std::stof(cmds[1]);
+          float target_y = std::stof(cmds[2]);
+          std::cout << "set position at x" << target_x << " - y " << target_y << "\n";
+          locomotion->set_position(target_x, target_y);
         } else {
           std::cout << "-ERR command was not valid\n" << std::endl;
           is_running = false;
         }
+
+        cmds[0].clear();
+        cmds[1].clear();
+        cmds[2].clear();
       }
 
+      message.clear_actuator_request();
       for (auto joint : walking->get_joints()) {
-        if (joint.get_joint_name().find("shoulder_pitch") != std::string::npos) {
-          message.add_motor_position_in_radian(
-            joint.get_joint_name() + " [shouder]", joint.get_goal_position());
-        } else if (joint.get_joint_name().find("hip_yaw") != std::string::npos) {
-          message.add_motor_position_in_radian(
-            joint.get_joint_name() + " [hip]", joint.get_goal_position());
-        } else {
-          message.add_motor_position_in_radian(joint.get_joint_name(), joint.get_goal_position());
+        std::string joint_name = joint.get_joint_name();
+        float position = joint.get_goal_position();
+
+        if (joint_name.find("shoulder_pitch") != std::string::npos) {
+          joint_name += " [shoulder]";
+        } else if (joint_name.find("hip_yaw") != std::string::npos) {
+          joint_name += " [hip]";
         }
+
+        message.add_motor_position_in_degree(joint_name, position);
       }
       client.send(*message.get_actuator_request());
       is_running = false;
 
-      cmds[0].clear();
-      cmds[1].clear();
-      cmds[2].clear();
     } catch (const std::runtime_error & exc) {
       std::cerr << "Runtime error: " << exc.what() << std::endl;
     }
