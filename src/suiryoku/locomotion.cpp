@@ -39,13 +39,8 @@ Locomotion::Locomotion(
   std::shared_ptr<aruku::Walking> walking, 
   std::shared_ptr<atama::Head> head,
   std::shared_ptr<kansei::Imu> imu)
+: head(head), imu(imu), walking(walking)
 {
-  imu = imu;
-  walking = walking;
-  head = head;
-
-  load_data();
-
   position_prev_delta_pan = 0.0;
   position_prev_delta_tilt = 0.0;
   position_in_position_belief = 0.0;
@@ -53,6 +48,8 @@ Locomotion::Locomotion(
   move_finished = true;
   rotate_finished = true;
   pivot_finished = true;
+
+  load_data();
 }
 
 bool Locomotion::walk_in_position()
@@ -122,6 +119,7 @@ bool Locomotion::move_backward(float direction)
 
 bool Locomotion::move_to_target(float target_x, float target_y)
 {
+  std::cout << "position now: x " << walking->POSITION_X << " y " << walking->POSITION_Y <<  " imu yaw " <<  imu->get_yaw() << std::endl; 
   float delta_x = (target_x - walking->POSITION_X);
   float delta_y = (target_y - walking->POSITION_Y);
 
@@ -148,11 +146,14 @@ bool Locomotion::move_to_target(float target_x, float target_y)
     x_speed = 0.0;
   }
 
+  std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed << std::endl;
+
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = y_speed;
   walking->A_MOVE_AMPLITUDE = a_speed;
   walking->A_MOVE_AIM_ON = false;
   walking->start();
+  std::cout << "after position now: x " << walking->POSITION_X << " y " << walking->POSITION_Y << std::endl; 
 
   return move_finished;
 }
@@ -282,14 +283,16 @@ bool Locomotion::dribble(float direction)
 bool Locomotion::pivot(float direction)
 {
   float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
-
+  std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " << imu->get_yaw() << std::endl;
   pivot_finished = (fabs(delta_direction) < ((pivot_finished) ? 30.0 : 20.0));
   if (pivot_finished) {
+    std::cout << "pivot_finished" << std::endl;
     return true;
   }
 
   float pan = head->get_pan_angle() + head->get_pan_center();
   float tilt = head->get_tilt_angle() + head->get_tilt_center();
+  std::cout << " pan " << pan << "| tilt " << tilt << std::endl;
 
   float delta_tilt = pivot_target_tilt - tilt;
 
@@ -307,6 +310,7 @@ bool Locomotion::pivot(float direction)
   // a movement
   float a_speed = alg::mapValue(pan, -10.0, 10.0, pivot_max_a, -pivot_max_a);
 
+  std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed << std::endl;
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = y_speed;
   walking->A_MOVE_AMPLITUDE = a_speed;

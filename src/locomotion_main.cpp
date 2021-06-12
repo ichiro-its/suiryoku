@@ -57,9 +57,10 @@ int main(int argc, char * argv[])
   auto imu = std::make_shared<kansei::Imu>();
   auto walking = std::make_shared<aruku::Walking>(imu);
 
-  walking->initialize();
   walking->load_data("/home/finesa/configuration/walking/");
+  walking->initialize();
   walking->start();
+  std::cout << "start now: x " << walking->POSITION_X << " y " << walking->POSITION_Y << std::endl; 
 
   auto head = std::make_shared<atama::Head>(walking, imu);
   auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
@@ -67,13 +68,17 @@ int main(int argc, char * argv[])
   std::string cmds[3] = {};
 
   bool is_running = false;
-  std::thread input_handler([&cmds, &is_running] {
+  bool is_running_now = false;
+  std::string current_mode = "";
+  float target_x, target_y, target_direction;
+
+  std::thread input_handler([&cmds, &is_running, &is_running_now] {
     while (true) {
-      if (!is_running) {
+      if (!is_running && !is_running_now) {
         std::cout << "> run : ";
         std::cin >> cmds[0];
 
-        if (cmds[0].find("move") != std::string::npos) {
+        if (cmds[0].find("move_to_target") != std::string::npos || cmds[0].find("set_position") != std::string::npos ) {
           std::cout << "  target x : ";
           std::cin >> cmds[1];
           std::cout << "  target y : ";
@@ -91,6 +96,7 @@ int main(int argc, char * argv[])
 
   while (client.get_tcp_socket()->is_connected()) {
     try {
+      message.clear_actuator_request();
       auto sensors = client.receive();
 
       float gy[3];
@@ -112,10 +118,33 @@ int main(int argc, char * argv[])
       auto seconds = (sensors.get()->time() + 0.0) / 1000;
 
       imu->compute_rpy(gy, acc, seconds);
-      head->process();
-      walking->process();
-
-      if (!cmds[0].empty() && !cmds[1].empty() && !cmds[2].empty()) {
+      
+      if (is_running && is_running_now) {
+        std::cout << "masuk running mode " << current_mode << std::endl;
+        if (current_mode == "pivot") {
+          if(locomotion->pivot(target_direction)) { 
+            is_running = false;
+            is_running_now = false; 
+          }
+          else { std::cout << "still pivoting go to " << target_direction << std::endl; }
+        } else if (current_mode == "move_follow_head") {
+          if(locomotion->move_follow_head(target_direction)) { 
+            is_running = false; 
+            is_running_now = false; 
+          }
+          else { std::cout << "still move follow head go to " << target_direction << std::endl; }
+        } else if (current_mode == "move_to_target") {
+          if(locomotion->move_to_target(target_x, target_y)) { 
+            is_running = false; 
+            is_running_now = false; 
+          }
+          else { std::cout << "still move_to_target go to x " << target_x << " y " << target_y << std::endl; }
+        } else if (current_mode == "set_position") {
+          locomotion->set_position(target_x, target_y);
+          is_running = false;
+          is_running_now = false; 
+        }
+      } else if (!cmds[0].empty() && !cmds[1].empty() && !cmds[2].empty()) {
         if (cmds[0] == "q") { 
           break;
         }
@@ -123,35 +152,31 @@ int main(int argc, char * argv[])
         locomotion->load_data();
         std::cout << "loaded data\n";
 
-        if (cmds[0] == "pivot" && !cmds[1].empty()) {
-          float direction = std::stof(cmds[1]);
-          std::cout << "pivot at " << direction << "\n";
-          locomotion->pivot(direction);
-        } else if (cmds[0] == "move_follow_head" && !cmds[1].empty()) {
-          float direction = std::stof(cmds[1]);
-          std::cout << "move follow head at " << direction << "\n";
-          locomotion->move_follow_head(direction);
-        } else if (cmds[0] == "move_to_target" && !cmds[2].empty()) {
-          float target_x = std::stof(cmds[1]);
-          float target_y = std::stof(cmds[2]);
-          std::cout << "move to target at x" << target_x << " - y " << target_y << "\n";
-          locomotion->move_to_target(target_x, target_y);
-        } else if (cmds[0] == "set_position" && !cmds[2].empty()) {
-           float target_x = std::stof(cmds[1]);
-          float target_y = std::stof(cmds[2]);
-          std::cout << "set position at x" << target_x << " - y " << target_y << "\n";
-          locomotion->set_position(target_x, target_y);
+        current_mode = cmds[0];
+        if ((cmds[0] == "pivot" ||  cmds[0] == "move_follow_head") && !cmds[1].empty()) {
+          target_direction = std::stof(cmds[1]);
+          std::cout << "will " << current_mode << " at " << target_direction << "\n";
+        } else if ((cmds[0] == "move_to_target" ||  cmds[0] == "set_position") && !cmds[2].empty()) {
+          target_x = std::stof(cmds[1]);
+          target_y = std::stof(cmds[2]);
+          std::cout << "will " << current_mode << " at x " << target_x << " - y " << target_y << "\n";
         } else {
           std::cout << "-ERR command was not valid\n" << std::endl;
           is_running = false;
         }
+
+        is_running_now = true;
 
         cmds[0].clear();
         cmds[1].clear();
         cmds[2].clear();
       }
 
-      message.clear_actuator_request();
+      head->process();
+      imu->compute_rpy(gy, acc, seconds);
+      walking->process();
+      if(is_running_now) std::cout << "in main now: x " << walking->POSITION_X << " y " << walking->POSITION_Y << std::endl; 
+
       for (auto joint : walking->get_joints()) {
         std::string joint_name = joint.get_joint_name();
         float position = joint.get_goal_position();
@@ -165,8 +190,6 @@ int main(int argc, char * argv[])
         message.add_motor_position_in_degree(joint_name, position);
       }
       client.send(*message.get_actuator_request());
-      is_running = false;
-
     } catch (const std::runtime_error & exc) {
       std::cerr << "Runtime error: " << exc.what() << std::endl;
     }
