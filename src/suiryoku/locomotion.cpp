@@ -48,8 +48,6 @@ Locomotion::Locomotion(
   move_finished = true;
   rotate_finished = true;
   pivot_finished = true;
-
-  load_data();
 }
 
 bool Locomotion::walk_in_position()
