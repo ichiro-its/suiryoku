@@ -33,13 +33,14 @@
 
 int main(int argc, char * argv[])
 {
-  if (argc < 3) {
+  if (argc < 4) {
     std::cerr << "Please specify the host, the port, and the path!" << std::endl;
     return 0;
   }
 
   std::string host = argv[1];
   int port = std::stoi(argv[2]);
+  std::string path = argv[3];
 
   robocup_client::RobotClient client(host, port);
   if (!client.connect()) {
@@ -57,12 +58,15 @@ int main(int argc, char * argv[])
   auto imu = std::make_shared<kansei::Imu>();
   auto walking = std::make_shared<aruku::Walking>(imu);
 
-  walking->load_data("/home/finesa/configuration/walking/");
   walking->initialize();
+  walking->load_data(path + "walking/");
   walking->start();
   std::cout << "start now: x " << walking->POSITION_X << " y " << walking->POSITION_Y << std::endl; 
 
   auto head = std::make_shared<atama::Head>(walking, imu);
+  head->initialize();
+  head->load_data(path + "head/");
+  
   auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
 
   std::string cmds[3] = {};
@@ -149,7 +153,7 @@ int main(int argc, char * argv[])
           break;
         }
 
-        locomotion->load_data();
+        locomotion->load_data(path + "locomotion/");
         std::cout << "loaded data\n";
 
         current_mode = cmds[0];
