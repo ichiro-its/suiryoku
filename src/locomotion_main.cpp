@@ -59,13 +59,13 @@ int main(int argc, char * argv[])
   auto walking = std::make_shared<aruku::Walking>(imu);
 
   walking->initialize();
-  walking->load_data(path + "walking/");
+  walking->load_data(path);
   walking->start();
   std::cout << "start now: x " << walking->POSITION_X << " y " << walking->POSITION_Y << std::endl; 
 
   auto head = std::make_shared<atama::Head>(walking, imu);
   head->initialize();
-  head->load_data(path + "head/");
+  head->load_data(path);
   
   auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
 
@@ -153,7 +153,7 @@ int main(int argc, char * argv[])
           break;
         }
 
-        locomotion->load_data(path + "locomotion/");
+        locomotion->load_data(path);
         std::cout << "loaded data\n";
 
         current_mode = cmds[0];

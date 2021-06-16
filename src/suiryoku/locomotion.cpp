@@ -405,7 +405,7 @@ bool Locomotion::move_to_position_right_kick(float direction)
 
 void Locomotion::load_data(const std::string & path) 
 {
-  std::string file_name = path + "suiryoku.json";
+  std::string file_name = path + "locomotion/" + "suiryoku.json";
   std::ifstream file(file_name);
   nlohmann::json locomotion_data = nlohmann::json::parse(file);
 
