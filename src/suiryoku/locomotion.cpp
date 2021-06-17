@@ -29,6 +29,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <string>
 
 #include "common/algebra.h"
 
@@ -36,7 +37,7 @@ namespace suiryoku
 {
 
 Locomotion::Locomotion(
-  std::shared_ptr<aruku::Walking> walking, 
+  std::shared_ptr<aruku::Walking> walking,
   std::shared_ptr<atama::Head> head,
   std::shared_ptr<kansei::Imu> imu)
 : head(head), imu(imu), walking(walking)
@@ -48,6 +49,44 @@ Locomotion::Locomotion(
   move_finished = true;
   rotate_finished = true;
   pivot_finished = true;
+
+  // ball follower
+  m_NoBallMaxCount = 10;
+  m_BallMaxCount = 5;
+  m_NoBallCount = m_NoBallMaxCount;
+  m_KickBallMaxCount = 10;
+  m_KickBallCount = 0;
+  m_counting = 0;
+
+  m_KickTopAngle = -5.0;
+  m_KickRightAngle = -15.0;
+  m_KickLeftAngle = 15.0;
+
+  m_FollowMaxFBStep = FOLLOW_MAX_FBSTEP;  // 10.0; // 20.0;
+  m_FollowMinFBStep = FOLLOW_MIN_FBSTEP;
+  m_FollowMaxRLTurn = FOLLOW_MAX_RLTURN;  // 55.0;
+  m_FitFBStep = 3.0;
+  m_FitMaxRLTurn = 40.0;
+  m_UnitFBStep = 0.3;
+  m_UnitRLTurn = 5.0;
+
+  m_GoalFBStep = 0;
+  m_GoalRLTurn = 0;
+  m_FBStep = 0;
+  m_RLTurn = 0;
+  DEBUG_PRINT = false;
+  KickBall = 0;
+  KickA = 0;
+  majuFollow = 0;
+  putarFollow = 0;
+
+  doneFollow = false;
+  initial_tilt = head->get_top_limit();
+  m_Compass = 360;
+  initialize_mode = true;
+
+  target_direction = 360;
+  rotate = true;
 }
 
 bool Locomotion::walk_in_position()
@@ -117,7 +156,8 @@ bool Locomotion::move_backward(float direction)
 
 bool Locomotion::move_to_target(float target_x, float target_y)
 {
-  std::cout << "position now: x " << walking->POSITION_X << " y " << walking->POSITION_Y <<  " imu yaw " <<  imu->get_yaw() << std::endl; 
+  std::cout << "position now: x " << walking->POSITION_X << " y " << walking->POSITION_Y <<
+    " imu yaw " << imu->get_yaw() << std::endl;
   float delta_x = (target_x - walking->POSITION_X);
   float delta_y = (target_y - walking->POSITION_Y);
 
@@ -144,14 +184,16 @@ bool Locomotion::move_to_target(float target_x, float target_y)
     x_speed = 0.0;
   }
 
-  std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed << std::endl;
+  std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed <<
+    std::endl;
 
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = y_speed;
   walking->A_MOVE_AMPLITUDE = a_speed;
   walking->A_MOVE_AIM_ON = false;
   walking->start();
-  std::cout << "after position now: x " << walking->POSITION_X << " y " << walking->POSITION_Y << std::endl; 
+  std::cout << "after position now: x " << walking->POSITION_X << " y " << walking->POSITION_Y <<
+    std::endl;
 
   return move_finished;
 }
@@ -281,7 +323,8 @@ bool Locomotion::dribble(float direction)
 bool Locomotion::pivot(float direction)
 {
   float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
-  std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " << imu->get_yaw() << std::endl;
+  std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " <<
+    imu->get_yaw() << std::endl;
   pivot_finished = (fabs(delta_direction) < ((pivot_finished) ? 30.0 : 20.0));
   if (pivot_finished) {
     std::cout << "pivot_finished" << std::endl;
@@ -308,7 +351,8 @@ bool Locomotion::pivot(float direction)
   // a movement
   float a_speed = alg::mapValue(pan, -10.0, 10.0, pivot_max_a, -pivot_max_a);
 
-  std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed << std::endl;
+  std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed <<
+    std::endl;
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = y_speed;
   walking->A_MOVE_AMPLITUDE = a_speed;
@@ -403,7 +447,7 @@ bool Locomotion::move_to_position_right_kick(float direction)
   return move_to_position_until_pan_tilt(right_kick_target_pan, right_kick_target_tilt, direction);
 }
 
-void Locomotion::load_data(const std::string & path) 
+void Locomotion::load_data(const std::string & path)
 {
   std::string file_name = path + "locomotion/" + "suiryoku.json";
   std::ifstream file(file_name);
@@ -412,10 +456,10 @@ void Locomotion::load_data(const std::string & path)
   for (auto &[key, val] : locomotion_data.items()) {
     if (key == "Move") {
       try {
-        val.at("min_x").get_to(move_min_x); 
-        val.at("max_x").get_to(move_max_x); 
-        val.at("max_y").get_to(move_max_y); 
-        val.at("max_a").get_to(move_max_a); 
+        val.at("min_x").get_to(move_min_x);
+        val.at("max_x").get_to(move_max_x);
+        val.at("max_y").get_to(move_max_y);
+        val.at("max_a").get_to(move_max_a);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
@@ -476,7 +520,214 @@ void Locomotion::load_data(const std::string & path)
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
-    }  
+    }
   }
+}
+
+// ball follower
+void Locomotion::Process(keisan::Point2 ball_pos)
+{
+  Process(ball_pos, 360, 360);
+}
+
+void Locomotion::Process(keisan::Point2 ball_pos, double compass, double ball_direction)
+{
+  if (ball_pos.x == -1.0 || ball_pos.y == -1.0) {
+    KickBall = 0;
+
+    if (m_NoBallCount > m_NoBallMaxCount) {
+      // can not find a ball
+      m_GoalFBStep = 0;
+      m_GoalRLTurn = 0;
+      // Head::getInstance()->moveByAngle(0,30);
+
+      if (DEBUG_PRINT == true) {
+        fprintf(stderr, "\r [NO BALL]");
+      }
+    } else {
+      m_NoBallCount++;
+      if (DEBUG_PRINT == true) {
+        fprintf(stderr, "[NO BALL COUNTING(%d/%d)]", m_NoBallCount, m_NoBallMaxCount);
+      }
+    }
+  } else {
+    m_NoBallCount = 0;
+    double pan = head->get_pan_angle();
+    double pan_range = PAN_RANGE;
+    double pan_percent = pan / pan_range;
+
+    double follow_pan_range = FOLLOW_PAN_RANGE;
+    double follow_pan_percent = pan / follow_pan_range;
+    if (follow_pan_percent > 1.0) {follow_pan_percent = 1.0;} else if (follow_pan_percent < -1.0) {
+      follow_pan_percent = -1.0;
+    }
+
+    if (follow_pan_percent > 0) {follow_pan_percent = 1.0 - follow_pan_percent;} else {
+      follow_pan_percent = 1 - (-1.0 * follow_pan_percent);
+    }
+
+    double tilt = head->get_tilt_angle();
+
+    double tilt_range = TILT_MAX - TILT_MIN;
+    double tilt_percent = (tilt - TILT_MIN) / tilt_range;
+
+    double tilt_dist = (tilt - CLOSE_TILT) / (initial_tilt - CLOSE_TILT);
+    if (tilt_dist >= 0) {tilt_dist = 1 - tilt_dist;} else {tilt_dist = 1 + tilt_dist;}
+
+    m_Compass = compass;
+
+    if (tilt_percent < 0) {
+      tilt_percent = -tilt_percent;
+    }
+
+    // DEBUG_PRINT = true;
+    if (DEBUG_PRINT) {
+      printf(
+        "pan persen %f, tilt persen %f, pan %f, tilt %f\n", pan_percent, tilt_percent, pan,
+        tilt);
+      printf("pan range %f, tilt range %f\n", pan_range, tilt_range);
+      printf("tilt dist %f, close tilt %f\n", tilt_dist, CLOSE_TILT);
+      printf("ball_direction %f\n", ball_direction);
+    }
+    // DEBUG_PRINT = false;
+
+    if (DEBUG_PRINT) {fprintf(stderr, "rotate %d\n", rotate);}
+
+    if (pan > m_KickRightAngle && pan < m_KickLeftAngle) {
+      if (tilt <= CLOSE_TILT) {
+        if (DEBUG_PRINT == true) {
+          printf("ball pos y : %f, ball pos x : %f\n", ball_pos.y, ball_pos.x);
+        }
+        // if(pan < 10 && pan > -10)
+        // {
+        if (DEBUG_PRINT == true) {printf("CENTER\n");}
+        m_GoalFBStep = 0;
+        m_GoalRLTurn = 0;
+
+        if (m_KickBallCount >= m_KickBallMaxCount) {
+          doneFollow = true;
+          m_FBStep = 0;
+          m_RLTurn = 0;
+          if (DEBUG_PRINT == true) {
+            fprintf(stderr, "[KICK]\n");
+          }
+
+        } else {
+          m_FBStep = 0;
+          m_RLTurn = 0;
+          doneFollow = false;
+          KickBall = 0;
+          if (DEBUG_PRINT == true) {
+            fprintf(stderr, "[KICK COUNTING(%d/%d)]\n", m_KickBallCount, m_KickBallMaxCount);
+          }
+        }
+      } else {
+        doneFollow = false;
+        m_KickBallCount = 0;
+        KickBall = 0;
+
+        m_GoalFBStep = m_FollowMaxFBStep * tilt_percent;
+        if (m_GoalFBStep < m_FollowMinFBStep) {
+          m_GoalFBStep = m_FollowMinFBStep;
+        }
+        if (m_GoalFBStep > m_FollowMaxFBStep) {
+          m_GoalFBStep = m_FollowMaxFBStep;
+        }
+
+        m_GoalRLTurn = m_FollowMaxRLTurn * pan_percent;
+        m_GoalFBStep -= fabs(m_GoalRLTurn);
+
+        if (DEBUG_PRINT == true) {
+          fprintf(stderr, "[FOLLOW1(P:%.2f T:%.2f>%.2f]\n", pan, tilt, TILT_MIN);
+        }
+      }
+    } else {
+      InitFollower();
+      m_KickBallCount = 0;
+      KickBall = 0;
+
+      m_GoalFBStep = FOLLOW_FBSTEP * follow_pan_percent;
+      if (m_GoalFBStep > m_FollowMaxFBStep) {
+        m_GoalFBStep = m_FollowMaxFBStep;
+      }
+
+      m_GoalRLTurn = m_FollowMaxRLTurn * pan_percent;
+      if (m_GoalRLTurn > FOLLOW_MAX_RLTURN) {
+        m_GoalRLTurn = FOLLOW_MAX_RLTURN;
+      } else if (m_GoalRLTurn < -FOLLOW_MAX_RLTURN) {m_GoalRLTurn = -FOLLOW_MAX_RLTURN;}
+
+      // printf("m_GoalFBStep %f m_GoalRLTurn %f\n",m_GoalFBStep,m_GoalRLTurn );
+
+      if (DEBUG_PRINT == true) {
+        fprintf(stderr, "[FOLLOW2(P:%.2f T:%.2f>%.2f]\n", pan, tilt, TILT_MIN);
+      }
+    }
+  }
+
+  if (m_GoalFBStep == 0 && m_GoalRLTurn == 0 && m_FBStep == 0 && m_RLTurn == 0) {
+    if (walking->is_running() == true) {
+      if (m_KickBallCount < m_KickBallMaxCount) {
+        m_KickBallCount++;
+      }
+    } else {m_KickBallCount = m_KickBallMaxCount;}
+
+    if (DEBUG_PRINT == true) {
+      fprintf(stderr, " STOP\n");
+    }
+  } else {
+    if (DEBUG_PRINT == true) {
+      fprintf(stderr, " START\n");
+    }
+
+    if (walking->is_running() == false) {
+      m_FBStep = 0;
+      m_RLTurn = 0;
+      m_KickBallCount = 0;
+      KickBall = 0;
+      walking->A_MOVE_AIM_ON = false;
+      walking->X_MOVE_AMPLITUDE = m_FBStep;
+      walking->A_MOVE_AMPLITUDE = m_RLTurn;
+      walking->start();
+    } else {
+      if (DEBUG_PRINT) {
+        fprintf(
+          stderr, "m_RLTurn:%.2f, m_GoalRLTurn:%.2f, m_FBStep:%.2f, m_GoalFBStep:%.2f\n",
+          m_RLTurn, m_GoalRLTurn, m_FBStep, m_GoalFBStep);
+      }
+
+      m_RLTurn = m_GoalRLTurn;
+      m_FBStep = m_GoalFBStep;
+
+      // nambah perlambatan ketika following bola
+      if (m_counting < m_GoalFBStep) {m_FBStep = m_counting;}
+
+      walking->A_MOVE_AIM_ON = false;
+      walking->X_MOVE_AMPLITUDE = m_FBStep;
+      walking->A_MOVE_AMPLITUDE = m_RLTurn;
+      walking->Y_MOVE_AMPLITUDE = 0;
+
+      if (DEBUG_PRINT == true) {
+        fprintf(stderr, " (FB:%.1f RL:%.1f)\n", m_FBStep, m_RLTurn);
+      }
+    }
+  }
+  // printf("step FB %f step RLturn %f\n",m_FBStep,m_RLTurn );
+  m_counting++;
+}
+
+bool Locomotion::isDoneFollowing()
+{
+  return doneFollow;
+}
+
+void Locomotion::InitFollower()
+{
+  m_counting = 0;
+  rotate = true;
+  initialize_mode = true;
+  doneFollow = false;
+  m_KickBallCount = 0;
+  m_NoBallCount = 0;
+  initial_tilt = head->get_tilt_angle();
 }
 }  // namespace suiryoku

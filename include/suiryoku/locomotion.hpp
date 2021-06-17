@@ -26,6 +26,18 @@
 #include <kansei/imu.hpp>
 
 #include <memory>
+#include <string>
+
+/*bola besar*/
+#define FOLLOW_FBSTEP           30.0
+#define FOLLOW_MAX_FBSTEP       45.0
+#define FOLLOW_MIN_FBSTEP       30.0
+#define FOLLOW_MAX_RLTURN       20.0
+#define PAN_RANGE                       30.0
+#define FOLLOW_PAN_RANGE        100.0
+#define TILT_MIN                        10.0  // -15.0
+#define TILT_MAX                        45.0
+#define CLOSE_TILT                      15.0
 
 namespace suiryoku
 {
@@ -34,7 +46,7 @@ class Locomotion
 {
 public:
   Locomotion(
-    std::shared_ptr<aruku::Walking> walking, 
+    std::shared_ptr<aruku::Walking> walking,
     std::shared_ptr<atama::Head> head,
     std::shared_ptr<kansei::Imu> imu);
 
@@ -69,6 +81,17 @@ public:
   bool is_finished() {return move_finished && rotate_finished;}
 
   void load_data(const std::string & path);
+
+  // ball follower
+  bool DEBUG_PRINT;
+  int KickBall;         // 0: No ball 1:Left -1:Right
+  int KickA, np;
+  double putarFollow, majuFollow;
+
+  void Process(keisan::Point2 ball_pos);
+  void Process(keisan::Point2 ball_pos, double compass, double ball_direction);
+  bool isDoneFollowing();
+  void InitFollower();
 
 private:
   std::shared_ptr<kansei::Imu> imu;
@@ -119,6 +142,43 @@ private:
   bool move_finished;
   bool rotate_finished;
   bool pivot_finished;
+
+  // ball follower
+  int m_NoBallMaxCount;
+  int m_NoBallCount;
+  int m_BallMaxCount;
+  int m_KickBallMaxCount;
+  int m_KickBallCount;
+  int m_counting;
+
+  double m_MaxFBStep;
+  double m_MaxRLStep;
+  double m_MaxDirAngle;
+
+  double m_KickTopAngle;
+  double m_KickRightAngle;
+  double m_KickLeftAngle;
+
+  double m_FollowMaxFBStep;
+  double m_FollowMinFBStep;
+  double m_FollowMaxRLTurn;
+  double m_FitFBStep;
+  double m_FitMaxRLTurn;
+  double m_UnitFBStep;
+  double m_UnitRLTurn;
+
+  double m_GoalFBStep;
+  double m_GoalRLTurn;
+  double m_FBStep;
+  double m_RLTurn;
+
+  bool doneFollow;
+  double initial_tilt;
+  double m_Compass;
+
+  bool initialize_mode;
+  double target_direction;
+  bool rotate;
 };
 
 }  // namespace suiryoku
