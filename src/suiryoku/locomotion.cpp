@@ -98,8 +98,8 @@ bool Locomotion::walk_in_position()
   walking->start();
 
   bool in_position = true;
-  in_position &= fabs(walking->get_mx_move_amplitude()) < 5;
-  in_position &= fabs(walking->get_my_move_amplitude()) < 5;
+  in_position &= fabs(walking->get_mx_move_amplitude()) < 5.0;
+  in_position &= fabs(walking->get_my_move_amplitude()) < 5.0;
 
   return in_position;
 }
@@ -156,8 +156,6 @@ bool Locomotion::move_backward(float direction)
 
 bool Locomotion::move_to_target(float target_x, float target_y)
 {
-  std::cout << "position now: x " << walking->POSITION_X << " y " << walking->POSITION_Y <<
-    " imu yaw " << imu->get_yaw() << std::endl;
   float delta_x = (target_x - walking->POSITION_X);
   float delta_y = (target_y - walking->POSITION_Y);
 
@@ -170,6 +168,8 @@ bool Locomotion::move_to_target(float target_x, float target_y)
 
   float target_direction = alg::direction(delta_x, delta_y) * alg::rad2Deg();
   float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+  std::cout << "target_direction " << target_direction << std::endl;
+  std::cout << "delta_direction " << delta_direction << std::endl;
 
   float x_speed = alg::mapValue(fabs(move_max_a), 0, 15, 50, 40);
   if (target_distance < 100.0) {
@@ -184,23 +184,18 @@ bool Locomotion::move_to_target(float target_x, float target_y)
     x_speed = 0.0;
   }
 
-  std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed <<
-    std::endl;
-
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = y_speed;
   walking->A_MOVE_AMPLITUDE = a_speed;
   walking->A_MOVE_AIM_ON = false;
   walking->start();
-  std::cout << "after position now: x " << walking->POSITION_X << " y " << walking->POSITION_Y <<
-    std::endl;
 
   return move_finished;
 }
 
 bool Locomotion::rotate_to_target(float target_direction)
 {
-  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+  float delta_direction = alg::deltaAngle(target_direction,imu->get_yaw());
 
   rotate_finished = (fabs(delta_direction) < ((rotate_finished) ? 20.0 : 15.0));
   if (rotate_finished) {
@@ -233,7 +228,7 @@ bool Locomotion::rotate_to_target(float target_direction)
 
 bool Locomotion::rotate_to_target(float target_direction, bool a_move_only)
 {
-  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+  float delta_direction = alg::deltaAngle(target_direction,imu->get_yaw());
 
   rotate_finished = (fabs(delta_direction) < ((rotate_finished) ? 20.0 : 15.0));
   if (rotate_finished) {
@@ -289,7 +284,7 @@ bool Locomotion::dribble(float direction)
   bool is_dribble = true;
 
   float pan = head->get_pan_angle() + head->get_pan_center();
-  float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
+  float delta_direction = alg::deltaAngle(direction,imu->get_yaw());
 
   // x movement
   float x_speed = 0;
@@ -322,9 +317,8 @@ bool Locomotion::dribble(float direction)
 
 bool Locomotion::pivot(float direction)
 {
-  float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
-  std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " <<
-    imu->get_yaw() << std::endl;
+  float delta_direction = alg::deltaAngle(direction,imu->get_yaw());
+  std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " <<imu->get_yaw() << std::endl;
   pivot_finished = (fabs(delta_direction) < ((pivot_finished) ? 30.0 : 20.0));
   if (pivot_finished) {
     std::cout << "pivot_finished" << std::endl;
@@ -730,4 +724,5 @@ void Locomotion::InitFollower()
   m_NoBallCount = 0;
   initial_tilt = head->get_tilt_angle();
 }
+
 }  // namespace suiryoku

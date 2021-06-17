@@ -23,9 +23,13 @@
 #include <kansei/imu.hpp>
 #include <suiryoku/locomotion.hpp>
 #include <robocup_client/robocup_client.hpp>
+#include <ninshiki_opencv/detector.hpp>
+
+#include "common/algebra.h"
 
 #include <nlohmann/json.hpp>
 
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -85,17 +89,20 @@ int main(int argc, char * argv[])
   walking->initialize();
   walking->load_data(path);
   walking->start();
-<<<<<<< Updated upstream
-  std::cout << "start now: x " << walking->POSITION_X << " y " << walking->POSITION_Y << std::endl;
-=======
->>>>>>> Stashed changes
 
   auto head = std::make_shared<atama::Head>(walking, imu);
   head->initialize();
   head->load_data(path);
-
+  
   auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
   locomotion->load_data(path);
+
+  auto camera = std::make_shared<CameraMeasurement>();
+  cv::Mat frame, frame_hsv, field_mask;
+  keisan::Point2 ball_pos;
+  float view_h_angle, view_v_angle;
+
+  ninshiki_opencv::Detector detector;
 
   std::string cmds[3] = {};
 
@@ -124,10 +131,10 @@ int main(int argc, char * argv[])
           cmds[2] = "empty";
         }
 
-          is_running = true;
-        }
+        is_running = true;
       }
-    });
+    }
+  });
 
   while (client.get_tcp_socket()->is_connected()) {
     try {
@@ -152,7 +159,7 @@ int main(int argc, char * argv[])
       }
 
       imu->compute_rpy(gy, acc, seconds);
-
+      
       if (is_running && is_running_now) {
         if (current_mode == "pivot") {
           if(locomotion->pivot(target_direction)) {
@@ -221,10 +228,10 @@ int main(int argc, char * argv[])
         } else if (current_mode == "set_position") {
           locomotion->set_position(target_x, target_y);
           is_running = false;
-          is_running_now = false;
+          is_running_now = false; 
         }
       } else if (!cmds[0].empty() && !cmds[1].empty() && !cmds[2].empty()) {
-        if (cmds[0] == "q") {
+        if (cmds[0] == "q") { 
           break;
         }
 
@@ -232,11 +239,10 @@ int main(int argc, char * argv[])
         if ((cmds[0] == "pivot" || cmds[0] == "dribble" || cmds[0] == "move_to_position_right_kick" || cmds[0] == "move_to_position_left_kick" || cmds[0] == "rotate_to_target" || cmds[0] == "move_backward") && !cmds[1].empty()) {
           target_direction = std::stof(cmds[1]);
           std::cout << "will " << current_mode << " at " << target_direction << "\n";
-        } else if ((cmds[0] == "move_to_target" || cmds[0] == "set_position") && !cmds[2].empty()) {
+        } else if ((cmds[0] == "move_to_target" ||  cmds[0] == "set_position") && !cmds[2].empty()) {
           target_x = std::stof(cmds[1]);
           target_y = std::stof(cmds[2]);
-          std::cout << "will " << current_mode << " at x " << target_x << " - y " << target_y <<
-            "\n";
+          std::cout << "will " << current_mode << " at x " << target_x << " - y " << target_y << "\n";
         } else {
           std::cout << "-ERR command was not valid\n" << std::endl;
           is_running = false;
@@ -255,6 +261,32 @@ int main(int argc, char * argv[])
         std::cout << "x_speed " << walking->X_MOVE_AMPLITUDE << ", y_speed " << walking->Y_MOVE_AMPLITUDE 
           << ", a_speed " << walking->A_MOVE_AMPLITUDE << std::endl;
         std::cout << "============================================" << std::endl;
+      }
+      
+      // Get Ball Position
+      if (sensors.get()->cameras_size() > 0) {
+        *camera = sensors.get()->cameras(0);
+        cv::Mat temp = detector.get_image(sensors);
+
+        frame = temp.clone();
+        frame_hsv = temp.clone();
+        cv::cvtColor(frame, frame_hsv, cv::COLOR_BGR2HSV);
+
+        detector.vision_process(frame_hsv, frame);
+
+        int field_of_view = 78;
+
+        float diagonal = sqrt(pow(camera->width(), 2) + pow(camera->height(), 2));
+        view_h_angle = 2 * atan2(camera->width() / 2, depth) * 180.0 / M_PI;
+        view_v_angle = 2 * atan2(camera->height() / 2, depth) * 180.0 / M_PI;
+
+        ball_pos = keisan::Point2(detector.get_ball_pos_x(), detector.get_ball_pos_y());
+      }
+
+      if (ball_pos.x == 0 && ball_pos.y == 0) {
+        head->move_scan_ball_down();
+      } else if (ball_pos.x != 0 || ball_pos.y != 0) {
+        head->track_ball(camera, ball_pos, view_v_angle, view_h_angle);
       }
 
       head->process();

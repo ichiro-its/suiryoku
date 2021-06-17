@@ -48,8 +48,15 @@ target_include_directories(locomotion_main PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(locomotion_main ${PROJECT_NAME})
+  
+add_executable(locomotion_head_main "src/locomotion_head_main.cpp")
+target_include_directories(locomotion_head_main PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(locomotion_head_main ${PROJECT_NAME})
 
 install(TARGETS
+  locomotion_head_main
   locomotion_main
   DESTINATION lib/${PROJECT_NAME})
 
