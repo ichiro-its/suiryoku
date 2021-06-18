@@ -84,7 +84,7 @@ int main(int argc, char * argv[])
   client.send(*message.get_actuator_request());
 
   auto imu = std::make_shared<kansei::Imu>();
-  imu->set_path(path);
+  imu->load_data(path);
 
   auto walking = std::make_shared<aruku::Walking>(imu);
   walking->initialize();
@@ -293,7 +293,7 @@ int main(int argc, char * argv[])
         frame_hsv = temp.clone();
         cv::cvtColor(frame, frame_hsv, cv::COLOR_BGR2HSV);
 
-        detector.vision_process(frame_hsv, frame);
+        detector.vision_process(sensors, frame_hsv, frame);
 
         int field_of_view = 78;
 

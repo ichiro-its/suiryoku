@@ -82,16 +82,6 @@ public:
 
   void load_data(const std::string & path);
 
-  // ball follower
-  int kick_ball;         // 0: No ball 1:Left -1:Right
-  int kick_a, np;
-  double putar_follow, maju_follow;
-
-  void follow_ball(keisan::Point2 ball_pos);
-  void follow_ball(keisan::Point2 ball_pos, double compass, double ball_direction);
-  bool is_done_following();
-  void init_follower();
-
 private:
   std::shared_ptr<kansei::Imu> imu;
   std::shared_ptr<aruku::Walking> walking;
@@ -141,43 +131,6 @@ private:
   bool move_finished;
   bool rotate_finished;
   bool pivot_finished;
-
-  // ball follower
-  int m_NoBallMaxCount;
-  int m_NoBallCount;
-  int m_BallMaxCount;
-  int m_KickBallMaxCount;
-  int m_KickBallCount;
-  int m_counting;
-
-  double m_MaxFBStep;
-  double m_MaxRLStep;
-  double m_MaxDirAngle;
-
-  double m_KickTopAngle;
-  double m_KickRightAngle;
-  double m_KickLeftAngle;
-
-  double m_FollowMaxFBStep;
-  double m_FollowMinFBStep;
-  double m_FollowMaxRLTurn;
-  double m_FitFBStep;
-  double m_FitMaxRLTurn;
-  double m_UnitFBStep;
-  double m_UnitRLTurn;
-
-  double m_GoalFBStep;
-  double m_GoalRLTurn;
-  double m_FBStep;
-  double m_RLTurn;
-
-  bool done_follow;
-  double initial_tilt;
-  double m_Compass;
-
-  bool initialize_mode;
-  double target_direction;
-  bool rotate;
 };
 
 }  // namespace suiryoku
