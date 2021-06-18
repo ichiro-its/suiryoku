@@ -194,7 +194,7 @@ bool Locomotion::move_to_target(float target_x, float target_y)
 
 bool Locomotion::rotate_to_target(float target_direction)
 {
-  float delta_direction = alg::deltaAngle(target_direction,imu->get_yaw());
+  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
 
   rotate_finished = (fabs(delta_direction) < ((rotate_finished) ? 20.0 : 15.0));
   if (rotate_finished) {
@@ -227,7 +227,7 @@ bool Locomotion::rotate_to_target(float target_direction)
 
 bool Locomotion::rotate_to_target(float target_direction, bool a_move_only)
 {
-  float delta_direction = alg::deltaAngle(target_direction,imu->get_yaw());
+  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
 
   rotate_finished = (fabs(delta_direction) < ((rotate_finished) ? 20.0 : 15.0));
   if (rotate_finished) {
@@ -268,7 +268,7 @@ bool Locomotion::move_follow_head(float min_tilt)
 
   float x_speed = alg::mapValue(fabs(a_speed), 0.0, follow_max_a, follow_max_x, 0.);
   x_speed = alg::mapValue(head->get_tilt_angle() - min_tilt, 10.0, 0.0, x_speed, 0.0);
-  std::cout << "x speed " << x_speed <<std::endl;
+  std::cout << "x speed " << x_speed << std::endl;
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = 0.0;
   walking->A_MOVE_AMPLITUDE = a_speed;
@@ -283,7 +283,7 @@ bool Locomotion::dribble(float direction)
   bool is_dribble = true;
 
   float pan = head->get_pan_angle() + head->get_pan_center();
-  float delta_direction = alg::deltaAngle(direction,imu->get_yaw());
+  float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
 
   // x movement
   float x_speed = 0;
@@ -316,8 +316,9 @@ bool Locomotion::dribble(float direction)
 
 bool Locomotion::pivot(float direction)
 {
-  float delta_direction = alg::deltaAngle(direction,imu->get_yaw());
-  std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " <<imu->get_yaw() << std::endl;
+  float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
+  std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " <<
+    imu->get_yaw() << std::endl;
   pivot_finished = (fabs(delta_direction) < ((pivot_finished) ? 30.0 : 20.0));
   if (pivot_finished) {
     std::cout << "pivot_finished" << std::endl;

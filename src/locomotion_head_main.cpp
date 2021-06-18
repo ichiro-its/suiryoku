@@ -21,20 +21,20 @@
 #include <aruku/walking.hpp>
 #include <atama/head.hpp>
 #include <kansei/imu.hpp>
-#include <suiryoku/locomotion.hpp>
-#include <robocup_client/robocup_client.hpp>
 #include <ninshiki_opencv/detector.hpp>
-
-#include "common/algebra.h"
-
 #include <nlohmann/json.hpp>
+#include <robocup_client/robocup_client.hpp>
+#include <suiryoku/locomotion.hpp>
 
 #include <unistd.h>
+
 #include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
+
+#include "common/algebra.h"
 
 int main(int argc, char * argv[])
 {
@@ -56,7 +56,7 @@ int main(int argc, char * argv[])
   }
 
   robocup_client::MessageHandler message;
-  message.add_sensor_time_step("Camera", 16); 
+  message.add_sensor_time_step("Camera", 16);
   message.add_sensor_time_step("gyro", 8);
   message.add_sensor_time_step("accelerometer", 8);
 
@@ -85,7 +85,7 @@ int main(int argc, char * argv[])
 
   auto imu = std::make_shared<kansei::Imu>();
   imu->set_path(path);
-  
+
   auto walking = std::make_shared<aruku::Walking>(imu);
   walking->initialize();
   walking->load_data(path);
@@ -94,7 +94,7 @@ int main(int argc, char * argv[])
   auto head = std::make_shared<atama::Head>(walking, imu);
   head->initialize();
   head->load_data(path);
-  
+
   auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
   locomotion->load_data(path);
 
@@ -112,32 +112,37 @@ int main(int argc, char * argv[])
   std::string current_mode = "";
   float target_x, target_y, target_direction;
   std::thread input_handler([&cmds, &is_running, &is_running_now, &imu] {
-    while (true) {
-      if (!is_running && !is_running_now) {
-        std::cout << "> run : ";
-        std::cin >> cmds[0];
+      while (true) {
+        if (!is_running && !is_running_now) {
+          std::cout << "> run : ";
+          std::cin >> cmds[0];
 
-        if (cmds[0].find("move_to_target") != std::string::npos || cmds[0].find("set_position") != std::string::npos ) {
-          std::cout << "  target x : ";
-          std::cin >> cmds[1];
-          std::cout << "  target y : ";
-          std::cin >> cmds[2];
-        } else if (cmds[0].find("walk_in_position") != std::string::npos || cmds[0].find("move_follow_head") != std::string::npos) {
-          cmds[1] = "empty";
-          cmds[2] = "empty";
+          bool input[3] = {};
+          input[0] = cmds[0].find("move_to_target") != std::string::npos || cmds[0].find(
+            "set_position") != std::string::npos
+          input[1] = cmds[0].find("walk_in_position") != std::string::npos || cmds[0].find(
+            "move_follow_head") != std::string::npos;
+          if (input[0]) {
+            std::cout << "  target x : ";
+            std::cin >> cmds[1];
+            std::cout << "  target y : ";
+            std::cin >> cmds[2];
+          } else if (input[1]) {
+            cmds[1] = "empty";
+            cmds[2] = "empty";
+          } else {
+            std::cout << "current orientation: " << imu->get_yaw() << std::endl;
+            std::cout << "  direction : ";
+            std::cin >> cmds[1];
+            cmds[2] = "empty";
+          }
+
+          is_running = true;
         } else {
-          std::cout << "current orientation: " << imu->get_yaw() << std::endl; 
-          std::cout << "  direction : ";
-          std::cin >> cmds[1];
-          cmds[2] = "empty";
+          usleep(100000);
         }
-
-        is_running = true;
-      } else {
-        usleep(100000);
       }
-    }
-  });
+    });
 
   while (client.get_tcp_socket()->is_connected()) {
     try {
@@ -162,91 +167,98 @@ int main(int argc, char * argv[])
       }
 
       imu->compute_rpy(gy, acc, seconds);
-      
+
       if (is_running && is_running_now) {
         if (current_mode == "pivot") {
-          if(locomotion->pivot(target_direction)) {
+          if (locomotion->pivot(target_direction)) {
             locomotion->walk_in_position();
             is_running = false;
-            is_running_now = false; 
+            is_running_now = false;
           } else {
             std::cout << "pivot target_direction " << target_direction << std::endl;
           }
         } else if (current_mode == "dribble") {
-          if(locomotion->dribble(target_direction)) {
+          if (locomotion->dribble(target_direction)) {
             locomotion->walk_in_position();
             is_running = false;
-            is_running_now = false; 
+            is_running_now = false;
           } else {
             std::cout << "dribble target_direction " << target_direction << std::endl;
           }
         } else if (current_mode == "move_to_position_left_kick") {
-          if(locomotion->move_to_position_left_kick(target_direction)) {
+          if (locomotion->move_to_position_left_kick(target_direction)) {
             locomotion->walk_in_position();
             is_running = false;
-            is_running_now = false; 
+            is_running_now = false;
           } else {
-            std::cout << "move_to_position_left_kick target_direction " << target_direction << std::endl;
+            std::cout << "move_to_position_left_kick target_direction " << target_direction <<
+              std::endl;
           }
         } else if (current_mode == "move_to_position_right_kick") {
-          if(locomotion->move_to_position_right_kick(target_direction)) {
+          if (locomotion->move_to_position_right_kick(target_direction)) {
             locomotion->walk_in_position();
             is_running = false;
-            is_running_now = false; 
+            is_running_now = false;
           } else {
-            std::cout << "move_to_position_right_kick target_direction " << target_direction << std::endl;
+            std::cout << "move_to_position_right_kick target_direction " << target_direction <<
+              std::endl;
           }
         } else if (current_mode == "move_follow_head") {
-          if(locomotion->move_follow_head()) {
+          if (locomotion->move_follow_head()) {
             locomotion->walk_in_position();
-            is_running = false; 
-            is_running_now = false; 
+            is_running = false;
+            is_running_now = false;
           } else {
             std::cout << "move_follow_head at " << head->get_tilt_angle() << std::endl;
           }
         } else if (current_mode == "move_to_target") {
-          if(locomotion->move_to_target(target_x, target_y)) {
+          if (locomotion->move_to_target(target_x, target_y)) {
             locomotion->walk_in_position();
-            is_running = false; 
-            is_running_now = false; 
+            is_running = false;
+            is_running_now = false;
           } else {
-            std::cout << "move_to_target target_x " << target_x << ", target_y " << target_y << std::endl;
+            std::cout << "move_to_target target_x " << target_x << ", target_y " << target_y <<
+              std::endl;
           }
         } else if (current_mode == "move_backward") {
-          if(locomotion->move_backward(target_direction)) {
+          if (locomotion->move_backward(target_direction)) {
             locomotion->walk_in_position();
-            is_running = false; 
-            is_running_now = false; 
+            is_running = false;
+            is_running_now = false;
           } else {
             std::cout << "move_backward target_direction " << target_direction << std::endl;
           }
         } else if (current_mode == "rotate_to_target") {
-          if(locomotion->rotate_to_target(target_direction)) {
+          if (locomotion->rotate_to_target(target_direction)) {
             locomotion->walk_in_position();
-            is_running = false; 
-            is_running_now = false; 
+            is_running = false;
+            is_running_now = false;
           } else {
             std::cout << "rotato_to_target target_direction " << target_direction << std::endl;
           }
         } else if (current_mode == "set_position") {
           locomotion->set_position(target_x, target_y);
           is_running = false;
-          is_running_now = false; 
+          is_running_now = false;
         }
       } else if (!cmds[0].empty() && !cmds[1].empty() && !cmds[2].empty()) {
-        if (cmds[0] == "q") { 
+        if (cmds[0] == "q") {
           break;
         }
 
         current_mode = cmds[0];
-        if ((cmds[0] == "pivot" || cmds[0] == "dribble" || cmds[0] == "move_to_position_right_kick" || cmds[0] == "move_to_position_left_kick" || cmds[0] == "rotate_to_target" || cmds[0] == "move_backward") && !cmds[1].empty()) {
+        if ((cmds[0] == "pivot" || cmds[0] == "dribble" ||
+          cmds[0] == "move_to_position_right_kick" || cmds[0] == "move_to_position_left_kick" ||
+          cmds[0] == "rotate_to_target" || cmds[0] == "move_backward") && !cmds[1].empty())
+        {
           target_direction = std::stof(cmds[1]);
           std::cout << "will " << current_mode << " at " << target_direction << "\n";
-        } else if ((cmds[0] == "move_to_target" ||  cmds[0] == "set_position") && !cmds[2].empty()) {
+        } else if ((cmds[0] == "move_to_target" || cmds[0] == "set_position") && !cmds[2].empty()) {
           target_x = std::stof(cmds[1]);
           target_y = std::stof(cmds[2]);
-          std::cout << "will " << current_mode << " at x " << target_x << " - y " << target_y << "\n";
-        } else if ((cmds[0] == "walk_in_position" ||  cmds[0] == "move_follow_head")) {
+          std::cout << "will " << current_mode << " at x " << target_x << " - y " << target_y <<
+            "\n";
+        } else if ((cmds[0] == "walk_in_position" || cmds[0] == "move_follow_head")) {
           std::cout << "will " << current_mode << "\n";
         } else {
           std::cout << "-ERR command was not valid\n" << std::endl;
@@ -259,17 +271,19 @@ int main(int argc, char * argv[])
         cmds[1].clear();
         cmds[2].clear();
       }
-      
-      if(is_running_now) {
-        std::cout << "pan " << head->get_pan_angle() << std::endl; 
-        std::cout << "tilt " << head->get_tilt_angle() << std::endl; 
-        std::cout << "orientation " << imu->get_yaw() << std::endl; 
-        std::cout << "pos_x " << walking->POSITION_X << ", pos_y " << walking->POSITION_Y << std::endl; 
-        std::cout << "x_speed " << walking->X_MOVE_AMPLITUDE << ", y_speed " << walking->Y_MOVE_AMPLITUDE 
-          << ", a_speed " << walking->A_MOVE_AMPLITUDE << std::endl;
+
+      if (is_running_now) {
+        std::cout << "pan " << head->get_pan_angle() << std::endl;
+        std::cout << "tilt " << head->get_tilt_angle() << std::endl;
+        std::cout << "orientation " << imu->get_yaw() << std::endl;
+        std::cout << "pos_x " << walking->POSITION_X << ", pos_y " << walking->POSITION_Y <<
+          std::endl;
+        std::cout << "x_speed " << walking->X_MOVE_AMPLITUDE << ", y_speed " <<
+          walking->Y_MOVE_AMPLITUDE <<
+          ", a_speed " << walking->A_MOVE_AMPLITUDE << std::endl;
         std::cout << "============================================" << std::endl;
       }
-      
+
       // Get Ball Position
       if (sensors.get()->cameras_size() > 0) {
         *camera = sensors.get()->cameras(0);
