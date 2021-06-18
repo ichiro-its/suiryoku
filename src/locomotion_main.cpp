@@ -85,10 +85,6 @@ int main(int argc, char * argv[])
   walking->initialize();
   walking->load_data(path);
   walking->start();
-<<<<<<< Updated upstream
-  std::cout << "start now: x " << walking->POSITION_X << " y " << walking->POSITION_Y << std::endl;
-=======
->>>>>>> Stashed changes
 
   auto head = std::make_shared<atama::Head>(walking, imu);
   head->initialize();

@@ -83,15 +83,14 @@ public:
   void load_data(const std::string & path);
 
   // ball follower
-  bool DEBUG_PRINT;
-  int KickBall;         // 0: No ball 1:Left -1:Right
-  int KickA, np;
-  double putarFollow, majuFollow;
+  int kick_ball;         // 0: No ball 1:Left -1:Right
+  int kick_a, np;
+  double putar_follow, maju_follow;
 
-  void Process(keisan::Point2 ball_pos);
-  void Process(keisan::Point2 ball_pos, double compass, double ball_direction);
-  bool isDoneFollowing();
-  void InitFollower();
+  void follow_ball(keisan::Point2 ball_pos);
+  void follow_ball(keisan::Point2 ball_pos, double compass, double ball_direction);
+  bool is_done_following();
+  void init_follower();
 
 private:
   std::shared_ptr<kansei::Imu> imu;
@@ -172,7 +171,7 @@ private:
   double m_FBStep;
   double m_RLTurn;
 
-  bool doneFollow;
+  bool done_follow;
   double initial_tilt;
   double m_Compass;
 

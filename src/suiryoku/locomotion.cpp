@@ -74,13 +74,12 @@ Locomotion::Locomotion(
   m_GoalRLTurn = 0;
   m_FBStep = 0;
   m_RLTurn = 0;
-  DEBUG_PRINT = false;
-  KickBall = 0;
-  KickA = 0;
-  majuFollow = 0;
-  putarFollow = 0;
+  kick_ball = 0;
+  kick_a = 0;
+  maju_follow = 0;
+  putar_follow = 0;
 
-  doneFollow = false;
+  done_follow = false;
   initial_tilt = head->get_top_limit();
   m_Compass = 360;
   initialize_mode = true;
@@ -269,7 +268,7 @@ bool Locomotion::move_follow_head(float min_tilt)
 
   float x_speed = alg::mapValue(fabs(a_speed), 0.0, follow_max_a, follow_max_x, 0.);
   x_speed = alg::mapValue(head->get_tilt_angle() - min_tilt, 10.0, 0.0, x_speed, 0.0);
-
+  std::cout << "x speed " << x_speed <<std::endl;
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = 0.0;
   walking->A_MOVE_AMPLITUDE = a_speed;
@@ -368,8 +367,8 @@ bool Locomotion::move_to_position_until_pan_tilt(
 
   float delta_direction = alg::deltaAngle(direction, walking->ORIENTATION);
 
-  printf("pan err %.1f tilt err %.1f\n", head->get_pan_error(), head->get_tilt_error());
-  printf("positioning %.2f %.2f (%.2f)\n", delta_pan, delta_tilt, position_in_position_belief);
+  // printf("pan err %.1f tilt err %.1f\n", head->get_pan_error(), head->get_tilt_error());
+  // printf("positioning %.2f %.2f (%.2f)\n", delta_pan, delta_tilt, position_in_position_belief);
 
   if (fabs(delta_direction) < 10.0) {
     if (fabs(delta_pan) < (3.0 + (3.0 * position_in_position_belief))) {
@@ -399,7 +398,7 @@ bool Locomotion::move_to_position_until_pan_tilt(
   // x movement
   float x_speed = 0.0;
   float delta_tilt_pan = delta_tilt + (fabs(delta_pan) * 0.5);
-  printf("delta tilt pan %.1f\n", delta_tilt_pan);
+  // printf("delta tilt pan %.1f\n", delta_tilt_pan);
   if (delta_tilt_pan > 3.0) {
     x_speed = alg::mapValue(delta_tilt_pan, 3.0, 20.0, position_min_x * 0.5, position_min_x);
   } else if (delta_tilt_pan < -3.0) {
@@ -519,30 +518,23 @@ void Locomotion::load_data(const std::string & path)
 }
 
 // ball follower
-void Locomotion::Process(keisan::Point2 ball_pos)
+void Locomotion::follow_ball(keisan::Point2 ball_pos)
 {
-  Process(ball_pos, 360, 360);
+  follow_ball(ball_pos, 360, 360);
 }
 
-void Locomotion::Process(keisan::Point2 ball_pos, double compass, double ball_direction)
+void Locomotion::follow_ball(keisan::Point2 ball_pos, double compass, double ball_direction)
 {
   if (ball_pos.x == -1.0 || ball_pos.y == -1.0) {
-    KickBall = 0;
+    kick_ball = 0;
 
     if (m_NoBallCount > m_NoBallMaxCount) {
       // can not find a ball
       m_GoalFBStep = 0;
       m_GoalRLTurn = 0;
       // Head::getInstance()->moveByAngle(0,30);
-
-      if (DEBUG_PRINT == true) {
-        fprintf(stderr, "\r [NO BALL]");
-      }
     } else {
       m_NoBallCount++;
-      if (DEBUG_PRINT == true) {
-        fprintf(stderr, "[NO BALL COUNTING(%d/%d)]", m_NoBallCount, m_NoBallMaxCount);
-      }
     }
   } else {
     m_NoBallCount = 0;
@@ -574,51 +566,25 @@ void Locomotion::Process(keisan::Point2 ball_pos, double compass, double ball_di
       tilt_percent = -tilt_percent;
     }
 
-    // DEBUG_PRINT = true;
-    if (DEBUG_PRINT) {
-      printf(
-        "pan persen %f, tilt persen %f, pan %f, tilt %f\n", pan_percent, tilt_percent, pan,
-        tilt);
-      printf("pan range %f, tilt range %f\n", pan_range, tilt_range);
-      printf("tilt dist %f, close tilt %f\n", tilt_dist, CLOSE_TILT);
-      printf("ball_direction %f\n", ball_direction);
-    }
-    // DEBUG_PRINT = false;
-
-    if (DEBUG_PRINT) {fprintf(stderr, "rotate %d\n", rotate);}
-
     if (pan > m_KickRightAngle && pan < m_KickLeftAngle) {
       if (tilt <= CLOSE_TILT) {
-        if (DEBUG_PRINT == true) {
-          printf("ball pos y : %f, ball pos x : %f\n", ball_pos.y, ball_pos.x);
-        }
-        // if(pan < 10 && pan > -10)
-        // {
-        if (DEBUG_PRINT == true) {printf("CENTER\n");}
         m_GoalFBStep = 0;
         m_GoalRLTurn = 0;
 
         if (m_KickBallCount >= m_KickBallMaxCount) {
-          doneFollow = true;
+          done_follow = true;
           m_FBStep = 0;
           m_RLTurn = 0;
-          if (DEBUG_PRINT == true) {
-            fprintf(stderr, "[KICK]\n");
-          }
-
         } else {
           m_FBStep = 0;
           m_RLTurn = 0;
-          doneFollow = false;
-          KickBall = 0;
-          if (DEBUG_PRINT == true) {
-            fprintf(stderr, "[KICK COUNTING(%d/%d)]\n", m_KickBallCount, m_KickBallMaxCount);
-          }
+          done_follow = false;
+          kick_ball = 0;
         }
       } else {
-        doneFollow = false;
+        done_follow = false;
         m_KickBallCount = 0;
-        KickBall = 0;
+        kick_ball = 0;
 
         m_GoalFBStep = m_FollowMaxFBStep * tilt_percent;
         if (m_GoalFBStep < m_FollowMinFBStep) {
@@ -630,15 +596,11 @@ void Locomotion::Process(keisan::Point2 ball_pos, double compass, double ball_di
 
         m_GoalRLTurn = m_FollowMaxRLTurn * pan_percent;
         m_GoalFBStep -= fabs(m_GoalRLTurn);
-
-        if (DEBUG_PRINT == true) {
-          fprintf(stderr, "[FOLLOW1(P:%.2f T:%.2f>%.2f]\n", pan, tilt, TILT_MIN);
-        }
       }
     } else {
-      InitFollower();
+      init_follower();
       m_KickBallCount = 0;
-      KickBall = 0;
+      kick_ball = 0;
 
       m_GoalFBStep = FOLLOW_FBSTEP * follow_pan_percent;
       if (m_GoalFBStep > m_FollowMaxFBStep) {
@@ -651,10 +613,6 @@ void Locomotion::Process(keisan::Point2 ball_pos, double compass, double ball_di
       } else if (m_GoalRLTurn < -FOLLOW_MAX_RLTURN) {m_GoalRLTurn = -FOLLOW_MAX_RLTURN;}
 
       // printf("m_GoalFBStep %f m_GoalRLTurn %f\n",m_GoalFBStep,m_GoalRLTurn );
-
-      if (DEBUG_PRINT == true) {
-        fprintf(stderr, "[FOLLOW2(P:%.2f T:%.2f>%.2f]\n", pan, tilt, TILT_MIN);
-      }
     }
   }
 
@@ -664,31 +622,17 @@ void Locomotion::Process(keisan::Point2 ball_pos, double compass, double ball_di
         m_KickBallCount++;
       }
     } else {m_KickBallCount = m_KickBallMaxCount;}
-
-    if (DEBUG_PRINT == true) {
-      fprintf(stderr, " STOP\n");
-    }
   } else {
-    if (DEBUG_PRINT == true) {
-      fprintf(stderr, " START\n");
-    }
-
     if (walking->is_running() == false) {
       m_FBStep = 0;
       m_RLTurn = 0;
       m_KickBallCount = 0;
-      KickBall = 0;
+      kick_ball = 0;
       walking->A_MOVE_AIM_ON = false;
       walking->X_MOVE_AMPLITUDE = m_FBStep;
       walking->A_MOVE_AMPLITUDE = m_RLTurn;
       walking->start();
     } else {
-      if (DEBUG_PRINT) {
-        fprintf(
-          stderr, "m_RLTurn:%.2f, m_GoalRLTurn:%.2f, m_FBStep:%.2f, m_GoalFBStep:%.2f\n",
-          m_RLTurn, m_GoalRLTurn, m_FBStep, m_GoalFBStep);
-      }
-
       m_RLTurn = m_GoalRLTurn;
       m_FBStep = m_GoalFBStep;
 
@@ -699,27 +643,23 @@ void Locomotion::Process(keisan::Point2 ball_pos, double compass, double ball_di
       walking->X_MOVE_AMPLITUDE = m_FBStep;
       walking->A_MOVE_AMPLITUDE = m_RLTurn;
       walking->Y_MOVE_AMPLITUDE = 0;
-
-      if (DEBUG_PRINT == true) {
-        fprintf(stderr, " (FB:%.1f RL:%.1f)\n", m_FBStep, m_RLTurn);
-      }
     }
   }
   // printf("step FB %f step RLturn %f\n",m_FBStep,m_RLTurn );
   m_counting++;
 }
 
-bool Locomotion::isDoneFollowing()
+bool Locomotion::is_done_following()
 {
-  return doneFollow;
+  return done_follow;
 }
 
-void Locomotion::InitFollower()
+void Locomotion::init_follower()
 {
   m_counting = 0;
   rotate = true;
   initialize_mode = true;
-  doneFollow = false;
+  done_follow = false;
   m_KickBallCount = 0;
   m_NoBallCount = 0;
   initial_tilt = head->get_tilt_angle();

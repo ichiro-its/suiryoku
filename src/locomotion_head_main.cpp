@@ -29,6 +29,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <unistd.h>
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -88,7 +89,7 @@ int main(int argc, char * argv[])
   auto walking = std::make_shared<aruku::Walking>(imu);
   walking->initialize();
   walking->load_data(path);
-  walking->start();
+  // walking->start();
 
   auto head = std::make_shared<atama::Head>(walking, imu);
   head->initialize();
@@ -110,8 +111,7 @@ int main(int argc, char * argv[])
   bool is_running_now = false;
   std::string current_mode = "";
   float target_x, target_y, target_direction;
-
-  std::thread input_handler([&cmds, &is_running, &is_running_now] {
+  std::thread input_handler([&cmds, &is_running, &is_running_now, &imu] {
     while (true) {
       if (!is_running && !is_running_now) {
         std::cout << "> run : ";
@@ -126,12 +126,15 @@ int main(int argc, char * argv[])
           cmds[1] = "empty";
           cmds[2] = "empty";
         } else {
+          std::cout << "current orientation: " << imu->get_yaw() << std::endl; 
           std::cout << "  direction : ";
           std::cin >> cmds[1];
           cmds[2] = "empty";
         }
 
         is_running = true;
+      } else {
+        usleep(100000);
       }
     }
   });
@@ -199,7 +202,7 @@ int main(int argc, char * argv[])
             is_running = false; 
             is_running_now = false; 
           } else {
-            std::cout << "move_follow_head" << std::endl;
+            std::cout << "move_follow_head at " << head->get_tilt_angle() << std::endl;
           }
         } else if (current_mode == "move_to_target") {
           if(locomotion->move_to_target(target_x, target_y)) {
@@ -243,6 +246,8 @@ int main(int argc, char * argv[])
           target_x = std::stof(cmds[1]);
           target_y = std::stof(cmds[2]);
           std::cout << "will " << current_mode << " at x " << target_x << " - y " << target_y << "\n";
+        } else if ((cmds[0] == "walk_in_position" ||  cmds[0] == "move_follow_head")) {
+          std::cout << "will " << current_mode << "\n";
         } else {
           std::cout << "-ERR command was not valid\n" << std::endl;
           is_running = false;
@@ -256,6 +261,8 @@ int main(int argc, char * argv[])
       }
       
       if(is_running_now) {
+        std::cout << "pan " << head->get_pan_angle() << std::endl; 
+        std::cout << "tilt " << head->get_tilt_angle() << std::endl; 
         std::cout << "orientation " << imu->get_yaw() << std::endl; 
         std::cout << "pos_x " << walking->POSITION_X << ", pos_y " << walking->POSITION_Y << std::endl; 
         std::cout << "x_speed " << walking->X_MOVE_AMPLITUDE << ", y_speed " << walking->Y_MOVE_AMPLITUDE 
@@ -277,16 +284,19 @@ int main(int argc, char * argv[])
         int field_of_view = 78;
 
         float diagonal = sqrt(pow(camera->width(), 2) + pow(camera->height(), 2));
+        float depth = (diagonal / 2) / tan(field_of_view * M_PI / 180.0 / 2);
         view_h_angle = 2 * atan2(camera->width() / 2, depth) * 180.0 / M_PI;
         view_v_angle = 2 * atan2(camera->height() / 2, depth) * 180.0 / M_PI;
 
         ball_pos = keisan::Point2(detector.get_ball_pos_x(), detector.get_ball_pos_y());
       }
-
+      // std::cout <<"ball pos = "<< ball_pos.x << " " << ball_pos.y << std::endl;
       if (ball_pos.x == 0 && ball_pos.y == 0) {
         head->move_scan_ball_down();
       } else if (ball_pos.x != 0 || ball_pos.y != 0) {
         head->track_ball(camera, ball_pos, view_v_angle, view_h_angle);
+        // locomoti
+        // locomotion->follow_ball(ball_pos);
       }
 
       head->process();
@@ -295,17 +305,25 @@ int main(int argc, char * argv[])
       message.clear_actuator_request();
       for (auto joint : walking->get_joints()) {
         std::string joint_name = joint.get_joint_name();
-        float position = joint.get_goal_position();
+        if (joint_name != "neck_yaw" || joint_name != "neck_pitch") {
+          float position = joint.get_goal_position();
 
-        if (joint_name.find("shoulder_pitch") != std::string::npos) {
-          joint_name += " [shoulder]";
-        } else if (joint_name.find("hip_yaw") != std::string::npos) {
-          joint_name += " [hip]";
+          if (joint_name.find("shoulder_pitch") != std::string::npos) {
+            joint_name += " [shoulder]";
+          } else if (joint_name.find("hip_yaw") != std::string::npos) {
+            joint_name += " [hip]";
+          }
+
+          message.add_motor_position_in_degree(joint_name, position);
         }
-
-        message.add_motor_position_in_degree(joint_name, position);
       }
+      message.add_motor_position_in_degree("neck_yaw", head->get_pan_angle());
+      message.add_motor_position_in_degree("neck_pitch", head->get_tilt_angle());
       client.send(*message.get_actuator_request());
+
+      if (cmds[0] == "empty") {
+        usleep(100000);
+      }
     } catch (const std::runtime_error & exc) {
       std::cerr << "Runtime error: " << exc.what() << std::endl;
     }
