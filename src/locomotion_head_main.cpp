@@ -119,7 +119,7 @@ int main(int argc, char * argv[])
 
           bool input[3] = {};
           input[0] = cmds[0].find("move_to_target") != std::string::npos || cmds[0].find(
-            "set_position") != std::string::npos
+            "set_position") != std::string::npos;
           input[1] = cmds[0].find("walk_in_position") != std::string::npos || cmds[0].find(
             "move_follow_head") != std::string::npos;
           if (input[0]) {
