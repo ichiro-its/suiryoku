@@ -78,7 +78,7 @@ int main(int argc, char * argv[])
   client.send(*message.get_actuator_request());
 
   auto imu = std::make_shared<kansei::Imu>();
-  imu->set_path(path);
+  imu->load_data(path);
 
   auto walking = std::make_shared<aruku::Walking>(imu);
   walking->initialize();
