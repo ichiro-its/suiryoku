@@ -26,6 +26,18 @@
 #include <kansei/imu.hpp>
 
 #include <memory>
+#include <string>
+
+/*bola besar*/
+#define FOLLOW_FBSTEP           30.0
+#define FOLLOW_MAX_FBSTEP       45.0
+#define FOLLOW_MIN_FBSTEP       30.0
+#define FOLLOW_MAX_RLTURN       20.0
+#define PAN_RANGE                       30.0
+#define FOLLOW_PAN_RANGE        100.0
+#define TILT_MIN                        10.0  // -15.0
+#define TILT_MAX                        45.0
+#define CLOSE_TILT                      15.0
 
 namespace suiryoku
 {
@@ -34,7 +46,8 @@ class Locomotion
 {
 public:
   Locomotion(
-    std::shared_ptr<aruku::Walking> walking, std::shared_ptr<atama::Head> head,
+    std::shared_ptr<aruku::Walking> walking,
+    std::shared_ptr<atama::Head> head,
     std::shared_ptr<kansei::Imu> imu);
 
   float get_position_x() {return walking->POSITION_X;}
@@ -62,10 +75,12 @@ public:
   bool move_to_position_until_pan_tilt(float target_pan, float target_tilt, float direction);
 
   bool move_to_position_left_kick(float direction);
-  bool move_to_position_left_right(float direction);
+  bool move_to_position_right_kick(float direction);
 
   void stop() {move_finished = rotate_finished = true;}
   bool is_finished() {return move_finished && rotate_finished;}
+
+  void load_data(const std::string & path);
 
 private:
   std::shared_ptr<kansei::Imu> imu;

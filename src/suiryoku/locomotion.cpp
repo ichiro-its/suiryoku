@@ -18,12 +18,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <unistd.h>
+
 #include <aruku/walking.hpp>
 #include <kansei/imu.hpp>
+#include <nlohmann/json.hpp>
 #include <suiryoku/locomotion.hpp>
 
 #include <cmath>
+#include <fstream>
+#include <iostream>
 #include <memory>
+#include <string>
 
 #include "common/algebra.h"
 
@@ -31,13 +37,11 @@ namespace suiryoku
 {
 
 Locomotion::Locomotion(
-  std::shared_ptr<aruku::Walking> walking, std::shared_ptr<atama::Head> head,
+  std::shared_ptr<aruku::Walking> walking,
+  std::shared_ptr<atama::Head> head,
   std::shared_ptr<kansei::Imu> imu)
+: head(head), imu(imu), walking(walking)
 {
-  imu = imu;
-  walking = walking;
-  head = head;
-
   position_prev_delta_pan = 0.0;
   position_prev_delta_tilt = 0.0;
   position_in_position_belief = 0.0;
@@ -56,8 +60,8 @@ bool Locomotion::walk_in_position()
   walking->start();
 
   bool in_position = true;
-  in_position &= fabs(walking->get_mx_move_amplitude()) < 5;
-  in_position &= fabs(walking->get_my_move_amplitude()) < 5;
+  in_position &= fabs(walking->get_mx_move_amplitude()) < 5.0;
+  in_position &= fabs(walking->get_my_move_amplitude()) < 5.0;
 
   return in_position;
 }
@@ -84,9 +88,6 @@ bool Locomotion::walk_in_position_until_stop()
   }
 
   walking->stop();
-  while (walking->is_running()) {
-    usleep(8000);
-  }
 
   return !walking->is_running();
 }
@@ -126,6 +127,8 @@ bool Locomotion::move_to_target(float target_x, float target_y)
 
   float target_direction = alg::direction(delta_x, delta_y) * alg::rad2Deg();
   float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+  std::cout << "target_direction " << target_direction << std::endl;
+  std::cout << "delta_direction " << delta_direction << std::endl;
 
   float x_speed = alg::mapValue(fabs(move_max_a), 0, 15, 50, 40);
   if (target_distance < 100.0) {
@@ -225,7 +228,7 @@ bool Locomotion::move_follow_head(float min_tilt)
 
   float x_speed = alg::mapValue(fabs(a_speed), 0.0, follow_max_a, follow_max_x, 0.);
   x_speed = alg::mapValue(head->get_tilt_angle() - min_tilt, 10.0, 0.0, x_speed, 0.0);
-
+  std::cout << "x speed " << x_speed << std::endl;
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = 0.0;
   walking->A_MOVE_AMPLITUDE = a_speed;
@@ -274,14 +277,17 @@ bool Locomotion::dribble(float direction)
 bool Locomotion::pivot(float direction)
 {
   float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
-
+  std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " <<
+    imu->get_yaw() << std::endl;
   pivot_finished = (fabs(delta_direction) < ((pivot_finished) ? 30.0 : 20.0));
   if (pivot_finished) {
+    std::cout << "pivot_finished" << std::endl;
     return true;
   }
 
   float pan = head->get_pan_angle() + head->get_pan_center();
   float tilt = head->get_tilt_angle() + head->get_tilt_center();
+  std::cout << " pan " << pan << "| tilt " << tilt << std::endl;
 
   float delta_tilt = pivot_target_tilt - tilt;
 
@@ -299,6 +305,8 @@ bool Locomotion::pivot(float direction)
   // a movement
   float a_speed = alg::mapValue(pan, -10.0, 10.0, pivot_max_a, -pivot_max_a);
 
+  std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed <<
+    std::endl;
   walking->X_MOVE_AMPLITUDE = x_speed;
   walking->Y_MOVE_AMPLITUDE = y_speed;
   walking->A_MOVE_AMPLITUDE = a_speed;
@@ -320,8 +328,8 @@ bool Locomotion::move_to_position_until_pan_tilt(
 
   float delta_direction = alg::deltaAngle(direction, walking->ORIENTATION);
 
-  printf("pan err %.1f tilt err %.1f\n", head->get_pan_error(), head->get_tilt_error());
-  printf("positioning %.2f %.2f (%.2f)\n", delta_pan, delta_tilt, position_in_position_belief);
+  // printf("pan err %.1f tilt err %.1f\n", head->get_pan_error(), head->get_tilt_error());
+  // printf("positioning %.2f %.2f (%.2f)\n", delta_pan, delta_tilt, position_in_position_belief);
 
   if (fabs(delta_direction) < 10.0) {
     if (fabs(delta_pan) < (3.0 + (3.0 * position_in_position_belief))) {
@@ -351,7 +359,7 @@ bool Locomotion::move_to_position_until_pan_tilt(
   // x movement
   float x_speed = 0.0;
   float delta_tilt_pan = delta_tilt + (fabs(delta_pan) * 0.5);
-  printf("delta tilt pan %.1f\n", delta_tilt_pan);
+  // printf("delta tilt pan %.1f\n", delta_tilt_pan);
   if (delta_tilt_pan > 3.0) {
     x_speed = alg::mapValue(delta_tilt_pan, 3.0, 20.0, position_min_x * 0.5, position_min_x);
   } else if (delta_tilt_pan < -3.0) {
@@ -388,9 +396,86 @@ bool Locomotion::move_to_position_left_kick(float direction)
   return move_to_position_until_pan_tilt(left_kick_target_pan, left_kick_target_tilt, direction);
 }
 
-bool Locomotion::move_to_position_left_right(float direction)
+bool Locomotion::move_to_position_right_kick(float direction)
 {
   return move_to_position_until_pan_tilt(right_kick_target_pan, right_kick_target_tilt, direction);
+}
+
+void Locomotion::load_data(const std::string & path)
+{
+  std::string file_name = path + "locomotion/" + "suiryoku.json";
+  std::ifstream file(file_name);
+  nlohmann::json locomotion_data = nlohmann::json::parse(file);
+
+  for (auto &[key, val] : locomotion_data.items()) {
+    if (key == "Move") {
+      try {
+        val.at("min_x").get_to(move_min_x);
+        val.at("max_x").get_to(move_max_x);
+        val.at("max_y").get_to(move_max_y);
+        val.at("max_a").get_to(move_max_a);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "Follow") {
+      try {
+        val.at("max_x").get_to(follow_max_x);
+        val.at("max_a").get_to(follow_max_a);
+        val.at("min_tilt_").get_to(follow_min_tilt);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "Dribble") {
+      try {
+        val.at("min_x").get_to(dribble_min_x);
+        val.at("max_x").get_to(dribble_max_x);
+        val.at("min_ly").get_to(dribble_min_ly);
+        val.at("max_ly").get_to(dribble_max_ly);
+        val.at("min_ry").get_to(dribble_min_ry);
+        val.at("max_ry").get_to(dribble_max_ry);
+        val.at("max_a").get_to(dribble_max_a);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "Pivot") {
+      try {
+        val.at("min_x").get_to(pivot_min_x);
+        val.at("max_x").get_to(pivot_max_x);
+        val.at("max_ly").get_to(pivot_max_ly);
+        val.at("max_ry").get_to(pivot_max_ry);
+        val.at("max_a").get_to(pivot_max_a);
+        val.at("target_tilt").get_to(pivot_target_tilt);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "Position") {
+      try {
+        val.at("min_x").get_to(position_min_x);
+        val.at("max_x").get_to(position_max_x);
+        val.at("min_ly").get_to(position_min_ly);
+        val.at("max_ly").get_to(position_max_ly);
+        val.at("min_ry").get_to(position_min_ry);
+        val.at("max_ry").get_to(position_max_ry);
+        val.at("max_a").get_to(position_max_a);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "LeftKick") {
+      try {
+        val.at("target_pan").get_to(left_kick_target_pan);
+        val.at("target_tilt").get_to(left_kick_target_tilt);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "RightKick") {
+      try {
+        val.at("target_pan").get_to(right_kick_target_pan);
+        val.at("target_tilt").get_to(right_kick_target_tilt);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    }
+  }
 }
 
 }  // namespace suiryoku
