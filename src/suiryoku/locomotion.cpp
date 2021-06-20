@@ -88,9 +88,6 @@ bool Locomotion::walk_in_position_until_stop()
   }
 
   walking->stop();
-  while (walking->is_running()) {
-    usleep(8000);
-  }
 
   return !walking->is_running();
 }

@@ -84,7 +84,7 @@ int main(int argc, char * argv[])
   client.send(*message.get_actuator_request());
 
   auto imu = std::make_shared<kansei::Imu>();
-  imu->load_data(path);
+  imu->set_path(path);
 
   auto walking = std::make_shared<aruku::Walking>(imu);
   walking->initialize();
@@ -252,6 +252,7 @@ int main(int argc, char * argv[])
           cmds[0] == "rotate_to_target" || cmds[0] == "move_backward") && !cmds[1].empty())
         {
           target_direction = std::stof(cmds[1]);
+          std::cout << "curr orientation " << imu->get_yaw() << std::endl;
           std::cout << "will " << current_mode << " at " << target_direction << "\n";
         } else if ((cmds[0] == "move_to_target" || cmds[0] == "set_position") && !cmds[2].empty()) {
           target_x = std::stof(cmds[1]);
@@ -293,7 +294,7 @@ int main(int argc, char * argv[])
         frame_hsv = temp.clone();
         cv::cvtColor(frame, frame_hsv, cv::COLOR_BGR2HSV);
 
-        detector.vision_process(sensors, frame_hsv, frame);
+        detector.vision_process(frame_hsv, frame);
 
         int field_of_view = 78;
 
