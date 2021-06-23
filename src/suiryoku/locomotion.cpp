@@ -130,12 +130,12 @@ bool Locomotion::move_to_target(float target_x, float target_y)
   std::cout << "target_direction " << target_direction << std::endl;
   std::cout << "delta_direction " << delta_direction << std::endl;
 
-  float x_speed = alg::mapValue(fabs(move_max_a), 0, 15, 50, 40);
+  float a_speed = alg::mapValue(delta_direction, -10, 10, move_max_a, -move_max_a);
+  float x_speed = alg::mapValue(fabs(a_speed), 0.0, move_max_a, move_max_x, 0.);
   if (target_distance < 100.0) {
     x_speed = alg::mapValue(target_distance, 0.0, 100.0, move_max_x * 0.25, move_max_x);
   }
 
-  float a_speed = alg::mapValue(delta_direction, -10, 10, move_max_a, -move_max_a);
   float y_speed = 0;
   if (fabs(delta_direction) > 15.0) {
     y_speed = 0;

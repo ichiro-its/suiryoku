@@ -332,6 +332,9 @@ int main(int argc, char * argv[])
           message.add_motor_position_in_degree(joint_name, position);
         }
       }
+
+      std::cout << "neck_yaw: " << head->get_pan_angle() << std::endl;
+      std::cout << "neck_pitch: " << head->get_tilt_angle() << std::endl;
       message.add_motor_position_in_degree("neck_yaw", head->get_pan_angle());
       message.add_motor_position_in_degree("neck_pitch", head->get_tilt_angle());
       client.send(*message.get_actuator_request());
