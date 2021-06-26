@@ -59,6 +59,7 @@ public:
   bool walk_in_position_until_stop();
 
   bool move_backward(float direction);
+  bool move_backward_to_position(float target_x, float target_y);
 
   bool move_to_target(float target_x, float target_y);
   bool rotate_to_target(float target_direction);
