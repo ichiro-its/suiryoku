@@ -113,6 +113,40 @@ bool Locomotion::move_backward(float direction)
   return true;
 }
 
+bool Locomotion::move_backward_to_position(float target_x, float target_y)
+{
+  float delta_x = (walking->POSITION_X - target_x);
+  float delta_y = (walking->POSITION_Y - target_y);
+
+  float target_distance = alg::distance(delta_x, delta_y);
+
+  move_finished = (target_distance < ((move_finished) ? 40.0 : 30.0));
+  if (move_finished) {
+    return true;
+  }
+
+  float target_direction = alg::direction(delta_x, delta_y) * alg::rad2Deg();
+  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+
+  std::cout << "MOVE BACKWARD: delta_direction " << delta_direction << std::endl;
+
+  float x_speed = move_min_x;
+
+  float a_speed = alg::mapValue(delta_direction, -15, 15, move_max_a, -move_max_a);
+  if (fabs(delta_direction) > 15.0) {
+    a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
+    x_speed = 0.0;
+  }
+
+  walking->X_MOVE_AMPLITUDE = x_speed;
+  walking->Y_MOVE_AMPLITUDE = 0.0;
+  walking->A_MOVE_AMPLITUDE = a_speed;
+  walking->A_MOVE_AIM_ON = false;
+  walking->start();
+
+  return move_finished;
+}
+
 bool Locomotion::move_to_target(float target_x, float target_y)
 {
   float delta_x = (target_x - walking->POSITION_X);
