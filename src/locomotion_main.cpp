@@ -78,19 +78,19 @@ int main(int argc, char * argv[])
   client.send(*message.get_actuator_request());
 
   auto imu = std::make_shared<kansei::Imu>();
-  imu->load_data(path);
+  imu->load_config(path);
 
   auto walking = std::make_shared<aruku::Walking>(imu);
   walking->initialize();
-  walking->load_data(path);
+  walking->load_config(path);
   walking->start();
 
   auto head = std::make_shared<atama::Head>(walking, imu);
   head->initialize();
-  head->load_data(path);
+  head->load_config(path);
 
   auto locomotion = std::make_shared<suiryoku::Locomotion>(walking, head, imu);
-  locomotion->load_data(path);
+  locomotion->load_config(path);
 
   std::string cmds[3] = {};
 
