@@ -18,34 +18,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <unistd.h>
-
-#include <aruku/walking.hpp>
-#include <kansei/imu.hpp>
-#include <nlohmann/json.hpp>
-#include <suiryoku/locomotion.hpp>
-
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
 
-#include "common/algebra.h"
+#include "suiryoku/locomotion/process/locomotion.hpp"
+
+#include "keisan/keisan.hpp"
+#include "nlohmann/json.hpp"
+
+#include "unistd.h"  // NOLINT
+
+using namespace keisan::literals;
 
 namespace suiryoku
 {
 
-Locomotion::Locomotion(
-  std::shared_ptr<aruku::Walking> walking,
-  std::shared_ptr<atama::Head> head,
-  std::shared_ptr<kansei::Imu> imu)
-: head(head), imu(imu), walking(walking)
+Locomotion::Locomotion()
+: position_prev_delta_pan(0.0), position_prev_delta_tilt(0.0),
+  position_in_position_belief(0.0), x_speed_amplitude(0.0), y_speed_amplitude(0.0),
+  stop_walking([](){})
 {
-  position_prev_delta_pan = 0.0;
-  position_prev_delta_tilt = 0.0;
-  position_in_position_belief = 0.0;
-
   move_finished = true;
   rotate_finished = true;
   pivot_finished = true;
@@ -53,15 +48,14 @@ Locomotion::Locomotion(
 
 bool Locomotion::walk_in_position()
 {
-  walking->X_MOVE_AMPLITUDE = 0;
-  walking->Y_MOVE_AMPLITUDE = 0;
-  walking->A_MOVE_AMPLITUDE = 0;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
+  walking_x = 0;
+  walking_y = 0;
+  walking_a = 0;
+  walking_aim_on = false;
 
   bool in_position = true;
-  in_position &= fabs(walking->get_mx_move_amplitude()) < 5.0;
-  in_position &= fabs(walking->get_my_move_amplitude()) < 5.0;
+  in_position &= fabs(walking_x_amplitude) < 5.0;
+  in_position &= fabs(walking_y_amplitude) < 5.0;
 
   return in_position;
 }
@@ -70,125 +64,120 @@ bool Locomotion::walk_in_position_until_stop()
 {
   position_in_position_belief = 0.0;
 
-  if (!walking->is_running()) {
+  if (!walking_is_running) {
     return true;
   }
 
-  walking->X_MOVE_AMPLITUDE = 0;
-  walking->Y_MOVE_AMPLITUDE = 0;
-  walking->A_MOVE_AMPLITUDE = 0;
-  walking->A_MOVE_AIM_ON = false;
+  walking_x = 0;
+  walking_y = 0;
+  walking_a = 0;
+  walking_aim_on = false;
 
   bool in_position = true;
-  in_position &= (fabs(walking->get_mx_move_amplitude()) < 5.0);
-  in_position &= (fabs(walking->get_my_move_amplitude()) < 5.0);
+  in_position &= (fabs(walking_x_amplitude) < 5.0);
+  in_position &= (fabs(walking_y_amplitude) < 5.0);
 
   if (!in_position) {
     return false;
   }
 
-  walking->stop();
+  stop_walking();
 
-  return !walking->is_running();
+  return !walking_is_running;
 }
 
-bool Locomotion::move_backward(float direction)
+void Locomotion::move_backward(const keisan::Angle<double> & direction)
 {
-  float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
+  auto delta_direction = (direction - orientation).normalize().degree();
 
-  float x_speed = move_min_x;
+  double x_speed = move_min_x;
+  double a_speed = keisan::map(delta_direction, -15.0, 15.0, move_max_a, -move_max_a);
 
-  float a_speed = alg::mapValue(delta_direction, -15, 15, move_max_a, -move_max_a);
   if (fabs(delta_direction) > 15.0) {
     a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
     x_speed = 0.0;
   }
 
-  walking->X_MOVE_AMPLITUDE = x_speed;
-  walking->Y_MOVE_AMPLITUDE = 0.0;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
-
-  return true;
+  walking_x = x_speed;
+  walking_y = 0.0;
+  walking_a = a_speed;
+  walking_aim_on = false;
 }
 
-bool Locomotion::move_backward_to_position(float target_x, float target_y)
+bool Locomotion::move_backward_to(double target_x, double target_y)
 {
-  float delta_x = (walking->POSITION_X - target_x);
-  float delta_y = (walking->POSITION_Y - target_y);
+  double delta_x = (posi - target_x);
+  double delta_y = (walking->POSITION_Y - target_y);
 
-  float target_distance = alg::distance(delta_x, delta_y);
+  double target_distance = alg::distance(delta_x, delta_y);
 
   move_finished = (target_distance < ((move_finished) ? 40.0 : 30.0));
   if (move_finished) {
     return true;
   }
 
-  float target_direction = alg::direction(delta_x, delta_y) * alg::rad2Deg();
-  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+  double target_direction = alg::direction(delta_x, delta_y) * alg::rad2Deg();
+  double delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
 
   std::cout << "MOVE BACKWARD: delta_direction " << delta_direction << std::endl;
 
-  float x_speed = move_min_x;
+  double x_speed = move_min_x;
 
-  float a_speed = alg::mapValue(delta_direction, -15, 15, move_max_a, -move_max_a);
+  double a_speed = alg::mapValue(delta_direction, -15, 15, move_max_a, -move_max_a);
   if (fabs(delta_direction) > 15.0) {
     a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
     x_speed = 0.0;
   }
 
-  walking->X_MOVE_AMPLITUDE = x_speed;
-  walking->Y_MOVE_AMPLITUDE = 0.0;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
+  walking_x = x_speed;
+  walking_y = 0.0;
+  walking_a = a_speed;
+  walking_aim_on = false;
 
   return move_finished;
 }
 
-bool Locomotion::move_to_target(float target_x, float target_y)
+bool Locomotion::move_to_target(double target_x, double target_y)
 {
-  float delta_x = (target_x - walking->POSITION_X);
-  float delta_y = (target_y - walking->POSITION_Y);
+  double delta_x = (target_x - posi);
+  double delta_y = (target_y - walking->POSITION_Y);
 
-  float target_distance = alg::distance(delta_x, delta_y);
+  double target_distance = alg::distance(delta_x, delta_y);
 
   move_finished = (target_distance < ((move_finished) ? 40.0 : 30.0));
   if (move_finished) {
     return true;
   }
 
-  float target_direction = alg::direction(delta_x, delta_y) * alg::rad2Deg();
-  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+  double target_direction = alg::direction(delta_x, delta_y) * alg::rad2Deg();
+  double delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
   std::cout << "target_direction " << target_direction << std::endl;
   std::cout << "delta_direction " << delta_direction << std::endl;
 
-  float a_speed = alg::mapValue(delta_direction, -10, 10, move_max_a, -move_max_a);
-  float x_speed = alg::mapValue(fabs(a_speed), 0.0, move_max_a, move_max_x, 0.);
+  double a_speed = alg::mapValue(delta_direction, -10, 10, move_max_a, -move_max_a);
+  double x_speed = alg::mapValue(fabs(a_speed), 0.0, move_max_a, move_max_x, 0.);
   if (target_distance < 100.0) {
     x_speed = alg::mapValue(target_distance, 0.0, 100.0, move_max_x * 0.25, move_max_x);
   }
 
-  float y_speed = 0;
+  double y_speed = 0;
   if (fabs(delta_direction) > 15.0) {
     y_speed = 0;
     a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
     x_speed = 0.0;
   }
 
-  walking->X_MOVE_AMPLITUDE = x_speed;
-  walking->Y_MOVE_AMPLITUDE = y_speed;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
+  walking_x = x_speed;
+  walking_y = y_speed;
+  walking_a = a_speed;
+  walking_aim_on = false;
 
   return move_finished;
 }
 
-bool Locomotion::rotate_to_target(float target_direction)
+bool Locomotion::rotate_to_target(double target_direction)
 {
-  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+  double delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
 
   rotate_finished = (fabs(delta_direction) < ((rotate_finished) ? 20.0 : 15.0));
   if (rotate_finished) {
@@ -207,21 +196,20 @@ bool Locomotion::rotate_to_target(float target_direction)
     }
   }
 
-  float y_speed = (delta_direction < 0.0) ? move_max_y : -move_max_y;
-  float a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
+  double y_speed = (delta_direction < 0.0) ? move_max_y : -move_max_y;
+  double a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
 
-  walking->X_MOVE_AMPLITUDE = 0.0;
-  walking->Y_MOVE_AMPLITUDE = y_speed;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
+  walking_x = 0.0;
+  walking_y = y_speed;
+  walking_a = a_speed;
+  walking_aim_on = false;
 
   return false;
 }
 
-bool Locomotion::rotate_to_target(float target_direction, bool a_move_only)
+bool Locomotion::rotate_to_target(double target_direction, bool a_move_only)
 {
-  float delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
+  double delta_direction = alg::deltaAngle(target_direction, imu->get_yaw());
 
   rotate_finished = (fabs(delta_direction) < ((rotate_finished) ? 20.0 : 15.0));
   if (rotate_finished) {
@@ -240,47 +228,45 @@ bool Locomotion::rotate_to_target(float target_direction, bool a_move_only)
     }
   }
 
-  float y_speed = 0.0;
+  double y_speed = 0.0;
 
   if (!(a_move_only)) {
     y_speed = (delta_direction < 0.0) ? move_max_y : -move_max_y;
   }
-  float a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
+  double a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
 
-  walking->X_MOVE_AMPLITUDE = 0.0;
-  walking->Y_MOVE_AMPLITUDE = y_speed;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
+  walking_x = 0.0;
+  walking_y = y_speed;
+  walking_a = a_speed;
+  walking_aim_on = false;
 
   return false;
 }
 
-bool Locomotion::move_follow_head(float min_tilt)
+bool Locomotion::move_follow_head(double min_tilt)
 {
-  float a_speed = alg::mapValue(head->get_pan_angle(), -10.0, 10.0, -follow_max_a, follow_max_a);
+  double a_speed = alg::mapValue(head->get_pan_angle(), -10.0, 10.0, -follow_max_a, follow_max_a);
 
-  float x_speed = alg::mapValue(fabs(a_speed), 0.0, follow_max_a, follow_max_x, 0.);
+  double x_speed = alg::mapValue(fabs(a_speed), 0.0, follow_max_a, follow_max_x, 0.);
   x_speed = alg::mapValue(head->get_tilt_angle() - min_tilt, 10.0, 0.0, x_speed, 0.0);
   std::cout << "x speed " << x_speed << std::endl;
-  walking->X_MOVE_AMPLITUDE = x_speed;
-  walking->Y_MOVE_AMPLITUDE = 0.0;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
+  walking_x = x_speed;
+  walking_y = 0.0;
+  walking_a = a_speed;
+  walking_aim_on = false;
 
   return head->get_tilt_angle() < min_tilt;
 }
 
-bool Locomotion::dribble(float direction)
+bool Locomotion::dribble(double direction)
 {
   bool is_dribble = true;
 
-  float pan = head->get_pan_angle() + head->get_pan_center();
-  float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
+  double pan = head->get_pan_angle() + head->get_pan_center();
+  double delta_direction = alg::deltaAngle(direction, imu->get_yaw());
 
   // x movement
-  float x_speed = 0;
+  double x_speed = 0;
   if (fabs(pan) < 15.0) {
     x_speed = alg::mapValue(fabs(pan), 0.0, 15.0, dribble_max_x, 0.);
   } else {
@@ -289,7 +275,7 @@ bool Locomotion::dribble(float direction)
   }
 
   // y movement
-  float y_speed = 0.0;
+  double y_speed = 0.0;
   if (pan < -6.0) {
     y_speed = alg::mapValue(pan, -25.0, -6.0, dribble_max_ry, dribble_min_ry);
   } else if (pan > 6.0) {
@@ -297,20 +283,19 @@ bool Locomotion::dribble(float direction)
   }
 
   // a movement
-  float a_speed = alg::mapValue(delta_direction, -15.0, 15.0, dribble_max_a, -dribble_max_a);
+  double a_speed = alg::mapValue(delta_direction, -15.0, 15.0, dribble_max_a, -dribble_max_a);
 
-  walking->X_MOVE_AMPLITUDE = x_speed;
-  walking->Y_MOVE_AMPLITUDE = y_speed;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
+  walking_x = x_speed;
+  walking_y = y_speed;
+  walking_a = a_speed;
+  walking_aim_on = false;
 
   return is_dribble;
 }
 
-bool Locomotion::pivot(float direction)
+bool Locomotion::pivot(double direction)
 {
-  float delta_direction = alg::deltaAngle(direction, imu->get_yaw());
+  double delta_direction = alg::deltaAngle(direction, imu->get_yaw());
   std::cout << "delta_direction: " << delta_direction << " & " << "imu->get_yaw() : " <<
     imu->get_yaw() << std::endl;
   pivot_finished = (fabs(delta_direction) < ((pivot_finished) ? 30.0 : 20.0));
@@ -319,14 +304,14 @@ bool Locomotion::pivot(float direction)
     return true;
   }
 
-  float pan = head->get_pan_angle() + head->get_pan_center();
-  float tilt = head->get_tilt_angle() + head->get_tilt_center();
+  double pan = head->get_pan_angle() + head->get_pan_center();
+  double tilt = head->get_tilt_angle() + head->get_tilt_center();
   std::cout << " pan " << pan << "| tilt " << tilt << std::endl;
 
-  float delta_tilt = pivot_target_tilt - tilt;
+  double delta_tilt = pivot_target_tilt - tilt;
 
   // x_movement
-  float x_speed = 0;
+  double x_speed = 0;
   if (delta_tilt > 0.0) {
     x_speed = alg::mapValue(delta_tilt, 0.0, 20.0, 0.0, pivot_min_x);
   } else {
@@ -334,33 +319,32 @@ bool Locomotion::pivot(float direction)
   }
 
   // y movement
-  float y_speed = (delta_direction < 0) ? pivot_max_ry : pivot_max_ly;
+  double y_speed = (delta_direction < 0) ? pivot_max_ry : pivot_max_ly;
 
   // a movement
-  float a_speed = alg::mapValue(pan, -10.0, 10.0, pivot_max_a, -pivot_max_a);
+  double a_speed = alg::mapValue(pan, -10.0, 10.0, pivot_max_a, -pivot_max_a);
 
   std::cout << " x_speed " << x_speed << "| y_speed " << y_speed << "| a_speed " << a_speed <<
     std::endl;
-  walking->X_MOVE_AMPLITUDE = x_speed;
-  walking->Y_MOVE_AMPLITUDE = y_speed;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = true;
-  walking->start();
+  walking_x = x_speed;
+  walking_y = y_speed;
+  walking_a = a_speed;
+  walking_aim_on = true;
 
   return false;
 }
 
 bool Locomotion::move_to_position_until_pan_tilt(
-  float target_pan, float target_tilt,
-  float direction)
+  double target_pan, double target_tilt,
+  double direction)
 {
-  float pan = head->get_pan_angle() + head->get_pan_center() + head->get_pan_error() * 0.5;
-  float tilt = head->get_tilt_angle() + head->get_tilt_center() + head->get_tilt_error() * 0.5;
+  double pan = head->get_pan_angle() + head->get_pan_center() + head->get_pan_error() * 0.5;
+  double tilt = head->get_tilt_angle() + head->get_tilt_center() + head->get_tilt_error() * 0.5;
 
-  float delta_pan = target_pan - pan;
-  float delta_tilt = target_tilt - tilt;
+  double delta_pan = target_pan - pan;
+  double delta_tilt = target_tilt - tilt;
 
-  float delta_direction = alg::deltaAngle(direction, walking->ORIENTATION);
+  double delta_direction = alg::deltaAngle(direction, walking->ORIENTATION);
 
   // printf("pan err %.1f tilt err %.1f\n", head->get_pan_error(), head->get_tilt_error());
   // printf("positioning %.2f %.2f (%.2f)\n", delta_pan, delta_tilt, position_in_position_belief);
@@ -391,8 +375,8 @@ bool Locomotion::move_to_position_until_pan_tilt(
   position_prev_delta_tilt = delta_tilt;
 
   // x movement
-  float x_speed = 0.0;
-  float delta_tilt_pan = delta_tilt + (fabs(delta_pan) * 0.5);
+  double x_speed = 0.0;
+  double delta_tilt_pan = delta_tilt + (fabs(delta_pan) * 0.5);
   // printf("delta tilt pan %.1f\n", delta_tilt_pan);
   if (delta_tilt_pan > 3.0) {
     x_speed = alg::mapValue(delta_tilt_pan, 3.0, 20.0, position_min_x * 0.5, position_min_x);
@@ -401,7 +385,7 @@ bool Locomotion::move_to_position_until_pan_tilt(
   }
 
   // y movement
-  float y_speed = 0.0;
+  double y_speed = 0.0;
   if (delta_pan < -3.0) {
     y_speed = alg::mapValue(delta_pan, -20.0, -3.0, position_max_ly, position_min_ly);
   } else if (delta_pan > 3.0) {
@@ -409,13 +393,12 @@ bool Locomotion::move_to_position_until_pan_tilt(
   }
 
   // a movement
-  float a_speed = alg::mapValue(delta_direction, -15.0, 15.0, position_max_a, -position_max_a);
+  double a_speed = alg::mapValue(delta_direction, -15.0, 15.0, position_max_a, -position_max_a);
 
-  walking->X_MOVE_AMPLITUDE = x_speed;
-  walking->Y_MOVE_AMPLITUDE = y_speed;
-  walking->A_MOVE_AMPLITUDE = a_speed;
-  walking->A_MOVE_AIM_ON = false;
-  walking->start();
+  walking_x = x_speed;
+  walking_y = y_speed;
+  walking_a = a_speed;
+  walking_aim_on = false;
 
   if (position_in_position_belief >= 1.0) {
     printf("done by in position belief\n");
@@ -425,12 +408,12 @@ bool Locomotion::move_to_position_until_pan_tilt(
   return false;
 }
 
-bool Locomotion::move_to_position_left_kick(float direction)
+bool Locomotion::move_to_position_left_kick(double direction)
 {
   return move_to_position_until_pan_tilt(left_kick_target_pan, left_kick_target_tilt, direction);
 }
 
-bool Locomotion::move_to_position_right_kick(float direction)
+bool Locomotion::move_to_position_right_kick(double direction)
 {
   return move_to_position_until_pan_tilt(right_kick_target_pan, right_kick_target_tilt, direction);
 }
