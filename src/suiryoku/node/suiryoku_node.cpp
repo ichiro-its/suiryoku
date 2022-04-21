@@ -18,18 +18,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <chrono>
 #include <memory>
 #include <string>
 
 #include "suiryoku/node/suiryoku_node.hpp"
 
 #include "rclcpp/rclcpp.hpp"
+#include "suiryoku/config/node/config_node.hpp"
+#include "suiryoku/locomotion/node/locomotion_node.hpp"
+#include "suiryoku/locomotion/process/locomotion.hpp"
+
+using namespace std::chrono_literals;
 
 namespace suiryoku
 {
 
 SuiryokuNode::SuiryokuNode(rclcpp::Node::SharedPtr node)
-: node(node), config_node(nullptr)
+: node(node), config_node(nullptr), locomotion_node(nullptr)
 {
   node_timer = node->create_wall_timer(
     8ms,
@@ -38,8 +44,15 @@ SuiryokuNode::SuiryokuNode(rclcpp::Node::SharedPtr node)
   );
 }
 
+void SuiryokuNode::run_locomotion_service(
+  std::shared_ptr<Locomotion> locomotion)
+{
+  locomotion_node = std::make_shared<LocomotionNode>(node, locomotion);
+}
+
 void SuiryokuNode::run_config_service(const std::string & path)
 {
+  config_node = std::make_shared<ConfigNode>(node, path);
 }
 
 }  // namespace suiryoku

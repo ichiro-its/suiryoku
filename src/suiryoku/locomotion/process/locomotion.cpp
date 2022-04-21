@@ -459,4 +459,9 @@ void Locomotion::update_move_amplitude(double x_amplitude, double y_amplitude)
   y_speed_amplitude = y_amplitude;
 }
 
+void Locomotion::set_stop_walking_callback(std::function<void()> stop_walking)
+{
+  this->stop_walking = stop_walking;
+}
+
 }  // namespace suiryoku

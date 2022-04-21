@@ -25,6 +25,9 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
+#include "suiryoku/config/node/config_node.hpp"
+#include "suiryoku/locomotion/node/locomotion_node.hpp"
+#include "suiryoku/locomotion/process/locomotion.hpp"
 
 namespace suiryoku
 {
@@ -34,6 +37,8 @@ class SuiryokuNode
 public:
   explicit SuiryokuNode(rclcpp::Node::SharedPtr node);
 
+  void run_locomotion_service(std::shared_ptr<Locomotion> locomotion);
+
   void run_config_service(const std::string & path);
 
 private:
@@ -41,6 +46,8 @@ private:
   rclcpp::TimerBase::SharedPtr node_timer;
 
   std::shared_ptr<ConfigNode> config_node;
+
+  std::shared_ptr<LocomotionNode> locomotion_node;
 };
 
 }  // namespace suiryoku

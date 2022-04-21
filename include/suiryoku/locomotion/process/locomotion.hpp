@@ -64,6 +64,8 @@ public:
   std::shared_ptr<Robot> get_robot() const;
   void update_move_amplitude(double x_amplitude, double y_amplitude);
 
+  void set_stop_walking_callback(std::function<void()> stop_walking);
+
 private:
   double move_min_x;
   double move_max_x;
