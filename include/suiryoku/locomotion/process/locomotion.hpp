@@ -21,9 +21,11 @@
 #ifndef SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 #define SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 
+#include <memory>
 #include <string>
 
 #include "keisan/keisan.hpp"
+#include "suiryoku/locomotion/model/robot.hpp"
 
 namespace suiryoku
 {
@@ -31,7 +33,7 @@ namespace suiryoku
 class Locomotion
 {
 public:
-  Locomotion();
+  explicit Locomotion(std::shared_ptr<Robot> robot);
 
   void load_config(const std::string & path);
 
@@ -42,16 +44,16 @@ public:
   bool move_backward_to(double target_x, double target_y);
 
   bool move_to(double target_x, double target_y);
-  bool rotate_to(double target_direction);
-  bool rotate_to(double target_direction, bool a_move_only);
+  bool rotate_to(const keisan::Angle<double> & direction);
+  bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
   bool move_follow_head() {return move_follow_head(follow_min_tilt);}
   bool move_follow_head(double min_tilt);
 
   bool back_sprint(double target_x, double target_y);
 
-  bool dribble(double direction);
-  bool pivot(double direction);
+  bool dribble(const keisan::Angle<double> & direction);
+  bool pivot(const keisan::Angle<double> & direction);
 
   bool move_to_position_until_pan_tilt(double target_pan, double target_tilt, double direction);
 
@@ -106,6 +108,7 @@ private:
   bool rotate_finished;
   bool pivot_finished;
 
+  std::shared_ptr<Robot> robot;
   double x_speed_amplitude;
   double y_speed_amplitude;
 
