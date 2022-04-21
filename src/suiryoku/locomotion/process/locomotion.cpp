@@ -448,4 +448,15 @@ bool Locomotion::move_to_position_right_kick(const keisan::Angle<double> & direc
     right_kick_target_pan, right_kick_target_tilt, direction);
 }
 
+std::shared_ptr<Robot> Locomotion::get_robot() const
+{
+  return robot;
+}
+
+void Locomotion::update_move_amplitude(double x_amplitude, double y_amplitude)
+{
+  x_speed_amplitude = x_amplitude;
+  y_speed_amplitude = y_amplitude;
+}
+
 }  // namespace suiryoku

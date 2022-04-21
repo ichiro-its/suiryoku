@@ -33,26 +33,36 @@ namespace suiryoku
 
 LocomotionNode::LocomotionNode(
   rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion)
-: locomotion(locomotion)
+: locomotion(locomotion), robot(locomotion->get_robot())
 {
   set_walking_publisher = node->create_publisher<SetWalking>(
-    get_node_prefix() + "/set_walking", 10);
+    "/walking/set_walking", 10);
 
   orientation_subscriber = node->create_subscription<Axis>(
     "/measurement/orientation", 10,
     [this](const Axis::SharedPtr message) {
-      this->locomotion_manager->update_orientation(
-        keisan::make_degree(message->yaw));
+      this->robot->orientation = keisan::make_degree(message->yaw);
     });
 
-  odometry_publisher = node->create_publisher<Odometry>(
-    get_node_prefix() + "/odometry", 10);
+  walking_status_subscriber = node->create_subscription<Status>(
+    "/walking/status", 10,
+    [this](const Status::SharedPtr message) {
+      this->robot->is_walking = message->is_running;
+      this->locomotion->update_move_amplitude(
+        message->x_amplitude, message->y_amplitude);
+    });
+
+  head_subscriber = node->create_subscription<Head>(
+    "/head/odometry", 10,
+    [this](const Head::SharedPtr message) {
+      this->robot->pan = message->pan_angle;
+      this->robot->tilt = message->tilt_angle;
+    });
 }
 
 void LocomotionNode::update()
 {
-  publish_joints();
-  publish_odometry();
+  publish_walking();
 }
 
 std::string LocomotionNode::get_node_prefix() const
@@ -60,31 +70,17 @@ std::string LocomotionNode::get_node_prefix() const
   return "locomotion";
 }
 
-void LocomotionNode::publish_joints()
+void LocomotionNode::publish_walking()
 {
-  auto joints_msg = SetJoints();
-  joints_msg.control_type = tachimawari::joint::Middleware::FOR_WALKING;
+  auto walking_msg = SetWalking();
 
-  const auto & joints = locomotion_manager->get_joints();
-  auto & joint_msgs = joints_msg.joints;
+  walking_msg.run = true;
+  walking_msg.x_move = robot->x_speed;
+  walking_msg.y_move = robot->y_speed;
+  walking_msg.a_move = robot->a_speed;
+  walking_msg.aim_on = robot->aim_on;
 
-  joint_msgs.resize(joints.size());
-  for (size_t i = 0; i < joints.size() && i < joint_msgs.size(); ++i) {
-    joint_msgs[i].id = joints[i].get_id();
-    joint_msgs[i].position = joints[i].get_position();
-  }
-
-  set_joints_publisher->publish(joints_msg);
-}
-
-void LocomotionNode::publish_odometry()
-{
-  auto odometry_msg = Odometry();
-
-  odometry_msg.position_x = locomotion_manager->get_position().x;
-  odometry_msg.position_y = locomotion_manager->get_position().y;
-
-  odometry_publisher->publish(odometry_msg);
+  set_walking_publisher->publish(walking_msg);
 }
 
 }  // namespace suiryoku

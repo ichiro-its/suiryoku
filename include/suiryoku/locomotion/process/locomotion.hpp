@@ -61,6 +61,9 @@ public:
   bool move_to_position_left_kick(const keisan::Angle<double> & direction);
   bool move_to_position_right_kick(const keisan::Angle<double> & direction);
 
+  std::shared_ptr<Robot> get_robot() const;
+  void update_move_amplitude(double x_amplitude, double y_amplitude);
+
 private:
   double move_min_x;
   double move_max_x;
