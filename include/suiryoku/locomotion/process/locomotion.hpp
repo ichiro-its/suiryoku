@@ -95,7 +95,7 @@ private:
   double position_max_a;
   double position_prev_delta_pan;
   double position_prev_delta_tilt;
-  double position_in_position_belief;
+  double position_in_belief;
 
   double left_kick_target_pan;
   double left_kick_target_tilt;
