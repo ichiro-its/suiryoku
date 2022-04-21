@@ -41,9 +41,84 @@ Locomotion::Locomotion(std::shared_ptr<Robot> robot)
   position_in_position_belief(0.0), x_speed_amplitude(0.0), y_speed_amplitude(0.0),
   stop_walking([](){}), robot(robot)
 {
-  move_finished = true;
-  rotate_finished = true;
-  pivot_finished = true;
+}
+
+void Locomotion::load_config(const std::string & path)
+{
+  std::ifstream file(path + "locomotion.json");
+  nlohmann::json data = nlohmann::json::parse(file);
+
+  for (auto &[key, val] : data.items()) {
+    if (key == "move") {
+      try {
+        val.at("min_x").get_to(move_min_x);
+        val.at("max_x").get_to(move_max_x);
+        val.at("max_y").get_to(move_max_y);
+        val.at("max_a").get_to(move_max_a);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "follow") {
+      try {
+        val.at("max_x").get_to(follow_max_x);
+        val.at("max_a").get_to(follow_max_a);
+        val.at("min_tilt_").get_to(follow_min_tilt);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "dribble") {
+      try {
+        val.at("min_x").get_to(dribble_min_x);
+        val.at("max_x").get_to(dribble_max_x);
+        val.at("min_ly").get_to(dribble_min_ly);
+        val.at("max_ly").get_to(dribble_max_ly);
+        val.at("min_ry").get_to(dribble_min_ry);
+        val.at("max_ry").get_to(dribble_max_ry);
+        val.at("max_a").get_to(dribble_max_a);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "pivot") {
+      try {
+        val.at("min_x").get_to(pivot_min_x);
+        val.at("max_x").get_to(pivot_max_x);
+        val.at("max_ly").get_to(pivot_max_ly);
+        val.at("max_ry").get_to(pivot_max_ry);
+        val.at("max_a").get_to(pivot_max_a);
+        val.at("target_tilt").get_to(pivot_target_tilt);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "position") {
+      try {
+        val.at("min_x").get_to(position_min_x);
+        val.at("max_x").get_to(position_max_x);
+        val.at("min_ly").get_to(position_min_ly);
+        val.at("max_ly").get_to(position_max_ly);
+        val.at("min_ry").get_to(position_min_ry);
+        val.at("max_ry").get_to(position_max_ry);
+        val.at("max_a").get_to(position_max_a);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "left_kick") {
+      try {
+        val.at("target_pan").get_to(left_kick_target_pan);
+        val.at("target_tilt").get_to(left_kick_target_tilt);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    } else if (key == "right_kick") {
+      try {
+        val.at("target_pan").get_to(right_kick_target_pan);
+        val.at("target_tilt").get_to(right_kick_target_tilt);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
+    }
+  }
+
+  file.close();
 }
 
 bool Locomotion::walk_in_position()
@@ -127,7 +202,7 @@ bool Locomotion::move_backward_to(double target_x, double target_y)
   robot->a_speed = a_speed;
   robot->aim_on = false;
 
-  return move_finished;
+  return false;
 }
 
 bool Locomotion::move_to(double target_x, double target_y)
@@ -162,7 +237,7 @@ bool Locomotion::move_to(double target_x, double target_y)
   robot->a_speed = a_speed;
   robot->aim_on = false;
 
-  return move_finished;
+  return false;
 }
 
 bool Locomotion::rotate_to(const keisan::Angle<double> & direction)
@@ -205,6 +280,11 @@ bool Locomotion::rotate_to(const keisan::Angle<double> & direction, bool a_move_
   robot->aim_on = false;
 
   return false;
+}
+
+bool Locomotion::move_follow_head()
+{
+  return move_follow_head(follow_min_tilt);
 }
 
 bool Locomotion::move_follow_head(double min_tilt)
@@ -286,18 +366,13 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
 
 bool Locomotion::move_to_position_until_pan_tilt(
   double target_pan, double target_tilt,
-  double direction)
+  const keisan::Angle<double> & direction)
 {
-  double pan = head->get_pan_angle() + head->get_pan_center() + head->get_pan_error() * 0.5;
-  double tilt = head->get_tilt_angle() + head->get_tilt_center() + head->get_tilt_error() * 0.5;
-
+  double pan = robot->get_pan();
+  double tilt = robot->get_tilt();
   double delta_pan = target_pan - pan;
   double delta_tilt = target_tilt - tilt;
-
-  double delta_direction = alg::deltaAngle(direction, walking->ORIENTATION);
-
-  // printf("pan err %.1f tilt err %.1f\n", head->get_pan_error(), head->get_tilt_error());
-  // printf("positioning %.2f %.2f (%.2f)\n", delta_pan, delta_tilt, position_in_position_belief);
+  auto delta_direction = (direction - robot->orientation).normalize().degree();
 
   if (fabs(delta_direction) < 10.0) {
     if (fabs(delta_pan) < (3.0 + (3.0 * position_in_position_belief))) {
@@ -319,22 +394,19 @@ bool Locomotion::move_to_position_until_pan_tilt(
     position_in_position_belief -= 0.10;
   }
 
-  position_in_position_belief = alg::clampValue(position_in_position_belief, 0.0, 1.);
+  position_in_position_belief = keisan::clamp(position_in_position_belief, 0.0, 1.0);
 
   position_prev_delta_pan = delta_pan;
   position_prev_delta_tilt = delta_tilt;
 
-  // x movement
   double x_speed = 0.0;
   double delta_tilt_pan = delta_tilt + (fabs(delta_pan) * 0.5);
-  // printf("delta tilt pan %.1f\n", delta_tilt_pan);
   if (delta_tilt_pan > 3.0) {
     x_speed = keisan::map(delta_tilt_pan, 3.0, 20.0, position_min_x * 0.5, position_min_x);
   } else if (delta_tilt_pan < -3.0) {
     x_speed = keisan::map(delta_tilt_pan, -20.0, -3.0, position_max_x, position_max_x * 0.);
   }
 
-  // y movement
   double y_speed = 0.0;
   if (delta_pan < -3.0) {
     y_speed = keisan::map(delta_pan, -20.0, -3.0, position_max_ly, position_min_ly);
@@ -342,7 +414,6 @@ bool Locomotion::move_to_position_until_pan_tilt(
     y_speed = keisan::map(delta_pan, 3.0, 20.0, position_min_ry, position_max_ry);
   }
 
-  // a movement
   double a_speed = keisan::map(delta_direction, -15.0, 15.0, position_max_a, -position_max_a);
 
   robot->x_speed = x_speed;
@@ -351,98 +422,22 @@ bool Locomotion::move_to_position_until_pan_tilt(
   robot->aim_on = false;
 
   if (position_in_position_belief >= 1.0) {
-    printf("done by in position belief\n");
     return true;
   }
 
   return false;
 }
 
-bool Locomotion::move_to_position_left_kick(double direction)
+bool Locomotion::move_to_position_left_kick(const keisan::Angle<double> & direction)
 {
-  return move_to_position_until_pan_tilt(left_kick_target_pan, left_kick_target_tilt, direction);
+  return move_to_position_until_pan_tilt(
+    left_kick_target_pan, left_kick_target_tilt, direction);
 }
 
-bool Locomotion::move_to_position_right_kick(double direction)
+bool Locomotion::move_to_position_right_kick(const keisan::Angle<double> & direction)
 {
-  return move_to_position_until_pan_tilt(right_kick_target_pan, right_kick_target_tilt, direction);
-}
-
-void Locomotion::load_config(const std::string & path)
-{
-  std::string file_name = path + "locomotion/" + "suiryoku.json";
-  std::ifstream file(file_name);
-  nlohmann::json locomotion_data = nlohmann::json::parse(file);
-
-  for (auto &[key, val] : locomotion_data.items()) {
-    if (key == "Move") {
-      try {
-        val.at("min_x").get_to(move_min_x);
-        val.at("max_x").get_to(move_max_x);
-        val.at("max_y").get_to(move_max_y);
-        val.at("max_a").get_to(move_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-      }
-    } else if (key == "Follow") {
-      try {
-        val.at("max_x").get_to(follow_max_x);
-        val.at("max_a").get_to(follow_max_a);
-        val.at("min_tilt_").get_to(follow_min_tilt);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-      }
-    } else if (key == "Dribble") {
-      try {
-        val.at("min_x").get_to(dribble_min_x);
-        val.at("max_x").get_to(dribble_max_x);
-        val.at("min_ly").get_to(dribble_min_ly);
-        val.at("max_ly").get_to(dribble_max_ly);
-        val.at("min_ry").get_to(dribble_min_ry);
-        val.at("max_ry").get_to(dribble_max_ry);
-        val.at("max_a").get_to(dribble_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-      }
-    } else if (key == "Pivot") {
-      try {
-        val.at("min_x").get_to(pivot_min_x);
-        val.at("max_x").get_to(pivot_max_x);
-        val.at("max_ly").get_to(pivot_max_ly);
-        val.at("max_ry").get_to(pivot_max_ry);
-        val.at("max_a").get_to(pivot_max_a);
-        val.at("target_tilt").get_to(pivot_target_tilt);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-      }
-    } else if (key == "Position") {
-      try {
-        val.at("min_x").get_to(position_min_x);
-        val.at("max_x").get_to(position_max_x);
-        val.at("min_ly").get_to(position_min_ly);
-        val.at("max_ly").get_to(position_max_ly);
-        val.at("min_ry").get_to(position_min_ry);
-        val.at("max_ry").get_to(position_max_ry);
-        val.at("max_a").get_to(position_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-      }
-    } else if (key == "LeftKick") {
-      try {
-        val.at("target_pan").get_to(left_kick_target_pan);
-        val.at("target_tilt").get_to(left_kick_target_tilt);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-      }
-    } else if (key == "RightKick") {
-      try {
-        val.at("target_pan").get_to(right_kick_target_pan);
-        val.at("target_tilt").get_to(right_kick_target_tilt);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-      }
-    }
-  }
+  return move_to_position_until_pan_tilt(
+    right_kick_target_pan, right_kick_target_tilt, direction);
 }
 
 }  // namespace suiryoku
