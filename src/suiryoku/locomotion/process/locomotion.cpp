@@ -145,7 +145,7 @@ bool Locomotion::walk_in_position_until_stop()
     robot->aim_on = false;
 
     bool in_position = fabs(x_speed_amplitude) < 5.0;
-    in_position &= (fabs(y_speed_amplitude) < 5.0);
+    in_position &= fabs(y_speed_amplitude) < 5.0;
 
     if (!in_position) {
       return false;

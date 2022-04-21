@@ -28,6 +28,7 @@
 #include "atama_interfaces/msg/head.hpp"
 #include "kansei_interfaces/msg/axis.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "suiryoku/locomotion/process/locomotion.hpp"
 
 namespace suiryoku
 {
@@ -40,7 +41,7 @@ public:
   using SetWalking = aruku_interfaces::msg::SetWalking;
 
   explicit LocomotionNode(
-    rclcpp::Node::SharedPtr node, std::shared_ptr<WalkingManager> walking_manager);
+    rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion);
 
   void update();
 
@@ -54,6 +55,10 @@ private:
   rclcpp::Publisher<SetWalking>::SharedPtr set_walking_publisher;
 
   rclcpp::Subscription<Axis>::SharedPtr orientation_subscriber;
+
+  rclcpp::Subscription<Head>::SharedPtr head_subscriber;
+
+  std::shared_ptr<Locomotion> locomotion;
 };
 
 }  // namespace suiryoku
