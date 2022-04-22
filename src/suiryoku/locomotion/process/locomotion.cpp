@@ -205,7 +205,7 @@ bool Locomotion::move_backward_to(double target_x, double target_y)
   return false;
 }
 
-bool Locomotion::move_to(double target_x, double target_y)
+bool Locomotion::move_forward_to(double target_x, double target_y)
 {
   double delta_x = (target_x - robot->position_x);
   double delta_y = (target_y - robot->position_y);
@@ -365,7 +365,7 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
   return false;
 }
 
-bool Locomotion::move_to_position_until_pan_tilt(
+bool Locomotion::position_until(
   double target_pan, double target_tilt,
   const keisan::Angle<double> & direction)
 {
@@ -436,15 +436,15 @@ bool Locomotion::move_to_position_until_pan_tilt(
   return false;
 }
 
-bool Locomotion::move_to_position_left_kick(const keisan::Angle<double> & direction)
+bool Locomotion::position_left_kick(const keisan::Angle<double> & direction)
 {
-  return move_to_position_until_pan_tilt(
+  return position_until(
     left_kick_target_pan, left_kick_target_tilt, direction);
 }
 
-bool Locomotion::move_to_position_right_kick(const keisan::Angle<double> & direction)
+bool Locomotion::position_right_kick(const keisan::Angle<double> & direction)
 {
-  return move_to_position_until_pan_tilt(
+  return position_until(
     right_kick_target_pan, right_kick_target_tilt, direction);
 }
 

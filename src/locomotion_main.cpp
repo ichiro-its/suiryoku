@@ -170,22 +170,22 @@ int main(int argc, char * argv[])
           } else {
             std::cout << "dribble target_direction " << target_direction << std::endl;
           }
-        } else if (current_mode == "move_to_position_left_kick") {
-          if (locomotion->move_to_position_left_kick(target_direction)) {
+        } else if (current_mode == "position_left_kick") {
+          if (locomotion->position_left_kick(target_direction)) {
             locomotion->walk_in_position();
             is_running = false;
             is_running_now = false;
           } else {
-            std::cout << "move_to_position_left_kick target_direction " << target_direction <<
+            std::cout << "position_left_kick target_direction " << target_direction <<
               std::endl;
           }
-        } else if (current_mode == "move_to_position_right_kick") {
-          if (locomotion->move_to_position_right_kick(target_direction)) {
+        } else if (current_mode == "position_right_kick") {
+          if (locomotion->position_right_kick(target_direction)) {
             locomotion->walk_in_position();
             is_running = false;
             is_running_now = false;
           } else {
-            std::cout << "move_to_position_right_kick target_direction " << target_direction <<
+            std::cout << "position_right_kick target_direction " << target_direction <<
               std::endl;
           }
         } else if (current_mode == "move_follow_head") {
@@ -233,7 +233,7 @@ int main(int argc, char * argv[])
 
         current_mode = cmds[0];
         if ((cmds[0] == "pivot" || cmds[0] == "dribble" ||
-          cmds[0] == "move_to_position_right_kick" || cmds[0] == "move_to_position_left_kick" ||
+          cmds[0] == "position_right_kick" || cmds[0] == "position_left_kick" ||
           cmds[0] == "rotate_to_target" || cmds[0] == "move_backward") && !cmds[1].empty())
         {
           target_direction = std::stof(cmds[1]);

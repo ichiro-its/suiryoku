@@ -43,7 +43,7 @@ public:
   void move_backward(const keisan::Angle<double> & direction);
   bool move_backward_to(double target_x, double target_y);
 
-  bool move_to(double target_x, double target_y);
+  bool move_forward_to(double target_x, double target_y);
   bool rotate_to(const keisan::Angle<double> & direction);
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
@@ -55,11 +55,10 @@ public:
   bool dribble(const keisan::Angle<double> & direction);
   bool pivot(const keisan::Angle<double> & direction);
 
-  bool move_to_position_until_pan_tilt(
-    double target_pan, double target_tilt,
+  bool position_until(double target_pan, double target_tilt,
     const keisan::Angle<double> & direction);
-  bool move_to_position_left_kick(const keisan::Angle<double> & direction);
-  bool move_to_position_right_kick(const keisan::Angle<double> & direction);
+  bool position_left_kick(const keisan::Angle<double> & direction);
+  bool position_right_kick(const keisan::Angle<double> & direction);
 
   std::shared_ptr<Robot> get_robot() const;
   void update_move_amplitude(double x_amplitude, double y_amplitude);
