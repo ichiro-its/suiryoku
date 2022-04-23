@@ -240,25 +240,6 @@ bool Locomotion::move_forward_to(double target_x, double target_y)
   return false;
 }
 
-bool Locomotion::rotate_to(const keisan::Angle<double> & direction)
-{
-  auto delta_direction = (direction - robot->orientation).normalize().degree();
-
-  if (fabs(delta_direction) < 10.0) {
-    return true;
-  }
-
-  double y_speed = (delta_direction < 0.0) ? move_max_y : -move_max_y;
-  double a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
-
-  robot->x_speed = 0.0;
-  robot->y_speed = y_speed;
-  robot->a_speed = a_speed;
-  robot->aim_on = false;
-
-  return false;
-}
-
 bool Locomotion::rotate_to(const keisan::Angle<double> & direction, bool a_move_only)
 {
   auto delta_direction = (direction - robot->orientation).normalize().degree();

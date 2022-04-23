@@ -49,6 +49,8 @@ public:
   bool move_follow_head();
   bool move_follow_head(double min_tilt);
 
+  bool back_sprint(double target_x, double target_y);
+
   bool dribble(const keisan::Angle<double> & direction);
   bool pivot(const keisan::Angle<double> & direction);
 
