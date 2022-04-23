@@ -18,9 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
-#define SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
-
 #include <memory>
 #include <string>
 
@@ -244,5 +241,3 @@ std::string ControlNode::get_node_prefix() const
 }
 
 }  // namespace suiryoku::control
-
-#endif  // SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
