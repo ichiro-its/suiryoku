@@ -18,40 +18,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
-#define SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
+#ifndef SUIRYOKU__LOCOMOTION__CONTROL__HELPER__PARAMETER_HPP_
+#define SUIRYOKU__LOCOMOTION__CONTROL__HELPER__PARAMETER_HPP_
 
-#include <memory>
 #include <string>
 
-#include "rclcpp/rclcpp.hpp"
-#include "suiryoku_interfaces/msg/run_locomotion.hpp"
+#include "keisan/keisan.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
-#include "suiryoku/locomotion/process/locomotion.hpp"
 
 namespace suiryoku::control
 {
 
-class ControlNode
+class Parameter
 {
 public:
-  using RunLocomotion = suiryoku_interfaces::msg::RunLocomotion;
+  static std::string walk_in_position();
+  static std::string walk_in_position_until_stop();
 
-  explicit ControlNode(
-    rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion);
+  static std::string move_backward(const keisan::Angle<double> & direction);
+  static std::string move_backward_to(double target_x, double target_y);
 
-  void update();
+  static std::string move_forward_to(double target_x, double target_y);
+  static std::string rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
-private:
-  std::string get_node_prefix() const;
+  static std::string move_follow_head();
+  static std::string move_follow_head(double min_tilt);
 
-  rclcpp::Node::SharedPtr node;
+  static std::string back_sprint(double target_x, double target_y);
 
-  rclcpp::Subscription<RunLocomotion>::SharedPtr run_locomotion_subscriber;
+  static std::string dribble(const keisan::Angle<double> & direction);
+  static std::string pivot(const keisan::Angle<double> & direction);
 
-  std::shared_ptr<Locomotion> locomotion;
+  static std::string position_until(double target_pan, double target_tilt,
+    const keisan::Angle<double> & direction);
+  static std::string position_left_kick(const keisan::Angle<double> & direction);
+  static std::string position_right_kick(const keisan::Angle<double> & direction);
 };
 
 }  // namespace suiryoku::control
 
-#endif  // SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
+#endif  // SUIRYOKU__LOCOMOTION__CONTROL__HELPER__PARAMETER_HPP_

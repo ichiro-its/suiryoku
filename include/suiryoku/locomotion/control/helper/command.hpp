@@ -18,41 +18,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SUIRYOKU__LOCOMOTION__MODEL__ROBOT_HPP_
-#define SUIRYOKU__LOCOMOTION__MODEL__ROBOT_HPP_
+#ifndef SUIRYOKU__LOCOMOTION__CONTROL__HELPER__COMMAND_HPP_
+#define SUIRYOKU__LOCOMOTION__CONTROL__HELPER__COMMAND_HPP_
 
-#include <string>
-
-#include "keisan/keisan.hpp"
-
-namespace suiryoku
+namespace suiryoku::control
 {
 
-class Robot
+enum Command
 {
-public:
-  Robot();
-
-  double get_pan() const;
-  double get_tilt() const;
-
-  keisan::Angle<double> orientation;
-
-  double pan;
-  double pan_center;
-  double tilt;
-  double tilt_center;
-
-  double x_speed;
-  double y_speed;
-  double a_speed;
-  bool aim_on;
-  bool is_walking;
-
-  double position_x;
-  double position_y;
+  WALK_IN_POSITION,
+  BACKWARD,
+  FORWARD,
+  ROTATE,
+  FOLLOW_HEAD,
+  DRIBBLE,
+  PIVOT,
+  POSITION,
 };
 
-}  // namespace suiryoku
+}  // namespace suiryoku::control
 
-#endif  // SUIRYOKU__LOCOMOTION__MODEL__ROBOT_HPP_
+#endif  // SUIRYOKU__LOCOMOTION__CONTROL__HELPER__COMMAND_HPP_
