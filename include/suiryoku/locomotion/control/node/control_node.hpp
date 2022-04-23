@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
-#define SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
+#ifndef SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_
+#define SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_
 
 #include <memory>
 #include <string>
@@ -50,8 +50,10 @@ private:
   rclcpp::Subscription<RunLocomotion>::SharedPtr run_locomotion_subscriber;
 
   std::shared_ptr<Locomotion> locomotion;
+
+  std::function<bool()> process;
 };
 
 }  // namespace suiryoku::control
 
-#endif  // SUIRYOKU__LOCOMOTION__CONTROL__NODE__LOCOMOTION_NODE_HPP_
+#endif  // SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_

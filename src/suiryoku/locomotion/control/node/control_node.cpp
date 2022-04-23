@@ -24,45 +24,93 @@
 #include <memory>
 #include <string>
 
+#include "suiryoku/locomotion/control/node/control_node.hpp"
+
+#include "keisan/keisan.hpp"
+#include "nlohmann/json.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "suiryoku_interfaces/msg/run_locomotion.hpp"
-#include "suiryoku/locomotion/model/robot.hpp"
+#include "suiryoku/locomotion/control/helper/command.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
 namespace suiryoku::control
 {
 
-class ControlNode
+ControlNode::ControlNode(
+  rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion)
+: node(node), locomotion(locomotion), process([]() {return false;})
 {
-public:
-  using RunLocomotion = suiryoku_interfaces::msg::RunLocomotion;
+  run_locomotion_subscriber = node->create_subscription<RunLocomotion>(
+    get_node_prefix() + "/run_locomotion", 10,
+    [this](const RunLocomotion::SharedPtr message) {
+      auto parameters = nlohmann::json::parse(message->parameters);
 
-  enum Command
-  {
-    WALK_IN_POSITION,
-    BACKWARD,
-    FORWARD,
-    ROTATE,
-    FOLLOW_HEAD,
-    DRIBBLE,
-    PIVOT,
-    POSITION,
-  };
+      switch (message->command)
+      {
+        case Command::WALK_IN_POSITION:
+          {
+            bool until_stop = false;
 
-  explicit ControlNode(
-    rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion);
+            for (auto &[key, val] : parameters.items()) {
+              if (key == "until_stop") {
+                until_stop = val.get<bool>();
+              }
+            }
 
-  void update();
+            process = [this, until_stop]() {
+              if (until_stop) {
+                return this->locomotion->walk_in_position_until_stop();
+              } else {
+                return this->locomotion->walk_in_position();
+              }
+            };
 
-private:
-  std::string get_node_prefix() const;
+            break;
+          }
 
-  rclcpp::Node::SharedPtr node;
+        case Command::BACKWARD:
+          {
+            for (auto &[key, val] : parameters.items()) {
+              if (key == "direction") {
+                auto direction = keisan::make_degree(val);
 
-  rclcpp::Subscription<RunLocomotion>::SharedPtr run_locomotion_subscriber;
+                process = [this, direction]() {
+                  this->locomotion->move_backward(direction);
 
-  std::shared_ptr<Locomotion> locomotion;
-};
+                  return false;
+                };
+
+                break;
+              } else if (key == "target") {
+                auto target_x = val["x"].get<double>();
+                auto target_y = val["y"].get<double>();
+
+                process = [this, target_x, target_y]() {
+                  this->locomotion->move_backward_to(target_x, target_y);
+
+                  return false;
+                };
+
+                break;
+              }
+            }
+
+            break;
+          }
+      }
+    });
+}
+
+void ControlNode::update()
+{
+  if (process()) {
+    process = []() {return false;};
+  }
+}
+
+std::string ControlNode::get_node_prefix() const
+{
+  return "locomotion/control";
+}
 
 }  // namespace suiryoku::control
 
