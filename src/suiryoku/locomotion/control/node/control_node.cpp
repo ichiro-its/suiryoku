@@ -29,7 +29,7 @@
 #include "suiryoku/locomotion/control/helper/command.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
-using namespace keisan::literals;
+using keisan::literals::operator""_deg;
 
 namespace suiryoku::control
 {
@@ -43,8 +43,7 @@ ControlNode::ControlNode(
     [this](const RunLocomotion::SharedPtr message) {
       auto parameters = nlohmann::json::parse(message->parameters);
 
-      switch (message->command)
-      {
+      switch (message->command) {
         case Command::WALK_IN_POSITION:
           {
             bool until_stop = false;

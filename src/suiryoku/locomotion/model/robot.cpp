@@ -24,7 +24,7 @@
 
 #include "keisan/keisan.hpp"
 
-using namespace keisan::literals;
+using keisan::literals::operator""_deg;
 
 namespace suiryoku
 {

@@ -49,7 +49,8 @@ public:
   static std::string dribble(const keisan::Angle<double> & direction);
   static std::string pivot(const keisan::Angle<double> & direction);
 
-  static std::string position_until(double target_pan, double target_tilt,
+  static std::string position_until(
+    double target_pan, double target_tilt,
     const keisan::Angle<double> & direction);
   static std::string position_left_kick(const keisan::Angle<double> & direction);
   static std::string position_right_kick(const keisan::Angle<double> & direction);

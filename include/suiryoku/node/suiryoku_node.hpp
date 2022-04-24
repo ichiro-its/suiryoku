@@ -29,7 +29,6 @@
 #include "suiryoku/locomotion/control/node/control_node.hpp"
 #include "suiryoku/locomotion/node/locomotion_node.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
-#include "suiryoku/locomotion/process/locomotion.hpp"
 
 namespace suiryoku
 {

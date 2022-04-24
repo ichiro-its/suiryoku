@@ -59,12 +59,13 @@ LocomotionNode::LocomotionNode(
       this->robot->tilt = message->tilt_angle;
     });
 
-  locomotion->set_stop_walking_callback([this]() {
-    auto walking_msg = SetWalking();
-    walking_msg.run = false;
+  locomotion->set_stop_walking_callback(
+    [this]() {
+      auto walking_msg = SetWalking();
+      walking_msg.run = false;
 
-    this->set_walking_publisher->publish(walking_msg);
-  });
+      this->set_walking_publisher->publish(walking_msg);
+    });
 }
 
 void LocomotionNode::update()

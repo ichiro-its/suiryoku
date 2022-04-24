@@ -120,7 +120,8 @@ std::string Parameter::pivot(const keisan::Angle<double> & direction)
   return param.dump();
 }
 
-std::string Parameter::position_until(double target_pan, double target_tilt,
+std::string Parameter::position_until(
+  double target_pan, double target_tilt,
   const keisan::Angle<double> & direction)
 {
   nlohmann::json param = {
