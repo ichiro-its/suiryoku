@@ -43,7 +43,7 @@ std::string Config::get_config() const
   return data.dump();
 }
 
-void Config::set_config(const nlohmann::json & data)
+void Config::save_config(const nlohmann::json & data)
 {
   std::ofstream file(path + "locomotion.json", std::ios::out | std::ios::trunc);
   file << std::setw(2) << data << std::endl;

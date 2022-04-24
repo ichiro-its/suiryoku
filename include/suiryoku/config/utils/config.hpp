@@ -36,7 +36,7 @@ public:
   explicit Config(const std::string & path);
 
   std::string get_config() const;
-  void set_config(const nlohmann::json & data);
+  void save_config(const nlohmann::json & data);
 
 private:
   std::string path;

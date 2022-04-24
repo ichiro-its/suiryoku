@@ -24,8 +24,11 @@
 #include <memory>
 #include <string>
 
-#include "suiryoku/config/utils/config.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "suiryoku/config/utils/config.hpp"
+#include "suiryoku_interfaces/msg/set_config.hpp"
+#include "suiryoku_interfaces/srv/get_config.hpp"
+#include "suiryoku_interfaces/srv/save_config.hpp"
 
 namespace suiryoku
 {
@@ -33,13 +36,24 @@ namespace suiryoku
 class ConfigNode
 {
 public:
+  using GetConfig = suiryoku_interfaces::srv::GetConfig;
+  using SaveConfig = suiryoku_interfaces::srv::SaveConfig;
+  using SetConfig = suiryoku_interfaces::msg::SetConfig;
+
   explicit ConfigNode(rclcpp::Node::SharedPtr node, const std::string & path);
+
+  void set_config_callback(
+    const std::function<void(const SetConfig::SharedPtr)> & callback);
 
 private:
   std::string get_node_prefix() const;
 
   Config config;
   rclcpp::Node::SharedPtr node;
+
+  rclcpp::Service<GetConfig>::SharedPtr get_config_server;
+  rclcpp::Service<SaveConfig>::SharedPtr save_config_server;
+  rclcpp::Subscription<SetConfig>::SharedPtr set_config_subscriber;
 };
 
 }  // namespace suiryoku

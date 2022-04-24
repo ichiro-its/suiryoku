@@ -24,16 +24,45 @@
 
 #include "suiryoku/config/node/config_node.hpp"
 
-#include "suiryoku/config/utils/config.hpp"
 #include "nlohmann/json.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "suiryoku/config/utils/config.hpp"
 
 namespace suiryoku
 {
 
 ConfigNode::ConfigNode(rclcpp::Node::SharedPtr node, const std::string & path)
-: node(node), config(path)
+: node(node), config(path), set_config_subscriber(nullptr)
 {
+  get_config_server = node->create_service<GetConfig>(
+    get_node_prefix() + "/get_config",
+    [this](GetConfig::Request::SharedPtr request, GetConfig::Response::SharedPtr response) {
+      response->json = this->config.get_config();
+    });
+
+  save_config_server = node->create_service<SaveConfig>(
+    get_node_prefix() + "/save_config",
+    [this](SaveConfig::Request::SharedPtr request, SaveConfig::Response::SharedPtr response) {
+      try {
+        nlohmann::json data = nlohmann::json::parse(request->json);
+
+        this->config.save_config(data);
+        response->status = true;
+      } catch (std::ofstream::failure) {
+        // TODO(maroqijalil): log it
+        response->status = false;
+      } catch (nlohmann::json::exception) {
+        // TODO(maroqijalil): log it
+        response->status = false;
+      }
+    });
+}
+
+void ConfigNode::set_config_callback(
+  const std::function<void(const SetConfig::SharedPtr)> & callback)
+{
+  set_config_subscriber = node->create_subscription<SetConfig>(
+    get_node_prefix() + "/set_config", 10, callback);
 }
 
 std::string ConfigNode::get_node_prefix() const

@@ -25,6 +25,7 @@
 #include <string>
 
 #include "keisan/keisan.hpp"
+#include "nlohmann/json.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
 
 namespace suiryoku
@@ -36,6 +37,7 @@ public:
   explicit Locomotion(std::shared_ptr<Robot> robot);
 
   void load_config(const std::string & path);
+  void set_config(const nlohmann::json & json);
 
   bool walk_in_position();
   bool walk_in_position_until_stop();
@@ -60,7 +62,7 @@ public:
   std::shared_ptr<Robot> get_robot() const;
   void update_move_amplitude(double x_amplitude, double y_amplitude);
 
-  void set_stop_walking_callback(std::function<void()> stop_walking);
+  void set_stop_walking_callback(const std::function<void()> & stop_walking);
 
 private:
   double move_min_x;

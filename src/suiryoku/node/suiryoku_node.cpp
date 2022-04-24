@@ -29,6 +29,7 @@
 #include "suiryoku/locomotion/control/node/control_node.hpp"
 #include "suiryoku/locomotion/node/locomotion_node.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
+#include "suiryoku_interfaces/msg/set_config.hpp"
 
 using namespace std::chrono_literals;
 
@@ -37,7 +38,7 @@ namespace suiryoku
 
 SuiryokuNode::SuiryokuNode(rclcpp::Node::SharedPtr node)
 : node(node), config_node(nullptr), locomotion_node(nullptr),
-  locomotion_control_node(nullptr)
+  locomotion_control_node(nullptr), locomotion(nullptr)
 {
   node_timer = node->create_wall_timer(
     8ms,
@@ -58,11 +59,22 @@ void SuiryokuNode::run_locomotion_service(
     locomotion_control_node = std::make_shared<control::ControlNode>(
       node, locomotion);
   }
+
+  this->locomotion = locomotion;
 }
 
 void SuiryokuNode::run_config_service(const std::string & path)
 {
   config_node = std::make_shared<ConfigNode>(node, path);
+
+  if (locomotion) {
+    config_node->set_config_callback(
+      [this](const suiryoku_interfaces::msg::SetConfig::SharedPtr message) {
+        nlohmann::json data = nlohmann::json::parse(message->json);
+
+        this->locomotion->set_config(data);
+      });
+  }
 }
 
 }  // namespace suiryoku

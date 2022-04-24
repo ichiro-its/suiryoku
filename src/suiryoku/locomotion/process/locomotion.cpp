@@ -48,7 +48,14 @@ void Locomotion::load_config(const std::string & path)
   std::ifstream file(path + "locomotion.json");
   nlohmann::json data = nlohmann::json::parse(file);
 
-  for (auto &[key, val] : data.items()) {
+  set_config(data);
+
+  file.close();
+}
+
+void Locomotion::set_config(const nlohmann::json & json)
+{
+  for (auto &[key, val] : json.items()) {
     if (key == "move") {
       try {
         val.at("min_x").get_to(move_min_x);
@@ -117,8 +124,6 @@ void Locomotion::load_config(const std::string & path)
       }
     }
   }
-
-  file.close();
 }
 
 bool Locomotion::walk_in_position()
@@ -440,7 +445,7 @@ void Locomotion::update_move_amplitude(double x_amplitude, double y_amplitude)
   y_speed_amplitude = y_amplitude;
 }
 
-void Locomotion::set_stop_walking_callback(std::function<void()> stop_walking)
+void Locomotion::set_stop_walking_callback(const std::function<void()> & stop_walking)
 {
   this->stop_walking = stop_walking;
 }
