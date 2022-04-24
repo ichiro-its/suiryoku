@@ -8,11 +8,13 @@
   <license>MIT License</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>ament_index_cpp</depend>
-  <depend>aruku</depend>
-  <depend>atama</depend>
-  <depend>framework_common</depend>
+  <depend>aruku_interfaces</depend>
+  <depend>atama_interfaces</depend>
   <depend>kansei</depend>
-  <depend>robocup_client</depend>
+  <depend>keisan</depend>
+  <depend>rclcpp</depend>
+  <depend>nlohmann-json-dev</depend>
+  <depend>suiryoku_interfaces</depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
   <export>

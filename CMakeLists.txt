@@ -15,11 +15,12 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
-find_package(aruku REQUIRED)
-find_package(atama REQUIRED)
-find_package(framework_common REQUIRED)
+find_package(aruku_interfaces REQUIRED)
+find_package(atama_interfaces REQUIRED)
 find_package(kansei REQUIRED)
-find_package(robocup_client REQUIRED)
+find_package(keisan REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(suiryoku_interfaces REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/config/node/config_node.cpp"
@@ -36,11 +37,12 @@ add_library(${PROJECT_NAME} SHARED
   $<INSTALL_INTERFACE:include>)
 
   ament_target_dependencies(${PROJECT_NAME}
-  aruku
-  atama
-  framework_common
+  aruku_interfaces
+  atama_interfaces
   kansei
-  robocup_client)
+  keisan
+  rclcpp
+  suiryoku_interfaces)
 
   install(DIRECTORY "include" DESTINATION ".")
 
@@ -50,21 +52,19 @@ add_library(${PROJECT_NAME} SHARED
   LIBRARY DESTINATION "lib"
   RUNTIME DESTINATION "bin")
 
-add_executable(locomotion_main "src/locomotion_main.cpp")
-target_include_directories(locomotion_main PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-target_link_libraries(locomotion_main ${PROJECT_NAME})
+# add_executable(locomotion_main "src/locomotion_main.cpp")
+# target_include_directories(locomotion_main PUBLIC
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#   $<INSTALL_INTERFACE:include>)
+# target_link_libraries(locomotion_main ${PROJECT_NAME})
 
-add_executable(locomotion_head_main "src/locomotion_head_main.cpp")
-target_include_directories(locomotion_head_main PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-target_link_libraries(locomotion_head_main ${PROJECT_NAME})
+# add_executable(locomotion_head_main "src/locomotion_head_main.cpp")
+# target_include_directories(locomotion_head_main PUBLIC
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#   $<INSTALL_INTERFACE:include>)
+# target_link_libraries(locomotion_head_main ${PROJECT_NAME})
 
 install(TARGETS
-  locomotion_head_main
-  locomotion_main
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
@@ -74,11 +74,12 @@ endif()
 
 ament_export_dependencies(
   ament_index_cpp
-  aruku
-  atama
-  framework_common
+  aruku_interfaces
+  atama_interfaces
   kansei
-  robocup_client)
+  keisan
+  rclcpp
+  suiryoku_interfaces)
 ament_export_include_directories("include")
 ament_export_libraries(${PROJECT_NAME})
 ament_package()
