@@ -22,7 +22,14 @@ find_package(kansei REQUIRED)
 find_package(robocup_client REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
-  "src/${PROJECT_NAME}/locomotion.cpp")
+  "src/${PROJECT_NAME}/config/node/config_node.cpp"
+  "src/${PROJECT_NAME}/config/utils/config.cpp"
+  "src/${PROJECT_NAME}/locomotion/control/helper/parameter.cpp"
+  "src/${PROJECT_NAME}/locomotion/control/node/control_node.cpp"
+  "src/${PROJECT_NAME}/locomotion/model/robot.cpp"
+  "src/${PROJECT_NAME}/locomotion/node/locomotion_node.cpp"
+  "src/${PROJECT_NAME}/locomotion/process/locomotion.cpp"
+  "src/${PROJECT_NAME}/node/suiryoku_node.cpp")
 
   target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
