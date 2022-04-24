@@ -26,6 +26,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/config/node/config_node.hpp"
+#include "suiryoku/locomotion/control/node/control_node.hpp"
 #include "suiryoku/locomotion/node/locomotion_node.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
@@ -35,19 +36,28 @@ namespace suiryoku
 {
 
 SuiryokuNode::SuiryokuNode(rclcpp::Node::SharedPtr node)
-: node(node), config_node(nullptr), locomotion_node(nullptr)
+: node(node), config_node(nullptr), locomotion_node(nullptr),
+  locomotion_control_node(nullptr)
 {
   node_timer = node->create_wall_timer(
     8ms,
     [this]() {
+      if (this->locomotion_control_node) {
+        this->locomotion_control_node->update();
+      }
     }
   );
 }
 
 void SuiryokuNode::run_locomotion_service(
-  std::shared_ptr<Locomotion> locomotion)
+  std::shared_ptr<Locomotion> locomotion, bool include_control)
 {
   locomotion_node = std::make_shared<LocomotionNode>(node, locomotion);
+
+  if (include_control) {
+    locomotion_control_node = std::make_shared<control::ControlNode>(
+      node, locomotion);
+  }
 }
 
 void SuiryokuNode::run_config_service(const std::string & path)
