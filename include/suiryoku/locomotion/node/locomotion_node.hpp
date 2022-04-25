@@ -18,45 +18,54 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <string>
-#include <memory>
+#ifndef SUIRYOKU__LOCOMOTION__NODE__LOCOMOTION_NODE_HPP_
+#define SUIRYOKU__LOCOMOTION__NODE__LOCOMOTION_NODE_HPP_
 
+#include <memory>
+#include <string>
+
+#include "aruku_interfaces/msg/set_walking.hpp"
+#include "aruku_interfaces/msg/status.hpp"
+#include "atama_interfaces/msg/head.hpp"
+#include "kansei_interfaces/msg/axis.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
-#include "suiryoku/locomotion/node/locomotion_node.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
-using namespace std::chrono_literals;
-
-int main(int argc, char * argv[])
+namespace suiryoku
 {
-  rclcpp::init(argc, argv);
 
-  if (argc < 2) {
-    std::cerr << "Please specify the path!" << std::endl;
-    return 0;
-  }
+class LocomotionNode
+{
+public:
+  using Axis = kansei_interfaces::msg::Axis;
+  using Head = atama_interfaces::msg::Head;
+  using SetWalking = aruku_interfaces::msg::SetWalking;
+  using Status = aruku_interfaces::msg::Status;
 
-  std::string path = argv[1];
-  auto node = std::make_shared<rclcpp::Node>("suiryoku_node");
+  explicit LocomotionNode(
+    rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion);
 
-  auto robot = std::make_shared<suiryoku::Robot>();
-  auto locomotion = std::make_shared<suiryoku::Locomotion>(robot);
-  locomotion->load_config(path);
+  void update();
 
-  suiryoku::LocomotionNode locomotion_node(node, locomotion);
+private:
+  std::string get_node_prefix() const;
 
-  rclcpp::Rate rcl_rate(8ms);
-  while (rclcpp::ok()) {
-    rcl_rate.sleep();
+  void publish_walking();
 
-    rclcpp::spin_some(node);
+  rclcpp::Node::SharedPtr node;
 
-    locomotion->walk_in_position();
-    locomotion_node.update();
-  }
+  rclcpp::Publisher<SetWalking>::SharedPtr set_walking_publisher;
 
-  rclcpp::shutdown();
+  rclcpp::Subscription<Axis>::SharedPtr orientation_subscriber;
+  rclcpp::Subscription<Status>::SharedPtr walking_status_subscriber;
 
-  return 0;
-}
+  rclcpp::Subscription<Head>::SharedPtr head_subscriber;
+
+  std::shared_ptr<Locomotion> locomotion;
+  std::shared_ptr<Robot> robot;
+};
+
+}  // namespace suiryoku
+
+#endif  // SUIRYOKU__LOCOMOTION__NODE__LOCOMOTION_NODE_HPP_

@@ -18,45 +18,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <string>
+#ifndef SUIRYOKU__CONFIG__NODE__CONFIG_NODE_HPP_
+#define SUIRYOKU__CONFIG__NODE__CONFIG_NODE_HPP_
+
 #include <memory>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include "suiryoku/locomotion/model/robot.hpp"
-#include "suiryoku/locomotion/node/locomotion_node.hpp"
-#include "suiryoku/locomotion/process/locomotion.hpp"
+#include "suiryoku/config/utils/config.hpp"
+#include "suiryoku_interfaces/msg/set_config.hpp"
+#include "suiryoku_interfaces/srv/get_config.hpp"
+#include "suiryoku_interfaces/srv/save_config.hpp"
 
-using namespace std::chrono_literals;
-
-int main(int argc, char * argv[])
+namespace suiryoku
 {
-  rclcpp::init(argc, argv);
 
-  if (argc < 2) {
-    std::cerr << "Please specify the path!" << std::endl;
-    return 0;
-  }
+class ConfigNode
+{
+public:
+  using GetConfig = suiryoku_interfaces::srv::GetConfig;
+  using SaveConfig = suiryoku_interfaces::srv::SaveConfig;
+  using SetConfig = suiryoku_interfaces::msg::SetConfig;
 
-  std::string path = argv[1];
-  auto node = std::make_shared<rclcpp::Node>("suiryoku_node");
+  explicit ConfigNode(rclcpp::Node::SharedPtr node, const std::string & path);
 
-  auto robot = std::make_shared<suiryoku::Robot>();
-  auto locomotion = std::make_shared<suiryoku::Locomotion>(robot);
-  locomotion->load_config(path);
+  void set_config_callback(
+    const std::function<void(const SetConfig::SharedPtr)> & callback);
 
-  suiryoku::LocomotionNode locomotion_node(node, locomotion);
+private:
+  std::string get_node_prefix() const;
 
-  rclcpp::Rate rcl_rate(8ms);
-  while (rclcpp::ok()) {
-    rcl_rate.sleep();
+  Config config;
+  rclcpp::Node::SharedPtr node;
 
-    rclcpp::spin_some(node);
+  rclcpp::Service<GetConfig>::SharedPtr get_config_server;
+  rclcpp::Service<SaveConfig>::SharedPtr save_config_server;
+  rclcpp::Subscription<SetConfig>::SharedPtr set_config_subscriber;
+};
 
-    locomotion->walk_in_position();
-    locomotion_node.update();
-  }
+}  // namespace suiryoku
 
-  rclcpp::shutdown();
-
-  return 0;
-}
+#endif  // SUIRYOKU__CONFIG__NODE__CONFIG_NODE_HPP_

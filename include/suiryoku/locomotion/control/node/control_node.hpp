@@ -18,45 +18,47 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <string>
+#ifndef SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_
+#define SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_
+
 #include <memory>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
+#include "suiryoku_interfaces/msg/run_locomotion.hpp"
+#include "suiryoku_interfaces/msg/status.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
-#include "suiryoku/locomotion/node/locomotion_node.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
-using namespace std::chrono_literals;
-
-int main(int argc, char * argv[])
+namespace suiryoku::control
 {
-  rclcpp::init(argc, argv);
 
-  if (argc < 2) {
-    std::cerr << "Please specify the path!" << std::endl;
-    return 0;
-  }
+class ControlNode
+{
+public:
+  using RunLocomotion = suiryoku_interfaces::msg::RunLocomotion;
+  using Status = suiryoku_interfaces::msg::Status;
 
-  std::string path = argv[1];
-  auto node = std::make_shared<rclcpp::Node>("suiryoku_node");
+  explicit ControlNode(
+    rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion);
 
-  auto robot = std::make_shared<suiryoku::Robot>();
-  auto locomotion = std::make_shared<suiryoku::Locomotion>(robot);
-  locomotion->load_config(path);
+  void update();
 
-  suiryoku::LocomotionNode locomotion_node(node, locomotion);
+private:
+  std::string get_node_prefix() const;
 
-  rclcpp::Rate rcl_rate(8ms);
-  while (rclcpp::ok()) {
-    rcl_rate.sleep();
+  void run_locomotion_callback(const RunLocomotion::SharedPtr message);
 
-    rclcpp::spin_some(node);
+  rclcpp::Node::SharedPtr node;
 
-    locomotion->walk_in_position();
-    locomotion_node.update();
-  }
+  rclcpp::Subscription<RunLocomotion>::SharedPtr run_locomotion_subscriber;
+  rclcpp::Publisher<Status>::SharedPtr status_publisher;
 
-  rclcpp::shutdown();
+  std::shared_ptr<Locomotion> locomotion;
 
-  return 0;
-}
+  std::function<bool()> process;
+};
+
+}  // namespace suiryoku::control
+
+#endif  // SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_

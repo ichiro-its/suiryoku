@@ -23,10 +23,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
-#include "suiryoku/locomotion/node/locomotion_node.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
-
-using namespace std::chrono_literals;
+#include "suiryoku/node/suiryoku_node.hpp"
 
 int main(int argc, char * argv[])
 {
@@ -39,23 +37,16 @@ int main(int argc, char * argv[])
 
   std::string path = argv[1];
   auto node = std::make_shared<rclcpp::Node>("suiryoku_node");
+  auto suiryoku_node = std::make_shared<suiryoku::SuiryokuNode>(node);
 
   auto robot = std::make_shared<suiryoku::Robot>();
   auto locomotion = std::make_shared<suiryoku::Locomotion>(robot);
   locomotion->load_config(path);
 
-  suiryoku::LocomotionNode locomotion_node(node, locomotion);
+  suiryoku_node->run_locomotion_service(locomotion, true);
+  suiryoku_node->run_config_service(path);
 
-  rclcpp::Rate rcl_rate(8ms);
-  while (rclcpp::ok()) {
-    rcl_rate.sleep();
-
-    rclcpp::spin_some(node);
-
-    locomotion->walk_in_position();
-    locomotion_node.update();
-  }
-
+  rclcpp::spin(node);
   rclcpp::shutdown();
 
   return 0;

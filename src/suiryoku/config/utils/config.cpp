@@ -18,45 +18,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <fstream>
+#include <iomanip>
 #include <string>
-#include <memory>
 
-#include "rclcpp/rclcpp.hpp"
-#include "suiryoku/locomotion/model/robot.hpp"
-#include "suiryoku/locomotion/node/locomotion_node.hpp"
-#include "suiryoku/locomotion/process/locomotion.hpp"
+#include "suiryoku/config/utils/config.hpp"
 
-using namespace std::chrono_literals;
+#include "nlohmann/json.hpp"
 
-int main(int argc, char * argv[])
+namespace suiryoku
 {
-  rclcpp::init(argc, argv);
 
-  if (argc < 2) {
-    std::cerr << "Please specify the path!" << std::endl;
-    return 0;
-  }
-
-  std::string path = argv[1];
-  auto node = std::make_shared<rclcpp::Node>("suiryoku_node");
-
-  auto robot = std::make_shared<suiryoku::Robot>();
-  auto locomotion = std::make_shared<suiryoku::Locomotion>(robot);
-  locomotion->load_config(path);
-
-  suiryoku::LocomotionNode locomotion_node(node, locomotion);
-
-  rclcpp::Rate rcl_rate(8ms);
-  while (rclcpp::ok()) {
-    rcl_rate.sleep();
-
-    rclcpp::spin_some(node);
-
-    locomotion->walk_in_position();
-    locomotion_node.update();
-  }
-
-  rclcpp::shutdown();
-
-  return 0;
+Config::Config(const std::string & path)
+: path(path)
+{
 }
+
+std::string Config::get_config() const
+{
+  std::ifstream file(path + "locomotion.json");
+  nlohmann::json data = nlohmann::json::parse(file);
+
+  file.close();
+  return data.dump();
+}
+
+void Config::save_config(const nlohmann::json & data)
+{
+  std::ofstream file(path + "locomotion.json", std::ios::out | std::ios::trunc);
+  file << std::setw(2) << data << std::endl;
+  file.close();
+}
+
+}  // namespace suiryoku

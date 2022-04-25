@@ -19,44 +19,31 @@
 // THE SOFTWARE.
 
 #include <string>
-#include <memory>
 
-#include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
-#include "suiryoku/locomotion/node/locomotion_node.hpp"
-#include "suiryoku/locomotion/process/locomotion.hpp"
 
-using namespace std::chrono_literals;
+#include "keisan/keisan.hpp"
 
-int main(int argc, char * argv[])
+using keisan::literals::operator""_deg;
+
+namespace suiryoku
 {
-  rclcpp::init(argc, argv);
 
-  if (argc < 2) {
-    std::cerr << "Please specify the path!" << std::endl;
-    return 0;
-  }
-
-  std::string path = argv[1];
-  auto node = std::make_shared<rclcpp::Node>("suiryoku_node");
-
-  auto robot = std::make_shared<suiryoku::Robot>();
-  auto locomotion = std::make_shared<suiryoku::Locomotion>(robot);
-  locomotion->load_config(path);
-
-  suiryoku::LocomotionNode locomotion_node(node, locomotion);
-
-  rclcpp::Rate rcl_rate(8ms);
-  while (rclcpp::ok()) {
-    rcl_rate.sleep();
-
-    rclcpp::spin_some(node);
-
-    locomotion->walk_in_position();
-    locomotion_node.update();
-  }
-
-  rclcpp::shutdown();
-
-  return 0;
+Robot::Robot()
+: pan(0.0), tilt(0.0), pan_center(0.0), tilt_center(0.0), x_speed(0.0),
+  y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false),
+  orientation(0_deg), position_x(0.0), position_y(0.0)
+{
 }
+
+double Robot::get_pan() const
+{
+  return pan + pan_center;
+}
+
+double Robot::get_tilt() const
+{
+  return tilt + tilt_center;
+}
+
+}  // namespace suiryoku
