@@ -30,6 +30,7 @@
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
 using keisan::literals::operator""_deg;
+using std::placeholders::_1;
 
 namespace suiryoku::control
 {
@@ -40,198 +41,210 @@ ControlNode::ControlNode(
 {
   run_locomotion_subscriber = node->create_subscription<RunLocomotion>(
     get_node_prefix() + "/run_locomotion", 10,
-    [this](const RunLocomotion::SharedPtr message) {
-      auto parameters = nlohmann::json::parse(message->parameters);
+    std::bind(&ControlNode::run_locomotion_callback, this, _1));
+  
+  status_publisher = node->create_publisher<Status>(
+    get_node_prefix() + "/status", 10);
+}
 
-      switch (message->command) {
-        case Command::WALK_IN_POSITION:
-          {
-            bool until_stop = false;
+void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message)
+{
+  auto parameters = nlohmann::json::parse(message->parameters);
 
-            for (auto &[key, val] : parameters.items()) {
-              if (key == "until_stop") {
-                until_stop = val.get<bool>();
-              }
-            }
+  switch (message->command) {
+    case Command::WALK_IN_POSITION:
+      {
+        bool until_stop = false;
 
-            if (until_stop) {
-              process = [this]() {
-                return this->locomotion->walk_in_position_until_stop();
-              };
-            } else {
-              process = [this]() {
-                return this->locomotion->walk_in_position();
-              };
-            }
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "until_stop") {
+            until_stop = val.get<bool>();
+          }
+        }
+
+        if (until_stop) {
+          process = [this]() {
+            return this->locomotion->walk_in_position_until_stop();
+          };
+        } else {
+          process = [this]() {
+            return this->locomotion->walk_in_position();
+          };
+        }
+
+        break;
+      }
+
+    case Command::BACKWARD:
+      {
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "direction") {
+            auto direction = keisan::make_degree(val.get<double>());
+
+            process = [this, direction]() {
+              this->locomotion->move_backward(direction);
+
+              return false;
+            };
 
             break;
-          }
+          } else if (key == "target") {
+            auto target_x = val["x"].get<double>();
+            auto target_y = val["y"].get<double>();
 
-        case Command::BACKWARD:
-          {
-            for (auto &[key, val] : parameters.items()) {
-              if (key == "direction") {
-                auto direction = keisan::make_degree(val.get<double>());
-
-                process = [this, direction]() {
-                  this->locomotion->move_backward(direction);
-
-                  return false;
-                };
-
-                break;
-              } else if (key == "target") {
-                auto target_x = val["x"].get<double>();
-                auto target_y = val["y"].get<double>();
-
-                process = [this, target_x, target_y]() {
-                  return this->locomotion->move_backward_to(target_x, target_y);
-                };
-
-                break;
-              }
-            }
-
-            break;
-          }
-
-        case Command::FORWARD:
-          {
-            for (auto &[key, val] : parameters.items()) {
-              if (key == "target") {
-                auto target_x = val["x"].get<double>();
-                auto target_y = val["y"].get<double>();
-
-                process = [this, target_x, target_y]() {
-                  return this->locomotion->move_forward_to(target_x, target_y);
-                };
-              }
-            }
-
-            break;
-          }
-
-        case Command::ROTATE:
-          {
-            keisan::Angle<double> direction(0_deg);
-            bool a_move_only = false;
-
-            for (auto &[key, val] : parameters.items()) {
-              if (key == "direction") {
-                direction = keisan::make_degree(val.get<double>());
-              } else if (key == "a_move_only") {
-                a_move_only = val.get<bool>();
-              }
-            }
-
-            process = [this, direction, a_move_only]() {
-              return this->locomotion->rotate_to(direction, a_move_only);
+            process = [this, target_x, target_y]() {
+              return this->locomotion->move_backward_to(target_x, target_y);
             };
 
             break;
           }
+        }
 
-        case Command::FOLLOW_HEAD:
-          {
-            double min_tilt = 0.0;
-            bool is_default = true;
-
-            for (auto &[key, val] : parameters.items()) {
-              if (key == "min_tilt") {
-                min_tilt = val.get<double>();
-                is_default = false;
-              }
-            }
-
-            if (is_default) {
-              process = [this]() {
-                return this->locomotion->move_follow_head();
-              };
-            } else {
-              process = [this, min_tilt]() {
-                return this->locomotion->move_follow_head(min_tilt);
-              };
-            }
-
-            break;
-          }
-
-        case Command::DRIBBLE:
-          {
-            for (auto &[key, val] : parameters.items()) {
-              if (key == "direction") {
-                auto direction = keisan::make_degree(val.get<double>());
-
-                process = [this, direction]() {
-                  return !this->locomotion->dribble(direction);
-                };
-              }
-            }
-
-            break;
-          }
-
-        case Command::PIVOT:
-          {
-            for (auto &[key, val] : parameters.items()) {
-              if (key == "direction") {
-                auto direction = keisan::make_degree(val.get<double>());
-
-                process = [this, direction]() {
-                  return this->locomotion->pivot(direction);
-                };
-              }
-            }
-
-            break;
-          }
-
-        case Command::POSITION:
-          {
-            keisan::Angle<double> direction(0_deg);
-            double target_pan = 0.0;
-            double target_tilt = 0.0;
-            bool is_left_kick = false;
-            bool is_right_kick = false;
-
-            for (auto &[key, val] : parameters.items()) {
-              if (key == "direction") {
-                direction = keisan::make_degree(val.get<double>());
-              } else if (key == "target") {
-                target_pan = val["pan"].get<double>();
-                target_tilt = val["tilt"].get<double>();
-              } else if (key == "is_left_kick") {
-                is_left_kick = val.get<bool>();
-              } else if (key == "is_right_kick") {
-                is_right_kick = val.get<bool>();
-              }
-            }
-
-            if (is_left_kick) {
-              process = [this, direction]() {
-                return this->locomotion->position_left_kick(direction);
-              };
-            } else if (is_right_kick) {
-              process = [this, direction]() {
-                return this->locomotion->position_right_kick(direction);
-              };
-            } else {
-              process = [this, target_pan, target_tilt, direction]() {
-                return this->locomotion->position_until(target_pan, target_tilt, direction);
-              };
-            }
-
-            break;
-          }
+        break;
       }
-    });
+
+    case Command::FORWARD:
+      {
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "target") {
+            auto target_x = val["x"].get<double>();
+            auto target_y = val["y"].get<double>();
+
+            process = [this, target_x, target_y]() {
+              return this->locomotion->move_forward_to(target_x, target_y);
+            };
+          }
+        }
+
+        break;
+      }
+
+    case Command::ROTATE:
+      {
+        keisan::Angle<double> direction(0_deg);
+        bool a_move_only = false;
+
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "direction") {
+            direction = keisan::make_degree(val.get<double>());
+          } else if (key == "a_move_only") {
+            a_move_only = val.get<bool>();
+          }
+        }
+
+        process = [this, direction, a_move_only]() {
+          return this->locomotion->rotate_to(direction, a_move_only);
+        };
+
+        break;
+      }
+
+    case Command::FOLLOW_HEAD:
+      {
+        double min_tilt = 0.0;
+        bool is_default = true;
+
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "min_tilt") {
+            min_tilt = val.get<double>();
+            is_default = false;
+          }
+        }
+
+        if (is_default) {
+          process = [this]() {
+            return this->locomotion->move_follow_head();
+          };
+        } else {
+          process = [this, min_tilt]() {
+            return this->locomotion->move_follow_head(min_tilt);
+          };
+        }
+
+        break;
+      }
+
+    case Command::DRIBBLE:
+      {
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "direction") {
+            auto direction = keisan::make_degree(val.get<double>());
+
+            process = [this, direction]() {
+              return !this->locomotion->dribble(direction);
+            };
+          }
+        }
+
+        break;
+      }
+
+    case Command::PIVOT:
+      {
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "direction") {
+            auto direction = keisan::make_degree(val.get<double>());
+
+            process = [this, direction]() {
+              return this->locomotion->pivot(direction);
+            };
+          }
+        }
+
+        break;
+      }
+
+    case Command::POSITION:
+      {
+        keisan::Angle<double> direction(0_deg);
+        double target_pan = 0.0;
+        double target_tilt = 0.0;
+        bool is_left_kick = false;
+        bool is_right_kick = false;
+
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "direction") {
+            direction = keisan::make_degree(val.get<double>());
+          } else if (key == "target") {
+            target_pan = val["pan"].get<double>();
+            target_tilt = val["tilt"].get<double>();
+          } else if (key == "is_left_kick") {
+            is_left_kick = val.get<bool>();
+          } else if (key == "is_right_kick") {
+            is_right_kick = val.get<bool>();
+          }
+        }
+
+        if (is_left_kick) {
+          process = [this, direction]() {
+            return this->locomotion->position_left_kick(direction);
+          };
+        } else if (is_right_kick) {
+          process = [this, direction]() {
+            return this->locomotion->position_right_kick(direction);
+          };
+        } else {
+          process = [this, target_pan, target_tilt, direction]() {
+            return this->locomotion->position_until(target_pan, target_tilt, direction);
+          };
+        }
+
+        break;
+      }
+  }
 }
 
 void ControlNode::update()
 {
-  if (process()) {
+  bool is_over = process();
+  if (is_over) {
     process = []() {return false;};
   }
+
+  auto status_msg = Status();
+  status_msg.status = is_over;
+
+  status_publisher->publish(status_msg);
 }
 
 std::string ControlNode::get_node_prefix() const

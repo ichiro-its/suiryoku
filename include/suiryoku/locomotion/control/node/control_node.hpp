@@ -26,6 +26,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku_interfaces/msg/run_locomotion.hpp"
+#include "suiryoku_interfaces/msg/status.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
@@ -36,6 +37,7 @@ class ControlNode
 {
 public:
   using RunLocomotion = suiryoku_interfaces::msg::RunLocomotion;
+  using Status = suiryoku_interfaces::msg::Status;
 
   explicit ControlNode(
     rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion);
@@ -45,9 +47,12 @@ public:
 private:
   std::string get_node_prefix() const;
 
+  void run_locomotion_callback(const RunLocomotion::SharedPtr message);
+
   rclcpp::Node::SharedPtr node;
 
   rclcpp::Subscription<RunLocomotion>::SharedPtr run_locomotion_subscriber;
+  rclcpp::Publisher<Status>::SharedPtr status_publisher;
 
   std::shared_ptr<Locomotion> locomotion;
 
