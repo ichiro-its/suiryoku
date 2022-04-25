@@ -18,43 +18,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SUIRYOKU__NODE__SUIRYOKU_NODE_HPP_
-#define SUIRYOKU__NODE__SUIRYOKU_NODE_HPP_
-
-#include <memory>
 #include <string>
+#include <memory>
 
 #include "rclcpp/rclcpp.hpp"
-#include "suiryoku/config/node/config_node.hpp"
-#include "suiryoku/locomotion/control/node/control_node.hpp"
-#include "suiryoku/locomotion/node/locomotion_node.hpp"
+#include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
+#include "suiryoku/node/suiryoku_node.hpp"
 
-namespace suiryoku
+int main(int argc, char * argv[])
 {
+  rclcpp::init(argc, argv);
 
-class SuiryokuNode
-{
-public:
-  explicit SuiryokuNode(rclcpp::Node::SharedPtr node);
+  if (argc < 2) {
+    std::cerr << "Please specify the path!" << std::endl;
+    return 0;
+  }
 
-  void run_locomotion_service(
-    std::shared_ptr<Locomotion> locomotion, bool include_control = false);
+  std::string path = argv[1];
+  auto node = std::make_shared<rclcpp::Node>("suiryoku_node");
+  auto suiryoku_node = std::make_shared<suiryoku::SuiryokuNode>(node);
 
-  void run_config_service(const std::string & path);
+  auto robot = std::make_shared<suiryoku::Robot>();
+  auto locomotion = std::make_shared<suiryoku::Locomotion>(robot);
+  locomotion->load_config(path);
 
-private:
-  rclcpp::Node::SharedPtr node;
-  rclcpp::TimerBase::SharedPtr node_timer;
+  suiryoku_node->run_locomotion_service(locomotion, true);
+  suiryoku_node->run_config_service(path);
 
-  std::shared_ptr<ConfigNode> config_node;
+  rclcpp::spin(node);
+  rclcpp::shutdown();
 
-  std::shared_ptr<LocomotionNode> locomotion_node;
-  std::shared_ptr<control::ControlNode> locomotion_control_node;
-
-  std::shared_ptr<Locomotion> locomotion;
-};
-
-}  // namespace suiryoku
-
-#endif  // SUIRYOKU__NODE__SUIRYOKU_NODE_HPP_
+  return 0;
+}

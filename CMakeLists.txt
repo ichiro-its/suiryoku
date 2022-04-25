@@ -17,7 +17,7 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(aruku_interfaces REQUIRED)
 find_package(atama_interfaces REQUIRED)
-find_package(kansei REQUIRED)
+find_package(kansei_interfaces REQUIRED)
 find_package(keisan REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(suiryoku_interfaces REQUIRED)
@@ -39,7 +39,7 @@ add_library(${PROJECT_NAME} SHARED
   ament_target_dependencies(${PROJECT_NAME}
   aruku_interfaces
   atama_interfaces
-  kansei
+  kansei_interfaces
   keisan
   rclcpp
   suiryoku_interfaces)
@@ -52,19 +52,28 @@ add_library(${PROJECT_NAME} SHARED
   LIBRARY DESTINATION "lib"
   RUNTIME DESTINATION "bin")
 
-# add_executable(locomotion_main "src/locomotion_main.cpp")
-# target_include_directories(locomotion_main PUBLIC
-#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#   $<INSTALL_INTERFACE:include>)
-# target_link_libraries(locomotion_main ${PROJECT_NAME})
+add_executable(config "src/config_main.cpp")
+target_include_directories(config PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(config ${PROJECT_NAME})
 
-# add_executable(locomotion_head_main "src/locomotion_head_main.cpp")
-# target_include_directories(locomotion_head_main PUBLIC
-#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#   $<INSTALL_INTERFACE:include>)
-# target_link_libraries(locomotion_head_main ${PROJECT_NAME})
+add_executable(locomotion "src/locomotion_main.cpp")
+target_include_directories(locomotion PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(locomotion ${PROJECT_NAME})
+
+add_executable(main "src/suiryoku_main.cpp")
+target_include_directories(main PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(main ${PROJECT_NAME})
 
 install(TARGETS
+  config
+  locomotion
+  main
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
@@ -76,7 +85,7 @@ ament_export_dependencies(
   ament_index_cpp
   aruku_interfaces
   atama_interfaces
-  kansei
+  kansei_interfaces
   keisan
   rclcpp
   suiryoku_interfaces)
