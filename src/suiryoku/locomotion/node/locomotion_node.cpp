@@ -53,7 +53,7 @@ LocomotionNode::LocomotionNode(
     });
 
   head_subscriber = node->create_subscription<Head>(
-    "/head/odometry", 10,
+    "/head/set_head_data", 10,
     [this](const Head::SharedPtr message) {
       this->robot->pan = message->pan_angle;
       this->robot->tilt = message->tilt_angle;
