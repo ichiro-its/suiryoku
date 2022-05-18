@@ -45,14 +45,14 @@ public:
   using SetWalking = aruku_interfaces::msg::SetWalking;
   using Status = aruku_interfaces::msg::Status;
 
+  static std::string get_node_prefix();
+
   explicit LocomotionNode(
     rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion);
 
   void update();
 
 private:
-  std::string get_node_prefix() const;
-
   void publish_walking();
 
   rclcpp::Node::SharedPtr node;

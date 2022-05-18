@@ -39,14 +39,16 @@ public:
   using RunLocomotion = suiryoku_interfaces::msg::RunLocomotion;
   using Status = suiryoku_interfaces::msg::Status;
 
+  static std::string get_node_prefix();
+  static std::string run_locomotion_topic();
+  static std::string status_topic();
+
   explicit ControlNode(
     rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion);
 
   void update();
 
 private:
-  std::string get_node_prefix() const;
-
   void run_locomotion_callback(const RunLocomotion::SharedPtr message);
 
   rclcpp::Node::SharedPtr node;

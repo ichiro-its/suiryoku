@@ -32,6 +32,11 @@
 namespace suiryoku
 {
 
+std::string LocomotionNode::get_node_prefix()
+{
+  return "locomotion";
+}
+
 LocomotionNode::LocomotionNode(
   rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion)
 : locomotion(locomotion), robot(locomotion->get_robot())
@@ -81,11 +86,6 @@ void LocomotionNode::update()
   if (robot->is_walking) {
     publish_walking();
   }
-}
-
-std::string LocomotionNode::get_node_prefix() const
-{
-  return "locomotion";
 }
 
 void LocomotionNode::publish_walking()

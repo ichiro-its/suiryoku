@@ -27,7 +27,7 @@
 #include "nlohmann/json.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/control/helper/command.hpp"
-#include "suiryoku/locomotion/process/locomotion.hpp"
+#include "suiryoku/locomotion/locomotion.hpp"
 
 using keisan::literals::operator""_deg;
 using std::placeholders::_1;
@@ -35,16 +35,31 @@ using std::placeholders::_1;
 namespace suiryoku::control
 {
 
+std::string ControlNode::get_node_prefix()
+{
+  return suiryoku::LocomotionNode::get_node_prefix() + "/control";
+}
+
+std::string ControlNode::run_locomotion_topic()
+{
+  return get_node_prefix() + "/run_locomotion";
+}
+
+std::string ControlNode::status_topic()
+{
+  return get_node_prefix() + "/status";
+}
+
 ControlNode::ControlNode(
   rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion)
 : node(node), locomotion(locomotion), process([]() {return false;})
 {
   run_locomotion_subscriber = node->create_subscription<RunLocomotion>(
-    get_node_prefix() + "/run_locomotion", 10,
+    run_locomotion_topic(), 10,
     std::bind(&ControlNode::run_locomotion_callback, this, _1));
 
   status_publisher = node->create_publisher<Status>(
-    get_node_prefix() + "/status", 10);
+    status_topic(), 10);
 }
 
 void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message)
@@ -245,11 +260,6 @@ void ControlNode::update()
   status_msg.status = is_over;
 
   status_publisher->publish(status_msg);
-}
-
-std::string ControlNode::get_node_prefix() const
-{
-  return "locomotion/control";
 }
 
 }  // namespace suiryoku::control
