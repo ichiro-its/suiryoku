@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 
+#include "aruku_interfaces/msg/odometry.hpp"
 #include "aruku_interfaces/msg/set_walking.hpp"
 #include "aruku_interfaces/msg/status.hpp"
 #include "atama_interfaces/msg/head.hpp"
@@ -40,6 +41,7 @@ class LocomotionNode
 public:
   using Axis = kansei_interfaces::msg::Axis;
   using Head = atama_interfaces::msg::Head;
+  using Odometry = aruku_interfaces::msg::Odometry;
   using SetWalking = aruku_interfaces::msg::SetWalking;
   using Status = aruku_interfaces::msg::Status;
 
@@ -57,6 +59,7 @@ private:
 
   rclcpp::Publisher<SetWalking>::SharedPtr set_walking_publisher;
 
+  rclcpp::Subscription<Odometry>::SharedPtr odometry_subscriber;
   rclcpp::Subscription<Axis>::SharedPtr orientation_subscriber;
   rclcpp::Subscription<Status>::SharedPtr walking_status_subscriber;
 

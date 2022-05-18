@@ -23,6 +23,7 @@
 
 #include "suiryoku/locomotion/node/locomotion_node.hpp"
 
+#include "aruku/walking/walking.hpp"
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -36,7 +37,7 @@ LocomotionNode::LocomotionNode(
 : locomotion(locomotion), robot(locomotion->get_robot())
 {
   set_walking_publisher = node->create_publisher<SetWalking>(
-    "/walking/set_walking", 10);
+    aruku::WalkingNode::set_walking_topic(), 10);
 
   orientation_subscriber = node->create_subscription<Axis>(
     "/measurement/orientation", 10,
@@ -44,8 +45,15 @@ LocomotionNode::LocomotionNode(
       this->robot->orientation = keisan::make_degree(message->yaw);
     });
 
+  odometry_subscriber = node->create_subscription<Odometry>(
+    aruku::WalkingNode::odometry_topic(), 10,
+    [this](const Odometry::SharedPtr message) {
+      this->robot->position = keisan::Point2(
+        message->position_x, message->position_y);
+    });
+
   walking_status_subscriber = node->create_subscription<Status>(
-    "/walking/status", 10,
+    aruku::WalkingNode::status_topic(), 10,
     [this](const Status::SharedPtr message) {
       this->robot->is_walking = message->is_running;
       this->locomotion->update_move_amplitude(

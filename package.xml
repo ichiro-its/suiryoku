@@ -8,6 +8,7 @@
   <license>MIT License</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>ament_index_cpp</depend>
+  <depend>aruku</depend>
   <depend>aruku_interfaces</depend>
   <depend>atama_interfaces</depend>
   <depend>kansei_interfaces</depend>
