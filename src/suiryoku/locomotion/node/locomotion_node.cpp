@@ -48,8 +48,8 @@ LocomotionNode::LocomotionNode(
   odometry_subscriber = node->create_subscription<Odometry>(
     aruku::WalkingNode::odometry_topic(), 10,
     [this](const Odometry::SharedPtr message) {
-      this->robot->position = keisan::Point2(
-        message->position_x, message->position_y);
+      this->robot->position.x = message->position_x;
+      this->robot->position.y = message->position_y;
     });
 
   walking_status_subscriber = node->create_subscription<Status>(
