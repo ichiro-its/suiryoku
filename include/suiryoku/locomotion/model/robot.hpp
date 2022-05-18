@@ -49,8 +49,7 @@ public:
   bool aim_on;
   bool is_walking;
 
-  double position_x;
-  double position_y;
+  keisan::Point2 position;
 };
 
 }  // namespace suiryoku

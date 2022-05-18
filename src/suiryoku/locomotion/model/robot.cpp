@@ -32,7 +32,7 @@ namespace suiryoku
 Robot::Robot()
 : pan(0.0), tilt(0.0), pan_center(0.0), tilt_center(0.0), x_speed(0.0),
   y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false),
-  orientation(0_deg), position_x(0.0), position_y(0.0)
+  orientation(0_deg), position(0.0, 0.0)
 {
 }
 
