@@ -46,6 +46,10 @@ SuiryokuNode::SuiryokuNode(rclcpp::Node::SharedPtr node)
       if (this->locomotion_control_node) {
         this->locomotion_control_node->update();
       }
+
+      if (this->locomotion_node) {
+        this->locomotion_node->update();
+      }
     }
   );
 }

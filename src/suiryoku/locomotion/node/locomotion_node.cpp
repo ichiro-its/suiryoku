@@ -70,7 +70,9 @@ LocomotionNode::LocomotionNode(
 
 void LocomotionNode::update()
 {
-  publish_walking();
+  if (robot->is_walking) {
+    publish_walking();
+  }
 }
 
 std::string LocomotionNode::get_node_prefix() const
@@ -82,7 +84,7 @@ void LocomotionNode::publish_walking()
 {
   auto walking_msg = SetWalking();
 
-  walking_msg.run = true;
+  walking_msg.run = robot->is_walking;
   walking_msg.x_move = robot->x_speed;
   walking_msg.y_move = robot->y_speed;
   walking_msg.a_move = robot->a_speed;
