@@ -21,6 +21,7 @@ find_package(atama_interfaces REQUIRED)
 find_package(kansei_interfaces REQUIRED)
 find_package(keisan REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(suiryoku_interfaces REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
@@ -44,6 +45,7 @@ add_library(${PROJECT_NAME} SHARED
   kansei_interfaces
   keisan
   rclcpp
+  std_msgs
   suiryoku_interfaces)
 
   install(DIRECTORY "include" DESTINATION ".")
@@ -91,6 +93,7 @@ ament_export_dependencies(
   kansei_interfaces
   keisan
   rclcpp
+  std_msgs
   suiryoku_interfaces)
 ament_export_include_directories("include")
 ament_export_libraries(${PROJECT_NAME})

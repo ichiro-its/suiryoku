@@ -58,7 +58,7 @@ ControlNode::ControlNode(
     run_locomotion_topic(), 10,
     std::bind(&ControlNode::run_locomotion_callback, this, _1));
 
-  status_publisher = node->create_publisher<Status>(
+  status_publisher = node->create_publisher<Bool>(
     status_topic(), 10);
 }
 
@@ -256,8 +256,8 @@ void ControlNode::update()
     process = []() {return false;};
   }
 
-  auto status_msg = Status();
-  status_msg.status = is_over;
+  auto status_msg = Bool();
+  status_msg.data = is_over;
 
   status_publisher->publish(status_msg);
 }
