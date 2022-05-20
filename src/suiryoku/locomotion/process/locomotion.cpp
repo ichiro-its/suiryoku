@@ -181,10 +181,10 @@ void Locomotion::move_backward(const keisan::Angle<double> & direction)
   start();
 }
 
-bool Locomotion::move_backward_to(double target_x, double target_y)
+bool Locomotion::move_backward_to(const keisan::Point2 & target)
 {
-  double delta_x = (robot->position.x - target_x);
-  double delta_y = (robot->position.y - target_y);
+  double delta_x = (robot->position.x - target.x);
+  double delta_y = (robot->position.y - target.y);
 
   double target_distance = std::hypot(delta_x, delta_y);
 
@@ -212,10 +212,10 @@ bool Locomotion::move_backward_to(double target_x, double target_y)
   return false;
 }
 
-bool Locomotion::move_forward_to(double target_x, double target_y)
+bool Locomotion::move_forward_to(const keisan::Point2 & target)
 {
-  double delta_x = (target_x - robot->position.x);
-  double delta_y = (target_y - robot->position.y);
+  double delta_x = (target.x - robot->position.x);
+  double delta_y = (target.y - robot->position.y);
 
   double target_distance = std::hypot(delta_x, delta_y);
 

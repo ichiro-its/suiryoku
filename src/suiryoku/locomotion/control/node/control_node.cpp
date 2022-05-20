@@ -104,11 +104,11 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
 
             break;
           } else if (key == "target") {
-            auto target_x = val["x"].get<double>();
-            auto target_y = val["y"].get<double>();
+            keisan::Point2 target(
+              val["x"].get<double>(), val["y"].get<double>());
 
-            process = [this, target_x, target_y]() {
-                return this->locomotion->move_backward_to(target_x, target_y);
+            process = [this, target]() {
+                return this->locomotion->move_backward_to(target);
               };
 
             break;
@@ -122,11 +122,11 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
       {
         for (auto &[key, val] : parameters.items()) {
           if (key == "target") {
-            auto target_x = val["x"].get<double>();
-            auto target_y = val["y"].get<double>();
+            keisan::Point2 target(
+              val["x"].get<double>(), val["y"].get<double>());
 
-            process = [this, target_x, target_y]() {
-                return this->locomotion->move_forward_to(target_x, target_y);
+            process = [this, target]() {
+                return this->locomotion->move_forward_to(target);
               };
           }
         }

@@ -43,9 +43,9 @@ public:
   bool walk_in_position_until_stop();
 
   void move_backward(const keisan::Angle<double> & direction);
-  bool move_backward_to(double target_x, double target_y);
+  bool move_backward_to(const keisan::Point2 & target);
 
-  bool move_forward_to(double target_x, double target_y);
+  bool move_forward_to(const keisan::Point2 & target);
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
   bool move_follow_head();
