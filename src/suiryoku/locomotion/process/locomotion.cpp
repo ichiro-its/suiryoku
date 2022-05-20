@@ -39,7 +39,7 @@ namespace suiryoku
 Locomotion::Locomotion(std::shared_ptr<Robot> robot)
 : position_prev_delta_pan(0.0), position_prev_delta_tilt(0.0),
   position_in_belief(0.0), x_speed_amplitude(0.0), y_speed_amplitude(0.0),
-  stop_walking([]() {}), robot(robot)
+  stop([]() {}), start([]() {}), robot(robot)
 {
 }
 
@@ -132,6 +132,7 @@ bool Locomotion::walk_in_position()
   robot->y_speed = 0;
   robot->a_speed = 0;
   robot->aim_on = false;
+  start();
 
   bool in_position = fabs(x_speed_amplitude) < 5.0;
   in_position &= fabs(y_speed_amplitude) < 5.0;
@@ -148,6 +149,7 @@ bool Locomotion::walk_in_position_until_stop()
     robot->y_speed = 0;
     robot->a_speed = 0;
     robot->aim_on = false;
+    stop();
 
     bool in_position = fabs(x_speed_amplitude) < 5.0;
     in_position &= fabs(y_speed_amplitude) < 5.0;
@@ -155,8 +157,6 @@ bool Locomotion::walk_in_position_until_stop()
     if (!in_position) {
       return false;
     }
-
-    stop_walking();
   }
 
   return !robot->is_walking;
@@ -178,6 +178,7 @@ void Locomotion::move_backward(const keisan::Angle<double> & direction)
   robot->y_speed = 0.0;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 }
 
 bool Locomotion::move_backward_to(double target_x, double target_y)
@@ -206,6 +207,7 @@ bool Locomotion::move_backward_to(double target_x, double target_y)
   robot->y_speed = 0.0;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return false;
 }
@@ -241,6 +243,7 @@ bool Locomotion::move_forward_to(double target_x, double target_y)
   robot->y_speed = 0.0;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return false;
 }
@@ -264,6 +267,7 @@ bool Locomotion::rotate_to(const keisan::Angle<double> & direction, bool a_move_
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return false;
 }
@@ -284,6 +288,7 @@ bool Locomotion::move_follow_head(double min_tilt)
   robot->y_speed = 0.0;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return robot->tilt < min_tilt;
 }
@@ -316,6 +321,7 @@ bool Locomotion::dribble(const keisan::Angle<double> & direction)
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return is_dribble;
 }
@@ -347,6 +353,7 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = true;
+  start();
 
   return false;
 }
@@ -414,6 +421,7 @@ bool Locomotion::position_until(
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   if (position_in_belief >= 1.0) {
     return true;
@@ -443,11 +451,6 @@ void Locomotion::update_move_amplitude(double x_amplitude, double y_amplitude)
 {
   x_speed_amplitude = x_amplitude;
   y_speed_amplitude = y_amplitude;
-}
-
-void Locomotion::set_stop_walking_callback(const std::function<void()> & stop_walking)
-{
-  this->stop_walking = stop_walking;
 }
 
 }  // namespace suiryoku

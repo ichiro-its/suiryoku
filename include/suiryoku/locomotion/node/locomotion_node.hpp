@@ -67,6 +67,9 @@ private:
 
   std::shared_ptr<Locomotion> locomotion;
   std::shared_ptr<Robot> robot;
+
+  // teporary for start/stop the walking
+  bool walking_state;
 };
 
 }  // namespace suiryoku

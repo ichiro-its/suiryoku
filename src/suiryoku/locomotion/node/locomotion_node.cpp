@@ -39,7 +39,7 @@ std::string LocomotionNode::get_node_prefix()
 
 LocomotionNode::LocomotionNode(
   rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion)
-: locomotion(locomotion), robot(locomotion->get_robot())
+: locomotion(locomotion), robot(locomotion->get_robot()), walking_state(false)
 {
   set_walking_publisher = node->create_publisher<SetWalking>(
     aruku::WalkingNode::set_walking_topic(), 10);
@@ -72,27 +72,20 @@ LocomotionNode::LocomotionNode(
       this->robot->tilt = message->tilt_angle;
     });
 
-  locomotion->set_stop_walking_callback(
-    [this]() {
-      auto walking_msg = SetWalking();
-      walking_msg.run = false;
-
-      this->set_walking_publisher->publish(walking_msg);
-    });
+  locomotion->stop = [this]() {this->walking_state = false;};
+  locomotion->start = [this]() {this->walking_state = true;};
 }
 
 void LocomotionNode::update()
 {
-  if (robot->is_walking) {
-    publish_walking();
-  }
+  publish_walking();
 }
 
 void LocomotionNode::publish_walking()
 {
   auto walking_msg = SetWalking();
 
-  walking_msg.run = robot->is_walking;
+  walking_msg.run = walking_state;
   walking_msg.x_move = robot->x_speed;
   walking_msg.y_move = robot->y_speed;
   walking_msg.a_move = robot->a_speed;

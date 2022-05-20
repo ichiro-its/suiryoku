@@ -63,7 +63,8 @@ public:
   std::shared_ptr<Robot> get_robot() const;
   void update_move_amplitude(double x_amplitude, double y_amplitude);
 
-  void set_stop_walking_callback(const std::function<void()> & stop_walking);
+  std::function<void()> stop;
+  std::function<void()> start;
 
 private:
   double move_min_x;
@@ -110,8 +111,6 @@ private:
   std::shared_ptr<Robot> robot;
   double x_speed_amplitude;
   double y_speed_amplitude;
-
-  std::function<void()> stop_walking;
 };
 
 }  // namespace suiryoku

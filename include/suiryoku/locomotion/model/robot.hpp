@@ -36,20 +36,22 @@ public:
   double get_pan() const;
   double get_tilt() const;
 
+  // member for getting
   keisan::Angle<double> orientation;
+  keisan::Point2 position;
+
+  bool is_walking;
 
   double pan;
   double pan_center;
   double tilt;
   double tilt_center;
 
+  // member for setting
   double x_speed;
   double y_speed;
   double a_speed;
   bool aim_on;
-  bool is_walking;
-
-  keisan::Point2 position;
 };
 
 }  // namespace suiryoku
