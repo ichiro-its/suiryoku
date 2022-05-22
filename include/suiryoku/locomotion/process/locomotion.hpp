@@ -110,8 +110,6 @@ private:
   keisan::Angle<double> right_kick_target_tilt;
 
   std::shared_ptr<Robot> robot;
-  double x_speed_amplitude;
-  double y_speed_amplitude;
 };
 
 }  // namespace suiryoku

@@ -47,6 +47,10 @@ public:
   keisan::Angle<double> tilt;
   keisan::Angle<double> tilt_center;
 
+  double x_amplitude;
+  double y_amplitude;
+  double a_amplitude;
+
   // member for setting
   double x_speed;
   double y_speed;

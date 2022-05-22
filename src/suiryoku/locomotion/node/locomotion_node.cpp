@@ -61,8 +61,9 @@ LocomotionNode::LocomotionNode(
     aruku::WalkingNode::status_topic(), 10,
     [this](const Status::SharedPtr message) {
       this->robot->is_walking = message->is_running;
-      this->locomotion->update_move_amplitude(
-        message->x_amplitude, message->y_amplitude);
+      this->robot->x_amplitude = message->x_amplitude;
+      this->robot->y_amplitude = message->y_amplitude;
+      this->robot->a_amplitude = message->a_amplitude;
     });
 
   head_subscriber = node->create_subscription<Head>(

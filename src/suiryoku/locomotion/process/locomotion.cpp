@@ -38,8 +38,7 @@ namespace suiryoku
 
 Locomotion::Locomotion(std::shared_ptr<Robot> robot)
 : position_prev_delta_pan(0.0), position_prev_delta_tilt(0.0),
-  position_in_belief(0.0), x_speed_amplitude(0.0), y_speed_amplitude(0.0),
-  stop([]() {}), start([]() {}), robot(robot)
+  position_in_belief(0.0), stop([]() {}), start([]() {}), robot(robot)
 {
 }
 
@@ -136,8 +135,8 @@ bool Locomotion::walk_in_position()
   robot->aim_on = false;
   start();
 
-  bool in_position = fabs(x_speed_amplitude) < 5.0;
-  in_position &= fabs(y_speed_amplitude) < 5.0;
+  bool in_position = fabs(robot->x_amplitude) < 5.0;
+  in_position &= fabs(robot->y_amplitude) < 5.0;
 
   return in_position;
 }
@@ -153,8 +152,8 @@ bool Locomotion::walk_in_position_until_stop()
     robot->aim_on = false;
     stop();
 
-    bool in_position = fabs(x_speed_amplitude) < 5.0;
-    in_position &= fabs(y_speed_amplitude) < 5.0;
+    bool in_position = fabs(robot->x_amplitude) < 5.0;
+    in_position &= fabs(robot->y_amplitude) < 5.0;
 
     if (!in_position) {
       return false;
@@ -446,12 +445,6 @@ bool Locomotion::position_right_kick(const keisan::Angle<double> & direction)
 std::shared_ptr<Robot> Locomotion::get_robot() const
 {
   return robot;
-}
-
-void Locomotion::update_move_amplitude(double x_amplitude, double y_amplitude)
-{
-  x_speed_amplitude = x_amplitude;
-  y_speed_amplitude = y_amplitude;
 }
 
 }  // namespace suiryoku
