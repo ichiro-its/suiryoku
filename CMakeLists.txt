@@ -18,6 +18,7 @@ find_package(ament_index_cpp REQUIRED)
 find_package(aruku REQUIRED)
 find_package(aruku_interfaces REQUIRED)
 find_package(atama_interfaces REQUIRED)
+find_package(kansei REQUIRED)
 find_package(kansei_interfaces REQUIRED)
 find_package(keisan REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -42,6 +43,7 @@ add_library(${PROJECT_NAME} SHARED
   aruku
   aruku_interfaces
   atama_interfaces
+  kansei
   kansei_interfaces
   keisan
   rclcpp
@@ -90,6 +92,7 @@ ament_export_dependencies(
   aruku
   aruku_interfaces
   atama_interfaces
+  kansei
   kansei_interfaces
   keisan
   rclcpp

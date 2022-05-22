@@ -24,6 +24,7 @@
 #include "suiryoku/locomotion/node/locomotion_node.hpp"
 
 #include "aruku/walking/walking.hpp"
+#include "kansei/measurement/measurement.hpp"
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -44,10 +45,11 @@ LocomotionNode::LocomotionNode(
   set_walking_publisher = node->create_publisher<SetWalking>(
     aruku::WalkingNode::set_walking_topic(), 10);
 
-  orientation_subscriber = node->create_subscription<Axis>(
+  measurement_status_subscriber = node->create_subscription<MeasurementStatus>(
     "/measurement/orientation", 10,
-    [this](const Axis::SharedPtr message) {
-      this->robot->orientation = keisan::make_degree(message->yaw);
+    [this](const MeasurementStatus::SharedPtr message) {
+      this->robot->is_calibrated = message->is_calibrated;
+      this->robot->orientation = keisan::make_degree(message->orientation.yaw);
     });
 
   odometry_subscriber = node->create_subscription<Odometry>(
@@ -57,9 +59,9 @@ LocomotionNode::LocomotionNode(
       this->robot->position.y = message->position_y;
     });
 
-  walking_status_subscriber = node->create_subscription<Status>(
+  walking_status_subscriber = node->create_subscription<WalkingStatus>(
     aruku::WalkingNode::status_topic(), 10,
-    [this](const Status::SharedPtr message) {
+    [this](const WalkingStatus::SharedPtr message) {
       this->robot->is_walking = message->is_running;
       this->robot->x_amplitude = message->x_amplitude;
       this->robot->y_amplitude = message->y_amplitude;
