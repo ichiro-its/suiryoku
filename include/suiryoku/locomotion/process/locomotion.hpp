@@ -49,13 +49,14 @@ public:
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
   bool move_follow_head();
-  bool move_follow_head(double min_tilt);
+  bool move_follow_head(const keisan::Angle<double> & min_tilt);
 
   bool dribble(const keisan::Angle<double> & direction);
   bool pivot(const keisan::Angle<double> & direction);
 
   bool position_until(
-    double target_pan, double target_tilt,
+    const keisan::Angle<double> & target_pan,
+    const keisan::Angle<double> & target_tilt,
     const keisan::Angle<double> & direction);
   bool position_left_kick(const keisan::Angle<double> & direction);
   bool position_right_kick(const keisan::Angle<double> & direction);
@@ -74,7 +75,7 @@ private:
 
   double follow_max_x;
   double follow_max_a;
-  double follow_min_tilt;
+  keisan::Angle<double> follow_min_tilt;
 
   double dribble_min_x;
   double dribble_max_x;
@@ -84,7 +85,7 @@ private:
   double dribble_max_ry;
   double dribble_max_a;
 
-  double pivot_target_tilt;
+  keisan::Angle<double> pivot_target_tilt;
   double pivot_min_x;
   double pivot_max_x;
   double pivot_max_ly;
@@ -102,11 +103,11 @@ private:
   double position_prev_delta_tilt;
   double position_in_belief;
 
-  double left_kick_target_pan;
-  double left_kick_target_tilt;
+  keisan::Angle<double> left_kick_target_pan;
+  keisan::Angle<double> left_kick_target_tilt;
 
-  double right_kick_target_pan;
-  double right_kick_target_tilt;
+  keisan::Angle<double> right_kick_target_pan;
+  keisan::Angle<double> right_kick_target_tilt;
 
   std::shared_ptr<Robot> robot;
   double x_speed_amplitude;

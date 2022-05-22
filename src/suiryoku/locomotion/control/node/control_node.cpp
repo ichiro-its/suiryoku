@@ -156,12 +156,12 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
 
     case Command::FOLLOW_HEAD:
       {
-        double min_tilt = 0.0;
+        keisan::Angle<double> min_tilt = 0_deg;
         bool is_default = true;
 
         for (auto &[key, val] : parameters.items()) {
           if (key == "min_tilt") {
-            min_tilt = val.get<double>();
+            min_tilt = keisan::make_degree(val.get<double>());
             is_default = false;
           }
         }
@@ -212,8 +212,8 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
     case Command::POSITION:
       {
         keisan::Angle<double> direction(0_deg);
-        double target_pan = 0.0;
-        double target_tilt = 0.0;
+        keisan::Angle<double> target_pan = 0_deg;
+        keisan::Angle<double> target_tilt = 0_deg;
         bool is_left_kick = false;
         bool is_right_kick = false;
 
@@ -221,8 +221,8 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           if (key == "direction") {
             direction = keisan::make_degree(val.get<double>());
           } else if (key == "target") {
-            target_pan = val["pan"].get<double>();
-            target_tilt = val["tilt"].get<double>();
+            target_pan = keisan::make_degree(val["pan"].get<double>());
+            target_tilt = keisan::make_degree(val["tilt"].get<double>());
           } else if (key == "is_left_kick") {
             is_left_kick = val.get<bool>();
           } else if (key == "is_right_kick") {

@@ -68,8 +68,8 @@ LocomotionNode::LocomotionNode(
   head_subscriber = node->create_subscription<Head>(
     "/head/set_head_data", 10,
     [this](const Head::SharedPtr message) {
-      this->robot->pan = message->pan_angle;
-      this->robot->tilt = message->tilt_angle;
+      this->robot->pan = keisan::make_degree(message->pan_angle);
+      this->robot->tilt = keisan::make_degree(message->tilt_angle);
     });
 
   locomotion->stop = [this]() {this->walking_state = false;};

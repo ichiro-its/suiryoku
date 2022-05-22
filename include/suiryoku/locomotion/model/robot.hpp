@@ -33,8 +33,8 @@ class Robot
 public:
   Robot();
 
-  double get_pan() const;
-  double get_tilt() const;
+  const keisan::Angle<double> & get_pan() const;
+  const keisan::Angle<double> & get_tilt() const;
 
   // member for getting
   keisan::Angle<double> orientation;
@@ -42,10 +42,10 @@ public:
 
   bool is_walking;
 
-  double pan;
-  double pan_center;
-  double tilt;
-  double tilt_center;
+  keisan::Angle<double> pan;
+  keisan::Angle<double> pan_center;
+  keisan::Angle<double> tilt;
+  keisan::Angle<double> tilt_center;
 
   // member for setting
   double x_speed;
