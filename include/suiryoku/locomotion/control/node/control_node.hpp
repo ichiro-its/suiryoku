@@ -27,7 +27,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "suiryoku_interfaces/msg/run_locomotion.hpp"
-#include "suiryoku_interfaces/msg/status.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
@@ -55,7 +54,6 @@ private:
   rclcpp::Node::SharedPtr node;
 
   rclcpp::Subscription<RunLocomotion>::SharedPtr run_locomotion_subscriber;
-  rclcpp::Publisher<Bool>::SharedPtr status_publisher;
 
   std::shared_ptr<Locomotion> locomotion;
 
