@@ -107,6 +107,16 @@ void Locomotion::set_config(const nlohmann::json & json)
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
+    } else if (key == "skew") {
+      try {
+        val.at("max_x").get_to(skew_max_x);
+        val.at("max_a").get_to(skew_max_a);
+        val.at("tilt").get_to(skew_tilt);
+        val.at("pan_comp").get_to(skew_pan_comp);
+        val.at("delta_direction_comp").get_to(skew_delta_direction_comp);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
     } else if (key == "left_kick") {
       try {
         left_kick_target_pan = keisan::make_degree(val.at("target_pan").get<double>());
@@ -293,6 +303,62 @@ bool Locomotion::move_follow_head(const keisan::Angle<double> & min_tilt)
   start();
 
   return robot->tilt < min_tilt;
+}
+
+bool Locomotion::move_skew(const keisan::Angle<double> & direction)
+{
+  auto current_direction = (robot->orientation - robot->pan).normalize();
+  auto delta_direction = (direction - current_direction).normalize().degree();
+  return move_skew(direction, delta_direction > 0);
+}
+
+bool Locomotion::move_skew(const keisan::Angle<double> & direction, bool skew_left)
+{
+  auto current_direction = (robot->orientation - robot->pan).normalize();
+  double delta_direction = (direction - current_direction).normalize().degree();
+
+  if (delta_direction < skew_delta_direction_comp && fabs((direction - robot->orientation).normalize().degree()) < 10.0)
+  {
+    return true;
+  }
+  double min_skew_tilt = skew_tilt + 10.0;
+  double max_skew_tilt = std::min(skew_tilt - 15.0, -60.0);
+  double pan_comp = keisan::map(robot->tilt.degree(), min_skew_tilt, max_skew_tilt, 0.0, skew_pan_comp);
+  auto target_direction = current_direction.degree();
+  if (skew_left) {
+    target_direction -= pan_comp;
+  } else {
+    target_direction += pan_comp;
+  }
+  auto target_direction_deg = keisan::make_degree(target_direction).normalize();
+
+  double delta_target_skew_direction = (target_direction_deg - robot->orientation).normalize().degree();
+
+  if (pan_comp > 0.0) {
+
+    double min_delta_target_skew_dir = 2.0;
+    double max_delta_target_skew_dir = (skew_pan_comp * 0.3);
+
+    double move_a = 0.0;
+    if (delta_target_skew_direction > 0) {
+      move_a = keisan::map(delta_target_skew_direction, min_delta_target_skew_dir, max_delta_target_skew_dir, 0.0, -skew_max_a);
+    } else {
+      move_a = keisan::map(delta_target_skew_direction, -max_delta_target_skew_dir, -min_delta_target_skew_dir, skew_max_a, 0.0);
+    }
+
+    double move_x = 0.0;
+    if (delta_direction > 10.0) {
+      move_x = keisan::map(fabs(move_a), 0.0, skew_max_a, skew_max_x, 0.0);
+    }
+
+    robot->x_speed = move_x;
+    robot->y_speed = 0.0;
+    robot->a_speed = move_a;
+    robot->aim_on = false;
+    start();
+  } else {
+    move_follow_head();
+  }
 }
 
 bool Locomotion::dribble(const keisan::Angle<double> & direction)

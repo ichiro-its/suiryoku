@@ -51,6 +51,9 @@ public:
   bool move_follow_head();
   bool move_follow_head(const keisan::Angle<double> & min_tilt);
 
+  bool move_skew(const keisan::Angle<double> & direction);
+  bool move_skew(const keisan::Angle<double> & direction, bool skew_left);
+
   bool dribble(const keisan::Angle<double> & direction);
   bool pivot(const keisan::Angle<double> & direction);
 
@@ -102,6 +105,12 @@ private:
   double position_prev_delta_pan;
   double position_prev_delta_tilt;
   double position_in_belief;
+
+  double skew_max_x;
+  double skew_max_a;
+  double skew_tilt;
+  double skew_pan_comp;
+  double skew_delta_direction_comp;
 
   keisan::Angle<double> left_kick_target_pan;
   keisan::Angle<double> left_kick_target_tilt;
