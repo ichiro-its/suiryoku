@@ -54,6 +54,7 @@ private:
   rclcpp::Node::SharedPtr node;
 
   rclcpp::Subscription<RunLocomotion>::SharedPtr run_locomotion_subscriber;
+  rclcpp::Publisher<Bool>::SharedPtr status_publisher;
 
   std::shared_ptr<Locomotion> locomotion;
 

@@ -57,6 +57,9 @@ ControlNode::ControlNode(
   run_locomotion_subscriber = node->create_subscription<RunLocomotion>(
     run_locomotion_topic(), 10,
     std::bind(&ControlNode::run_locomotion_callback, this, _1));
+
+  status_publisher = node->create_publisher<Bool>(
+    status_topic(), 10);
 }
 
 void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message)
@@ -256,6 +259,7 @@ void ControlNode::update()
   auto status_msg = Bool();
   status_msg.data = is_over;
 
+  status_publisher->publish(status_msg);
 }
 
 }  // namespace suiryoku::control
