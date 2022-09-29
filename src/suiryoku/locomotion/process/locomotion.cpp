@@ -72,6 +72,16 @@ void Locomotion::set_config(const nlohmann::json & json)
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
+    } else if (key == "skew") {
+      try {
+        val.at("max_x").get_to(skew_max_x);
+        val.at("max_a").get_to(skew_max_a);
+        val.at("tilt").get_to(skew_tilt);
+        val.at("pan_comp").get_to(skew_pan_comp);
+        val.at("delta_direction_comp").get_to(skew_delta_direction_comp);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
     } else if (key == "dribble") {
       try {
         val.at("min_x").get_to(dribble_min_x);
@@ -104,16 +114,6 @@ void Locomotion::set_config(const nlohmann::json & json)
         val.at("min_ry").get_to(position_min_ry);
         val.at("max_ry").get_to(position_max_ry);
         val.at("max_a").get_to(position_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-      }
-    } else if (key == "skew") {
-      try {
-        val.at("max_x").get_to(skew_max_x);
-        val.at("max_a").get_to(skew_max_a);
-        val.at("tilt").get_to(skew_tilt);
-        val.at("pan_comp").get_to(skew_pan_comp);
-        val.at("delta_direction_comp").get_to(skew_delta_direction_comp);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
