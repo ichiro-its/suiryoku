@@ -102,6 +102,10 @@ private:
   double position_min_ry;
   double position_max_ry;
   double position_max_a;
+  double position_min_delta_tilt;
+  double position_min_delta_pan;
+  double position_min_delta_pan_tilt;
+  double position_min_delta_direction;
   double position_prev_delta_pan;
   double position_prev_delta_tilt;
   double position_in_belief;

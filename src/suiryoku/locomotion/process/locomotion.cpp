@@ -114,7 +114,13 @@ void Locomotion::set_config(const nlohmann::json & json)
         val.at("min_ry").get_to(position_min_ry);
         val.at("max_ry").get_to(position_max_ry);
         val.at("max_a").get_to(position_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
+        val.at("min_delta_tilt").get_to(position_min_delta_tilt);
+        val.at("min_delta_pan").get_to(position_min_delta_pan);
+        val.at("min_delta_pan_tilt").get_to(position_min_delta_pan_tilt);
+        val.at("min_delta_direction").get_to(position_min_delta_direction);
+      }
+      catch (nlohmann::json::parse_error &ex)
+      {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
     } else if (key == "left_kick") {
@@ -437,31 +443,6 @@ bool Locomotion::position_until(
   double abs_delta_pan = fabs(delta_pan);
   double abs_delta_tilt = fabs(delta_tilt);
 
-  if (fabs(delta_direction) < 10.0) {
-    if (abs_delta_pan < (3.0 + (3.0 * position_in_belief))) {
-      position_in_belief += pow((0.24 * (1.0 - (abs_delta_pan / 6.0))), 2.0);
-    } else if (abs_delta_pan <= fabs(position_prev_delta_pan) && abs_delta_pan < 6.0) {
-      position_in_belief += pow((0.12 * (1.0 - (abs_delta_pan / 6.0))), 2.0);
-    } else {
-      position_in_belief -= 0.09;
-    }
-
-    if (abs_delta_tilt < (3.0 + (3.0 * position_in_belief))) {
-      position_in_belief += pow((0.18 * (1.0 - (abs_delta_tilt / 6.0))), 2.0);
-    } else if (abs_delta_tilt <= fabs(position_prev_delta_tilt) && abs_delta_tilt < 6.0) {
-      position_in_belief += pow((0.9 * (1.0 - (abs_delta_tilt / 6.0))), 2.0);
-    } else {
-      position_in_belief -= 0.06;
-    }
-  } else {
-    position_in_belief -= 0.10;
-  }
-
-  position_in_belief = keisan::clamp(position_in_belief, 0.0, 1.0);
-
-  position_prev_delta_pan = delta_pan;
-  position_prev_delta_tilt = delta_tilt;
-
   double x_speed = 0.0;
   double delta_tilt_pan = delta_tilt + (abs_delta_pan * 0.5);
 
@@ -470,14 +451,14 @@ bool Locomotion::position_until(
       delta_tilt_pan, 3.0, 20.0, position_min_x * 0.5, position_min_x);
   } else if (delta_tilt_pan < -3.0) {
     x_speed = keisan::map(
-      delta_tilt_pan, -20.0, -3.0, position_max_x, position_max_x * 0.);
+      delta_tilt_pan, -20.0, -3.0, position_max_x, position_max_x * 0.5);
   }
 
   double y_speed = 0.0;
   if (delta_pan < -3.0) {
-    y_speed = keisan::map(delta_pan, -20.0, -3.0, position_max_ly, position_min_ly);
+    y_speed = keisan::map(delta_pan, -20.0, -position_min_delta_pan, position_max_ly, position_min_ly);
   } else if (delta_pan > 3.0) {
-    y_speed = keisan::map(delta_pan, 3.0, 20.0, position_min_ry, position_max_ry);
+    y_speed = keisan::map(delta_pan, position_min_delta_pan, 20.0, position_min_ry, position_max_ry);
   }
 
   double a_speed = keisan::map(
@@ -489,7 +470,7 @@ bool Locomotion::position_until(
   robot->aim_on = false;
   start();
 
-  if (position_in_belief >= 1.0) {
+  if (abs_delta_pan < position_min_delta_pan && abs_delta_tilt < position_min_delta_tilt) {
     return true;
   }
 
