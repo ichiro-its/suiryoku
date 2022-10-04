@@ -444,7 +444,7 @@ bool Locomotion::position_until(
   double abs_delta_tilt = fabs(delta_tilt);
 
   double x_speed = 0.0;
-  double delta_tilt_pan = delta_tilt + (abs_delta_pan * 0.5);
+  double delta_tilt_pan = delta_tilt + (abs_delta_pan * 0.3);
 
   if (delta_tilt_pan > 3.0) {
     x_speed = keisan::map(
@@ -487,6 +487,35 @@ bool Locomotion::position_right_kick(const keisan::Angle<double> & direction)
 {
   return position_until(
     right_kick_target_pan, right_kick_target_tilt, direction);
+}
+
+bool Locomotion::position_kick_general(const keisan::Angle<double> & direction)
+{
+  double delta_pan_left = fabs((left_kick_target_pan - robot->get_pan()).degree());
+  double delta_tilt_left = fabs((left_kick_target_tilt - robot->get_tilt()).degree());
+
+  double delta_pan_right = fabs((right_kick_target_pan - robot->get_pan()).degree());
+  double delta_tilt_right = fabs((right_kick_target_tilt - robot->get_tilt()).degree());
+
+  auto delta_direction = (direction - robot->orientation).normalize().degree();
+
+  bool left_kick_valid = delta_pan_left < position_min_delta_pan && delta_tilt_left < position_min_delta_tilt;
+  bool right_kick_valid = delta_pan_right < position_min_delta_pan && delta_tilt_right < position_min_delta_tilt;
+
+  if (left_kick_valid || right_kick_valid) {
+    return true;
+  }
+
+  keisan::Angle<double> target_pan, target_tilt;
+  target_pan = left_kick_target_pan;
+  target_tilt = left_kick_target_tilt;
+
+  if ((robot->get_pan() - right_kick_target_pan).degree() < 0) {
+    target_pan = right_kick_target_pan;
+    target_tilt = right_kick_target_tilt;
+  }
+
+  return position_until(target_pan, target_tilt, direction);
 }
 
 std::shared_ptr<Robot> Locomotion::get_robot() const
