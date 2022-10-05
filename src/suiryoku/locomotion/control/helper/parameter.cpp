@@ -102,6 +102,15 @@ std::string Parameter::move_follow_head(double min_tilt)
   return param.dump();
 }
 
+std::string Parameter::move_skew(const keisan::Angle<double> & direction)
+{
+  nlohmann::json param = {
+    {"direction", direction.degree()},
+  };
+
+  return param.dump();
+}
+
 std::string Parameter::dribble(const keisan::Angle<double> & direction)
 {
   nlohmann::json param = {
@@ -152,6 +161,15 @@ std::string Parameter::position_right_kick(const keisan::Angle<double> & directi
   nlohmann::json param = {
     {"direction", direction.degree()},
     {"is_right_kick", true},
+  };
+
+  return param.dump();
+}
+
+std::string Parameter::position_kick_general(const keisan::Angle<double> & direction)
+{
+  nlohmann::json param = {
+    {"direction", direction.degree()},
   };
 
   return param.dump();

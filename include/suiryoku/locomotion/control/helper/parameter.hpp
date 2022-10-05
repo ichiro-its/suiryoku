@@ -44,6 +44,8 @@ public:
   static std::string move_follow_head();
   static std::string move_follow_head(double min_tilt);
 
+  static std::string move_skew(const keisan::Angle<double> &direction);
+
   static std::string back_sprint(double target_x, double target_y);
 
   static std::string dribble(const keisan::Angle<double> & direction);
@@ -54,6 +56,7 @@ public:
     const keisan::Angle<double> & direction);
   static std::string position_left_kick(const keisan::Angle<double> & direction);
   static std::string position_right_kick(const keisan::Angle<double> & direction);
+  static std::string position_kick_general(const keisan::Angle<double> & direction);
 };
 
 }  // namespace suiryoku::control
