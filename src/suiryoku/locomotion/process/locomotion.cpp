@@ -518,6 +518,26 @@ bool Locomotion::position_kick_general(const keisan::Angle<double> & direction)
   return position_until(target_pan, target_tilt, direction);
 }
 
+bool Locomotion::is_time_to_follow() {
+  return ((robot->tilt  - follow_min_tilt).degree() > 20.0);
+}
+
+bool Locomotion::pivot_fulfilled() {
+  return ((robot->tilt  - pivot_target_tilt).degree() < 0.0);
+}
+
+bool Locomotion::in_pan_kick_range() {
+  double pan = robot->pan.degree();
+  return (pan > right_kick_target_pan.degree() && pan < left_kick_target_pan.degree());
+}
+
+bool Locomotion::in_tilt_kick_range() {
+  double tilt = robot->tilt.degree();
+  double min_target_tilt = std::min(left_kick_target_tilt.degree(), right_kick_target_tilt.degree());
+  double max_target_tilt = std::max(left_kick_target_tilt.degree(), right_kick_target_tilt.degree());
+  return (tilt > min_target_tilt && tilt < max_target_tilt);
+}
+
 std::shared_ptr<Robot> Locomotion::get_robot() const
 {
   return robot;
