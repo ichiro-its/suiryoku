@@ -179,6 +179,21 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
         break;
       }
 
+    case Command::SKEW:
+      {
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "direction") {
+            auto direction = keisan::make_degree(val.get<double>());
+
+            process = [this, direction]() {
+                return !this->locomotion->move_skew(direction);
+              };
+          }
+        }
+
+        break;
+      }
+
     case Command::DRIBBLE:
       {
         for (auto &[key, val] : parameters.items()) {
@@ -230,7 +245,11 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           }
         }
 
-        if (is_left_kick) {
+        if (is_left_kick && is_right_kick) {
+          process = [this, direction]() {
+            return this->locomotion->position_kick_general(direction);
+          };
+        } else if (is_left_kick) {
           process = [this, direction]() {
               return this->locomotion->position_left_kick(direction);
             };

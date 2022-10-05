@@ -31,6 +31,7 @@ enum Command
   FORWARD,
   ROTATE,
   FOLLOW_HEAD,
+  SKEW,
   DRIBBLE,
   PIVOT,
   POSITION,
