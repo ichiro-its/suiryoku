@@ -121,7 +121,17 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
     case Command::FORWARD:
       {
         for (auto &[key, val] : parameters.items()) {
-          if (key == "target") {
+          if (key == "direction") {
+            auto direction = keisan::make_degree(val.get<double>());
+
+            process = [this, direction]() {
+                this->locomotion->move_forward(direction);
+
+                return false;
+              };
+
+            break;
+          } else if (key == "target") {
             keisan::Point2 target(
               val["x"].get<double>(), val["y"].get<double>());
 

@@ -38,6 +38,7 @@ public:
   static std::string move_backward(const keisan::Angle<double> & direction);
   static std::string move_backward_to(double target_x, double target_y);
 
+  static std::string move_forward(const keisan::Angle<double> & direction);
   static std::string move_forward_to(double target_x, double target_y);
   static std::string rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 

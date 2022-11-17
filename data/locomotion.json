@@ -1,14 +1,21 @@
 {
   "move": {
-    "max_x": 30,
+    "max_x": 10,
     "max_a": 8,
-    "min_x": 20,
+    "min_x": -10,
     "max_y": 0
   },
   "follow": {
     "max_a": 10,
     "max_x": 30,
     "min_tilt_": -30
+  },
+  "skew": {
+    "max_x": 30,
+    "max_a": 11,
+    "tilt": 25,
+    "pan_comp": 40,
+    "delta_direction_comp": 20
   },
   "dribble": {
     "max_ly": 20,
@@ -34,7 +41,11 @@
     "min_ly": 10,
     "min_ry": -10,
     "max_x": 15,
-    "max_ly": 15
+    "max_ly": 15,
+    "min_delta_tilt": 5,
+    "min_delta_pan": 6,
+    "min_delta_pan_tilt": 4,
+    "min_delta_direction": 18
   },
   "left_kick": {
     "target_tilt": -5,
