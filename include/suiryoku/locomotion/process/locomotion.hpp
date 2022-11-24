@@ -45,7 +45,9 @@ public:
   void move_backward(const keisan::Angle<double> & direction);
   bool move_backward_to(const keisan::Point2 & target);
 
+  void move_forward(const keisan::Angle<double> & direction);
   bool move_forward_to(const keisan::Point2 & target);
+
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
   bool move_follow_head();

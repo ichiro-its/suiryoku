@@ -69,6 +69,15 @@ std::string Parameter::move_backward_to(double target_x, double target_y)
   return param.dump();
 }
 
+std::string Parameter::move_forward(const keisan::Angle<double> & direction)
+{
+  nlohmann::json param = {
+    {"direction", direction.degree()},
+  };
+
+  return param.dump();
+}
+
 std::string Parameter::move_forward_to(double target_x, double target_y)
 {
   nlohmann::json param = {
