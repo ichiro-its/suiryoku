@@ -15,11 +15,14 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
+find_package(aruku REQUIRED)
 find_package(aruku_interfaces REQUIRED)
 find_package(atama_interfaces REQUIRED)
+find_package(kansei REQUIRED)
 find_package(kansei_interfaces REQUIRED)
 find_package(keisan REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(suiryoku_interfaces REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
@@ -32,21 +35,24 @@ add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/locomotion/process/locomotion.cpp"
   "src/${PROJECT_NAME}/node/suiryoku_node.cpp")
 
-  target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-  ament_target_dependencies(${PROJECT_NAME}
+ament_target_dependencies(${PROJECT_NAME}
+  aruku
   aruku_interfaces
   atama_interfaces
+  kansei
   kansei_interfaces
   keisan
   rclcpp
+  std_msgs
   suiryoku_interfaces)
 
-  install(DIRECTORY "include" DESTINATION ".")
+install(DIRECTORY "include" DESTINATION ".")
 
-  install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION "lib"
   LIBRARY DESTINATION "lib"
@@ -83,11 +89,14 @@ endif()
 
 ament_export_dependencies(
   ament_index_cpp
+  aruku
   aruku_interfaces
   atama_interfaces
+  kansei
   kansei_interfaces
   keisan
   rclcpp
+  std_msgs
   suiryoku_interfaces)
 ament_export_include_directories("include")
 ament_export_libraries(${PROJECT_NAME})

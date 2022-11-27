@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ichiro ITS
+// Copyright (c) 2021 ICHIRO ITS
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,33 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <string>
+#ifndef SUIRYOKU__SUIRYOKU_HPP_
+#define SUIRYOKU__SUIRYOKU_HPP_
 
-#include "suiryoku/locomotion/model/robot.hpp"
+#include "suiryoku/node/suiryoku_node.hpp"
+#include "suiryoku/locomotion/locomotion.hpp"
 
-#include "keisan/keisan.hpp"
-
-using keisan::literals::operator""_deg;
-
-namespace suiryoku
-{
-
-Robot::Robot()
-: pan(0_deg), tilt(0_deg), pan_center(0_deg), tilt_center(0_deg), x_speed(0.0),
-  y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false),
-  orientation(0_deg), position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0),
-  a_amplitude(0.0), is_calibrated(false)
-{
-}
-
-keisan::Angle<double> Robot::get_pan() const
-{
-  return pan + pan_center;
-}
-
-keisan::Angle<double> Robot::get_tilt() const
-{
-  return tilt + tilt_center;
-}
-
-}  // namespace suiryoku
+#endif  // SUIRYOKU__SUIRYOKU_HPP_

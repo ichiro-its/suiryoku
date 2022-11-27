@@ -23,6 +23,8 @@
 
 #include "suiryoku/locomotion/node/locomotion_node.hpp"
 
+#include "aruku/walking/walking.hpp"
+#include "kansei/measurement/measurement.hpp"
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -31,41 +33,46 @@
 namespace suiryoku
 {
 
+std::string LocomotionNode::get_node_prefix()
+{
+  return "locomotion";
+}
+
 LocomotionNode::LocomotionNode(
   rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion)
-: locomotion(locomotion), robot(locomotion->get_robot())
+: locomotion(locomotion), robot(locomotion->get_robot()), walking_state(false)
 {
   set_walking_publisher = node->create_publisher<SetWalking>(
-    "/walking/set_walking", 10);
+    aruku::WalkingNode::set_walking_topic(), 10);
 
-  orientation_subscriber = node->create_subscription<Axis>(
+  measurement_status_subscriber = node->create_subscription<MeasurementStatus>(
     "/measurement/orientation", 10,
-    [this](const Axis::SharedPtr message) {
-      this->robot->orientation = keisan::make_degree(message->yaw);
+    [this](const MeasurementStatus::SharedPtr message) {
+      this->robot->is_calibrated = message->is_calibrated;
+      this->robot->orientation = keisan::make_degree(message->orientation.yaw);
     });
 
-  walking_status_subscriber = node->create_subscription<Status>(
-    "/walking/status", 10,
-    [this](const Status::SharedPtr message) {
+  walking_status_subscriber = node->create_subscription<WalkingStatus>(
+    aruku::WalkingNode::status_topic(), 10,
+    [this](const WalkingStatus::SharedPtr message) {
       this->robot->is_walking = message->is_running;
-      this->locomotion->update_move_amplitude(
-        message->x_amplitude, message->y_amplitude);
+      this->robot->x_amplitude = message->x_amplitude;
+      this->robot->y_amplitude = message->y_amplitude;
+      this->robot->a_amplitude = message->a_amplitude;
+
+      this->robot->position.x = message->odometry.x;
+      this->robot->position.y = message->odometry.y;
     });
 
   head_subscriber = node->create_subscription<Head>(
-    "/head/odometry", 10,
+    "/head/set_head_data", 10,
     [this](const Head::SharedPtr message) {
-      this->robot->pan = message->pan_angle;
-      this->robot->tilt = message->tilt_angle;
+      this->robot->pan = keisan::make_degree(message->pan_angle);
+      this->robot->tilt = keisan::make_degree(message->tilt_angle);
     });
 
-  locomotion->set_stop_walking_callback(
-    [this]() {
-      auto walking_msg = SetWalking();
-      walking_msg.run = false;
-
-      this->set_walking_publisher->publish(walking_msg);
-    });
+  locomotion->stop = [this]() {this->walking_state = false;};
+  locomotion->start = [this]() {this->walking_state = true;};
 }
 
 void LocomotionNode::update()
@@ -73,16 +80,11 @@ void LocomotionNode::update()
   publish_walking();
 }
 
-std::string LocomotionNode::get_node_prefix() const
-{
-  return "locomotion";
-}
-
 void LocomotionNode::publish_walking()
 {
   auto walking_msg = SetWalking();
 
-  walking_msg.run = true;
+  walking_msg.run = walking_state;
   walking_msg.x_move = robot->x_speed;
   walking_msg.y_move = robot->y_speed;
   walking_msg.a_move = robot->a_speed;

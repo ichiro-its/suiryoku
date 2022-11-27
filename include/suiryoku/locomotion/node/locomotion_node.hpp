@@ -27,7 +27,7 @@
 #include "aruku_interfaces/msg/set_walking.hpp"
 #include "aruku_interfaces/msg/status.hpp"
 #include "atama_interfaces/msg/head.hpp"
-#include "kansei_interfaces/msg/axis.hpp"
+#include "kansei_interfaces/msg/status.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
@@ -38,10 +38,12 @@ namespace suiryoku
 class LocomotionNode
 {
 public:
-  using Axis = kansei_interfaces::msg::Axis;
   using Head = atama_interfaces::msg::Head;
+  using MeasurementStatus = kansei_interfaces::msg::Status;
   using SetWalking = aruku_interfaces::msg::SetWalking;
-  using Status = aruku_interfaces::msg::Status;
+  using WalkingStatus = aruku_interfaces::msg::Status;
+
+  static std::string get_node_prefix();
 
   explicit LocomotionNode(
     rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion);
@@ -49,21 +51,23 @@ public:
   void update();
 
 private:
-  std::string get_node_prefix() const;
-
   void publish_walking();
 
   rclcpp::Node::SharedPtr node;
 
   rclcpp::Publisher<SetWalking>::SharedPtr set_walking_publisher;
 
-  rclcpp::Subscription<Axis>::SharedPtr orientation_subscriber;
-  rclcpp::Subscription<Status>::SharedPtr walking_status_subscriber;
+  rclcpp::Subscription<MeasurementStatus>::SharedPtr
+    measurement_status_subscriber;
+  rclcpp::Subscription<WalkingStatus>::SharedPtr walking_status_subscriber;
 
   rclcpp::Subscription<Head>::SharedPtr head_subscriber;
 
   std::shared_ptr<Locomotion> locomotion;
   std::shared_ptr<Robot> robot;
+
+  // teporary for start/stop the walking
+  bool walking_state;
 };
 
 }  // namespace suiryoku

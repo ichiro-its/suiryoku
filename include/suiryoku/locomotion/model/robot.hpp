@@ -33,24 +33,30 @@ class Robot
 public:
   Robot();
 
-  double get_pan() const;
-  double get_tilt() const;
+  keisan::Angle<double> get_pan() const;
+  keisan::Angle<double> get_tilt() const;
 
+  // member for getting
+  bool is_calibrated;
   keisan::Angle<double> orientation;
+  keisan::Point2 position;
 
-  double pan;
-  double pan_center;
-  double tilt;
-  double tilt_center;
+  bool is_walking;
 
+  keisan::Angle<double> pan;
+  keisan::Angle<double> pan_center;
+  keisan::Angle<double> tilt;
+  keisan::Angle<double> tilt_center;
+
+  double x_amplitude;
+  double y_amplitude;
+  double a_amplitude;
+
+  // member for setting
   double x_speed;
   double y_speed;
   double a_speed;
   bool aim_on;
-  bool is_walking;
-
-  double position_x;
-  double position_y;
 };
 
 }  // namespace suiryoku

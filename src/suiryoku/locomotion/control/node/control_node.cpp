@@ -27,7 +27,7 @@
 #include "nlohmann/json.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/control/helper/command.hpp"
-#include "suiryoku/locomotion/process/locomotion.hpp"
+#include "suiryoku/locomotion/locomotion.hpp"
 
 using keisan::literals::operator""_deg;
 using std::placeholders::_1;
@@ -35,16 +35,31 @@ using std::placeholders::_1;
 namespace suiryoku::control
 {
 
+std::string ControlNode::get_node_prefix()
+{
+  return suiryoku::LocomotionNode::get_node_prefix() + "/control";
+}
+
+std::string ControlNode::run_locomotion_topic()
+{
+  return get_node_prefix() + "/run_locomotion";
+}
+
+std::string ControlNode::status_topic()
+{
+  return get_node_prefix() + "/status";
+}
+
 ControlNode::ControlNode(
   rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion)
 : node(node), locomotion(locomotion), process([]() {return false;})
 {
   run_locomotion_subscriber = node->create_subscription<RunLocomotion>(
-    get_node_prefix() + "/run_locomotion", 10,
+    run_locomotion_topic(), 10,
     std::bind(&ControlNode::run_locomotion_callback, this, _1));
 
-  status_publisher = node->create_publisher<Status>(
-    get_node_prefix() + "/status", 10);
+  status_publisher = node->create_publisher<Bool>(
+    status_topic(), 10);
 }
 
 void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message)
@@ -89,11 +104,11 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
 
             break;
           } else if (key == "target") {
-            auto target_x = val["x"].get<double>();
-            auto target_y = val["y"].get<double>();
+            keisan::Point2 target(
+              val["x"].get<double>(), val["y"].get<double>());
 
-            process = [this, target_x, target_y]() {
-                return this->locomotion->move_backward_to(target_x, target_y);
+            process = [this, target]() {
+                return this->locomotion->move_backward_to(target);
               };
 
             break;
@@ -107,11 +122,11 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
       {
         for (auto &[key, val] : parameters.items()) {
           if (key == "target") {
-            auto target_x = val["x"].get<double>();
-            auto target_y = val["y"].get<double>();
+            keisan::Point2 target(
+              val["x"].get<double>(), val["y"].get<double>());
 
-            process = [this, target_x, target_y]() {
-                return this->locomotion->move_forward_to(target_x, target_y);
+            process = [this, target]() {
+                return this->locomotion->move_forward_to(target);
               };
           }
         }
@@ -141,12 +156,12 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
 
     case Command::FOLLOW_HEAD:
       {
-        double min_tilt = 0.0;
+        keisan::Angle<double> min_tilt = 0_deg;
         bool is_default = true;
 
         for (auto &[key, val] : parameters.items()) {
           if (key == "min_tilt") {
-            min_tilt = val.get<double>();
+            min_tilt = keisan::make_degree(val.get<double>());
             is_default = false;
           }
         }
@@ -197,8 +212,8 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
     case Command::POSITION:
       {
         keisan::Angle<double> direction(0_deg);
-        double target_pan = 0.0;
-        double target_tilt = 0.0;
+        keisan::Angle<double> target_pan = 0_deg;
+        keisan::Angle<double> target_tilt = 0_deg;
         bool is_left_kick = false;
         bool is_right_kick = false;
 
@@ -206,8 +221,8 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           if (key == "direction") {
             direction = keisan::make_degree(val.get<double>());
           } else if (key == "target") {
-            target_pan = val["pan"].get<double>();
-            target_tilt = val["tilt"].get<double>();
+            target_pan = keisan::make_degree(val["pan"].get<double>());
+            target_tilt = keisan::make_degree(val["tilt"].get<double>());
           } else if (key == "is_left_kick") {
             is_left_kick = val.get<bool>();
           } else if (key == "is_right_kick") {
@@ -241,15 +256,10 @@ void ControlNode::update()
     process = []() {return false;};
   }
 
-  auto status_msg = Status();
-  status_msg.status = is_over;
+  auto status_msg = Bool();
+  status_msg.data = is_over;
 
   status_publisher->publish(status_msg);
-}
-
-std::string ControlNode::get_node_prefix() const
-{
-  return "locomotion/control";
 }
 
 }  // namespace suiryoku::control

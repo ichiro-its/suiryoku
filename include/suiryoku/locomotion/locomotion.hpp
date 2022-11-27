@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ichiro ITS
+// Copyright (c) 2021 ICHIRO ITS
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,49 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_
-#define SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_
+#ifndef SUIRYOKU__LOCOMOTION__LOCOMOTION_HPP_
+#define SUIRYOKU__LOCOMOTION__LOCOMOTION_HPP_
 
-#include <memory>
-#include <string>
-
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/bool.hpp"
-#include "suiryoku_interfaces/msg/run_locomotion.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
+#include "suiryoku/locomotion/node/locomotion_node.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
-namespace suiryoku::control
-{
-
-class ControlNode
-{
-public:
-  using RunLocomotion = suiryoku_interfaces::msg::RunLocomotion;
-  using Bool = std_msgs::msg::Bool;
-
-  static std::string get_node_prefix();
-  static std::string run_locomotion_topic();
-  static std::string status_topic();
-
-  explicit ControlNode(
-    rclcpp::Node::SharedPtr node, std::shared_ptr<suiryoku::Locomotion> locomotion);
-
-  void update();
-
-private:
-  void run_locomotion_callback(const RunLocomotion::SharedPtr message);
-
-  rclcpp::Node::SharedPtr node;
-
-  rclcpp::Subscription<RunLocomotion>::SharedPtr run_locomotion_subscriber;
-  rclcpp::Publisher<Bool>::SharedPtr status_publisher;
-
-  std::shared_ptr<Locomotion> locomotion;
-
-  std::function<bool()> process;
-};
-
-}  // namespace suiryoku::control
-
-#endif  // SUIRYOKU__LOCOMOTION__CONTROL__NODE__CONTROL_NODE_HPP_
+#endif  // SUIRYOKU__LOCOMOTION__LOCOMOTION_HPP_

@@ -38,8 +38,7 @@ namespace suiryoku
 
 Locomotion::Locomotion(std::shared_ptr<Robot> robot)
 : position_prev_delta_pan(0.0), position_prev_delta_tilt(0.0),
-  position_in_belief(0.0), x_speed_amplitude(0.0), y_speed_amplitude(0.0),
-  stop_walking([]() {}), robot(robot)
+  position_in_belief(0.0), stop([]() {}), start([]() {}), robot(robot)
 {
 }
 
@@ -69,7 +68,7 @@ void Locomotion::set_config(const nlohmann::json & json)
       try {
         val.at("max_x").get_to(follow_max_x);
         val.at("max_a").get_to(follow_max_a);
-        val.at("min_tilt_").get_to(follow_min_tilt);
+        follow_min_tilt = keisan::make_degree(val.at("min_tilt_").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
@@ -92,7 +91,7 @@ void Locomotion::set_config(const nlohmann::json & json)
         val.at("max_ly").get_to(pivot_max_ly);
         val.at("max_ry").get_to(pivot_max_ry);
         val.at("max_a").get_to(pivot_max_a);
-        val.at("target_tilt").get_to(pivot_target_tilt);
+        pivot_target_tilt = keisan::make_degree(val.at("target_tilt").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
@@ -110,15 +109,17 @@ void Locomotion::set_config(const nlohmann::json & json)
       }
     } else if (key == "left_kick") {
       try {
-        val.at("target_pan").get_to(left_kick_target_pan);
-        val.at("target_tilt").get_to(left_kick_target_tilt);
+        left_kick_target_pan = keisan::make_degree(val.at("target_pan").get<double>());
+        left_kick_target_tilt =
+          keisan::make_degree(val.at("target_tilt").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
     } else if (key == "right_kick") {
       try {
-        val.at("target_pan").get_to(right_kick_target_pan);
-        val.at("target_tilt").get_to(right_kick_target_tilt);
+        right_kick_target_pan = keisan::make_degree(val.at("target_pan").get<double>());
+        right_kick_target_tilt =
+          keisan::make_degree(val.at("target_tilt").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
@@ -132,9 +133,10 @@ bool Locomotion::walk_in_position()
   robot->y_speed = 0;
   robot->a_speed = 0;
   robot->aim_on = false;
+  start();
 
-  bool in_position = fabs(x_speed_amplitude) < 5.0;
-  in_position &= fabs(y_speed_amplitude) < 5.0;
+  bool in_position = fabs(robot->x_amplitude) < 5.0;
+  in_position &= fabs(robot->y_amplitude) < 5.0;
 
   return in_position;
 }
@@ -148,15 +150,14 @@ bool Locomotion::walk_in_position_until_stop()
     robot->y_speed = 0;
     robot->a_speed = 0;
     robot->aim_on = false;
+    stop();
 
-    bool in_position = fabs(x_speed_amplitude) < 5.0;
-    in_position &= fabs(y_speed_amplitude) < 5.0;
+    bool in_position = fabs(robot->x_amplitude) < 5.0;
+    in_position &= fabs(robot->y_amplitude) < 5.0;
 
     if (!in_position) {
       return false;
     }
-
-    stop_walking();
   }
 
   return !robot->is_walking;
@@ -178,12 +179,13 @@ void Locomotion::move_backward(const keisan::Angle<double> & direction)
   robot->y_speed = 0.0;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 }
 
-bool Locomotion::move_backward_to(double target_x, double target_y)
+bool Locomotion::move_backward_to(const keisan::Point2 & target)
 {
-  double delta_x = (robot->position_x - target_x);
-  double delta_y = (robot->position_y - target_y);
+  double delta_x = (robot->position.x - target.x);
+  double delta_y = (robot->position.y - target.y);
 
   double target_distance = std::hypot(delta_x, delta_y);
 
@@ -206,14 +208,15 @@ bool Locomotion::move_backward_to(double target_x, double target_y)
   robot->y_speed = 0.0;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return false;
 }
 
-bool Locomotion::move_forward_to(double target_x, double target_y)
+bool Locomotion::move_forward_to(const keisan::Point2 & target)
 {
-  double delta_x = (target_x - robot->position_x);
-  double delta_y = (target_y - robot->position_y);
+  double delta_x = (target.x - robot->position.x);
+  double delta_y = (target.y - robot->position.y);
 
   double target_distance = std::hypot(delta_x, delta_y);
 
@@ -241,6 +244,7 @@ bool Locomotion::move_forward_to(double target_x, double target_y)
   robot->y_speed = 0.0;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return false;
 }
@@ -264,6 +268,7 @@ bool Locomotion::rotate_to(const keisan::Angle<double> & direction, bool a_move_
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return false;
 }
@@ -273,24 +278,26 @@ bool Locomotion::move_follow_head()
   return move_follow_head(follow_min_tilt);
 }
 
-bool Locomotion::move_follow_head(double min_tilt)
+bool Locomotion::move_follow_head(const keisan::Angle<double> & min_tilt)
 {
-  double a_speed = keisan::map(robot->pan, -10.0, 10.0, -follow_max_a, follow_max_a);
+  double a_speed = keisan::map(
+    robot->pan.degree(), -10.0, 10.0, -follow_max_a, follow_max_a);
 
   double x_speed = keisan::map(fabs(a_speed), 0.0, follow_max_a, follow_max_x, 0.);
-  x_speed = keisan::map(robot->tilt - min_tilt, 10.0, 0.0, x_speed, 0.0);
+  x_speed = keisan::map((robot->tilt - min_tilt).degree(), 10.0, 0.0, x_speed, 0.0);
 
   robot->x_speed = x_speed;
   robot->y_speed = 0.0;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return robot->tilt < min_tilt;
 }
 
 bool Locomotion::dribble(const keisan::Angle<double> & direction)
 {
-  double pan = robot->get_pan();
+  double pan = robot->get_pan().degree();
   bool is_dribble = true;
 
   double x_speed = 0;
@@ -316,6 +323,7 @@ bool Locomotion::dribble(const keisan::Angle<double> & direction)
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   return is_dribble;
 }
@@ -328,9 +336,7 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
     return true;
   }
 
-  double pan = robot->get_pan();
-  double tilt = robot->get_tilt();
-  double delta_tilt = pivot_target_tilt - tilt;
+  double delta_tilt = (pivot_target_tilt - robot->get_tilt()).degree();
 
   double x_speed = 0;
   if (delta_tilt > 0.0) {
@@ -341,24 +347,25 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
 
   double y_speed = (delta_direction < 0) ? pivot_max_ry : pivot_max_ly;
 
-  double a_speed = keisan::map(pan, -10.0, 10.0, pivot_max_a, -pivot_max_a);
+  double a_speed = keisan::map(
+    robot->get_pan().degree(), -10.0, 10.0, pivot_max_a, -pivot_max_a);
 
   robot->x_speed = x_speed;
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = true;
+  start();
 
   return false;
 }
 
 bool Locomotion::position_until(
-  double target_pan, double target_tilt,
+  const keisan::Angle<double> & target_pan,
+  const keisan::Angle<double> & target_tilt,
   const keisan::Angle<double> & direction)
 {
-  double pan = robot->get_pan();
-  double tilt = robot->get_tilt();
-  double delta_pan = fabs(target_pan - pan);
-  double delta_tilt = fabs(target_tilt - tilt);
+  double delta_pan = fabs((target_pan - robot->get_pan()).degree());
+  double delta_tilt = fabs((target_tilt - robot->get_tilt()).degree());
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
   double abs_delta_pan = fabs(delta_pan);
@@ -414,6 +421,7 @@ bool Locomotion::position_until(
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = false;
+  start();
 
   if (position_in_belief >= 1.0) {
     return true;
@@ -437,17 +445,6 @@ bool Locomotion::position_right_kick(const keisan::Angle<double> & direction)
 std::shared_ptr<Robot> Locomotion::get_robot() const
 {
   return robot;
-}
-
-void Locomotion::update_move_amplitude(double x_amplitude, double y_amplitude)
-{
-  x_speed_amplitude = x_amplitude;
-  y_speed_amplitude = y_amplitude;
-}
-
-void Locomotion::set_stop_walking_callback(const std::function<void()> & stop_walking)
-{
-  this->stop_walking = stop_walking;
 }
 
 }  // namespace suiryoku
