@@ -35,11 +35,11 @@ add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/locomotion/process/locomotion.cpp"
   "src/${PROJECT_NAME}/node/suiryoku_node.cpp")
 
-  target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-  ament_target_dependencies(${PROJECT_NAME}
+ament_target_dependencies(${PROJECT_NAME}
   aruku
   aruku_interfaces
   atama_interfaces
@@ -50,9 +50,9 @@ add_library(${PROJECT_NAME} SHARED
   std_msgs
   suiryoku_interfaces)
 
-  install(DIRECTORY "include" DESTINATION ".")
+install(DIRECTORY "include" DESTINATION ".")
 
-  install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION "lib"
   LIBRARY DESTINATION "lib"
