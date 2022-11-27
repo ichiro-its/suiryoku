@@ -52,13 +52,6 @@ LocomotionNode::LocomotionNode(
       this->robot->orientation = keisan::make_degree(message->orientation.yaw);
     });
 
-  odometry_subscriber = node->create_subscription<Odometry>(
-    aruku::WalkingNode::odometry_topic(), 10,
-    [this](const Odometry::SharedPtr message) {
-      this->robot->position.x = message->position_x;
-      this->robot->position.y = message->position_y;
-    });
-
   walking_status_subscriber = node->create_subscription<WalkingStatus>(
     aruku::WalkingNode::status_topic(), 10,
     [this](const WalkingStatus::SharedPtr message) {
@@ -66,6 +59,9 @@ LocomotionNode::LocomotionNode(
       this->robot->x_amplitude = message->x_amplitude;
       this->robot->y_amplitude = message->y_amplitude;
       this->robot->a_amplitude = message->a_amplitude;
+
+      this->robot->position.x = message->odometry.x;
+      this->robot->position.y = message->odometry.y;
     });
 
   head_subscriber = node->create_subscription<Head>(

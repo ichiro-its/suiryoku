@@ -27,7 +27,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "suiryoku_interfaces/msg/run_locomotion.hpp"
-#include "suiryoku_interfaces/msg/status.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
