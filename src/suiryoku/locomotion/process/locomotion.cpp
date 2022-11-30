@@ -525,9 +525,8 @@ bool Locomotion::position_kick_general(const keisan::Angle<double> & direction)
     return true;
   }
 
-  keisan::Angle<double> target_pan, target_tilt;
-  target_pan = left_kick_target_pan;
-  target_tilt = left_kick_target_tilt;
+  auto target_pan = left_kick_target_pan;
+  auto target_tilt = left_kick_target_tilt;
 
   if ((robot->get_pan() - right_kick_target_pan).degree() < 0) {
     target_pan = right_kick_target_pan;
