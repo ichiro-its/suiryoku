@@ -187,7 +187,7 @@ void Locomotion::move_backward(const keisan::Angle<double> & direction)
   double a_speed = keisan::map(delta_direction, -15.0, 15.0, move_max_a, -move_max_a);
 
   if (fabs(delta_direction) > 15.0) {
-    a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
+    a_speed = keisan::sign(delta_direction) * -move_max_a;
     x_speed = 0.0;
   }
 
@@ -237,7 +237,7 @@ void Locomotion::move_forward(const keisan::Angle<double> & direction)
   double a_speed = keisan::map(delta_direction, -15.0, 15.0, move_max_a, -move_max_a);
 
   if (fabs(delta_direction) > 15.0) {
-    a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
+    a_speed = keisan::sign(delta_direction) * -move_max_a;
     x_speed = 0.0;
   }
 
@@ -271,7 +271,7 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target)
   }
 
   if (fabs(delta_direction) > 15.0) {
-    a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
+    a_speed = keisan::sign(delta_direction) * -move_max_a;
     x_speed = 0.0;
   }
 
@@ -294,10 +294,10 @@ bool Locomotion::rotate_to(const keisan::Angle<double> & direction, bool a_move_
 
   double y_speed = 0.0;
   if (!a_move_only) {
-    y_speed = (delta_direction < 0.0) ? move_max_y : -move_max_y;
+    y_speed = keisan::sign(delta_direction) * -move_max_y;
   }
 
-  double a_speed = (delta_direction < 0.0) ? move_max_a : -move_max_a;
+  double a_speed = keisan::sign(delta_direction) * -move_max_a;
 
   robot->x_speed = 0.0;
   robot->y_speed = y_speed;
