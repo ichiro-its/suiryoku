@@ -17,5 +17,6 @@ jobs:
           sudo apt update && sudo apt install curl
           curl -s ${{ secrets.SERVER_BASE_URL }}/debian/setup.bash | bash -s
           curl -s ${{ secrets.SERVER_BASE_URL }}/rosdep/setup.bash | bash -s
+
       - name: Build and test workspace
         uses: ichiro-its/ros2-build-and-test-action@main
