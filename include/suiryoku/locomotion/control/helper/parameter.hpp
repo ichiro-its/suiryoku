@@ -45,7 +45,7 @@ public:
   static std::string move_follow_head();
   static std::string move_follow_head(double min_tilt);
 
-  static std::string move_skew(const keisan::Angle<double> &direction);
+  static std::string move_skew(const keisan::Angle<double> & direction);
 
   static std::string back_sprint(double target_x, double target_y);
 

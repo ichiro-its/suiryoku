@@ -257,8 +257,8 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
 
         if (is_left_kick && is_right_kick) {
           process = [this, direction]() {
-            return this->locomotion->position_kick_general(direction);
-          };
+              return this->locomotion->position_kick_general(direction);
+            };
         } else if (is_left_kick) {
           process = [this, direction]() {
               return this->locomotion->position_left_kick(direction);
