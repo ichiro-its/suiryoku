@@ -71,8 +71,8 @@ void ForwardKinematic::CoordinateFrame::calculateTransformationMatrix(int i) {
 Matrix4D ForwardKinematic::Head::getHeadForwardKinematic(int* arr, int size) {
     Matrix4D result;
     ForwardKinematic angle(arr, size);
-    head_pan.theta = (angle.arr[20] - 2048.0) * (360.0 / 4096.0);
-    head_tilt.theta = -1.0 * (angle.arr[19] - 2048.0) * (360.0 / 4096.0);
+    head_pan.theta = (angle.arr[19] - 2048.0) * (360.0 / 4096.0);
+    head_tilt.theta = -1.0 * (angle.arr[18] - 2048.0) * (360.0 / 4096.0);
 
     head_pan.translation << HEAD_PAN_TRANSLATION;
     head_tilt.translation << HEAD_TILT_TRANSLATION;
