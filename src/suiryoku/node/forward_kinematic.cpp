@@ -351,8 +351,8 @@ void ForwardKinematic::ForwardKinematicsNode::timer_callback()
     " Z: " + std::to_string(position.ForwardKinematic::getLeftHandPosition()(2, 0));
   result.right_leg_position = "X: " + std::to_string(
     position.ForwardKinematic::getRightLegPosition()(0, 0)) +
+    " Y: " + std::to_string(position.ForwardKinematic::getRightLegPosition()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getRightLegPosition()(2, 0));
-  " Y: " + std::to_string(position.ForwardKinematic::getRightLegPosition()(1, 0)) +
   result.left_leg_position = "X: " +
     std::to_string(position.ForwardKinematic::getLeftLegPosition()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getLeftLegPosition()(1, 0)) +
@@ -415,7 +415,6 @@ int main(int argc, char * argv[])
     }
   }
   auto joint_manager = std::make_shared<tachimawari::joint::JointManager>(control_manager);
-
   auto timer = node->create_wall_timer(
     std::chrono::milliseconds(100), [&]() {
       auto joints = joint_manager->get_current_joints();
