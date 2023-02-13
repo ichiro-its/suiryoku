@@ -87,11 +87,18 @@ target_include_directories(forward_kinematic PUBLIC
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(forward_kinematic ${PROJECT_NAME})
 
+add_executable(forward_kinematic_subscriber "src/forward_kinematic_subscriber.cpp")
+target_include_directories(forward_kinematic_subscriber PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(forward_kinematic_subscriber ${PROJECT_NAME})
+
 install(TARGETS
   config
   locomotion
   main
   forward_kinematic
+  forward_kinematic_subscriber
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

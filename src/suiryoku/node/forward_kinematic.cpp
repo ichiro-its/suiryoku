@@ -319,13 +319,14 @@ struct ForwardKinematicResult
   std::string left_hand_position_from_camera;
   std::string right_leg_position_from_camera;
   std::string left_leg_position_from_camera;
+  std::string value;
 };
 
 ForwardKinematic::ForwardKinematicsNode::ForwardKinematicsNode(int * arr, int size)
 : Node("forward_kinematics"), arr_(arr), size_(size)
 {
   // Set up a publisher to publish the forward kinematics results
-  publisher_ = this->create_publisher<std_msgs::msg::String>("mytopic", 10);
+  publisher_ = this->create_publisher<std_msgs::msg::String>("forward_kinematic_topic", 10);
 
   // Set up a timer to perform the forward kinematics calculations at a regular interval
   timer_ = this->create_wall_timer(
@@ -337,43 +338,44 @@ void ForwardKinematic::ForwardKinematicsNode::timer_callback()
   // Perform the forward kinematics calculations
   ForwardKinematic position(arr_, size_);
   ForwardKinematicResult result;
-  result.camera_position = "X: " +
+  result.value = "1:" + std::to_string(arr_[0]) + "\n" + "2:" + std::to_string(arr_[1]) + "\n" + "3:" + std::to_string(arr_[2])  + "\n" + "4:" + std::to_string(arr_[3]) + "\n"  + "5:" + std::to_string(arr_[4]) + "\n" + "6:" + std::to_string(arr_[5]) + "\n" + "7:" + std::to_string(arr_[6]) + "\n" + "8:" + std::to_string(arr_[7]) + "\n" + "9:" + std::to_string(arr_[8]) + "\n" + "10:" + std::to_string(arr_[9]) + "\n" + "11:" + std::to_string(arr_[10]) + "\n" + "12:" + std::to_string(arr_[11]) + "\n" + "13:" + std::to_string(arr_[12]) + "\n" + "14:" + std::to_string(arr_[13]) + "\n" + "15:" + std::to_string(arr_[14]) + "\n" + "16:" + std::to_string(arr_[15]) + "\n" + "17:" + std::to_string(arr_[16]) + "\n" + "18:" + std::to_string(arr_[17]) + "\n" + "19:" + std::to_string(arr_[18]) + "\n" + "20:" + std::to_string(arr_[19]);
+  result.camera_position = "(CAMERA) X: " +
     std::to_string(position.ForwardKinematic::getCameraPosition()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getCameraPosition()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getCameraPosition()(2, 0));
-  result.right_hand_position = "X: " + std::to_string(
+  result.right_hand_position = "(RIGHT HAND) X: " + std::to_string(
     position.ForwardKinematic::getRightHandPosition()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getRightHandPosition()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getRightHandPosition()(2, 0));
-  result.left_hand_position = "X: " + std::to_string(
+  result.left_hand_position = "(LEFT HAND) X: " + std::to_string(
     position.ForwardKinematic::getLeftHandPosition()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getLeftHandPosition()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getLeftHandPosition()(2, 0));
-  result.right_leg_position = "X: " + std::to_string(
+  result.right_leg_position = "(RIGHT LEG) X: " + std::to_string(
     position.ForwardKinematic::getRightLegPosition()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getRightLegPosition()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getRightLegPosition()(2, 0));
-  result.left_leg_position = "X: " +
+  result.left_leg_position = "(LEFT LEG) X: " +
     std::to_string(position.ForwardKinematic::getLeftLegPosition()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getLeftLegPosition()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getLeftLegPosition()(2, 0));
-  result.right_hand_position_from_camera = "X: " + std::to_string(
+  result.right_hand_position_from_camera = "(RIGHT HAND FROM CAMERA) X: " + std::to_string(
     position.ForwardKinematic::getRightHandPositionFromCamera()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getRightHandPositionFromCamera()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getRightHandPositionFromCamera()(2, 0));
-  result.left_hand_position_from_camera = "X: " + std::to_string(
+  result.left_hand_position_from_camera = "(LEFT HAND FROM CAMERA) X: " + std::to_string(
     position.ForwardKinematic::getLeftHandPositionFromCamera()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getLeftHandPositionFromCamera()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getLeftHandPositionFromCamera()(2, 0));
-  result.right_leg_position_from_camera = "X: " + std::to_string(
+  result.right_leg_position_from_camera = "(RIGHT LEG FROM CAMERA) X: " + std::to_string(
     position.ForwardKinematic::getRightLegPositionFromCamera()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getRightLegPositionFromCamera()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getRightLegPositionFromCamera()(2, 0));
-  result.left_leg_position_from_camera = "X: " + std::to_string(
+  result.left_leg_position_from_camera = "(LEFT LEG FROM CAMERA) X: " + std::to_string(
     position.ForwardKinematic::getLeftLegPositionFromCamera()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getLeftLegPositionFromCamera()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getLeftLegPositionFromCamera()(2, 0));
-  std::string message = result.camera_position + "\n" + result.right_hand_position + "\n" +
+  std::string message = result.value + "\n" + result.camera_position + "\n" + result.right_hand_position + "\n" +
     result.left_hand_position + "\n" + result.right_leg_position + "\n" +
     result.right_hand_position_from_camera + "\n" + result.left_hand_position_from_camera + "\n" +
     result.right_leg_position_from_camera + "\n" + result.left_leg_position_from_camera + "\n";
@@ -387,7 +389,7 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
   int arr[20];
   auto executor = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
-  auto node = std::make_shared<rclcpp::Node>("read_joint_node");
+  auto read_node = std::make_shared<rclcpp::Node>("read_joint_node");
   auto publish_node = std::make_shared<ForwardKinematic::ForwardKinematicsNode>(arr, 20);
   if (argc < 2) {
     std::cerr << "Please specify the mode! [sdk / cm740]" << std::endl;
@@ -415,7 +417,7 @@ int main(int argc, char * argv[])
     }
   }
   auto joint_manager = std::make_shared<tachimawari::joint::JointManager>(control_manager);
-  auto timer = node->create_wall_timer(
+  auto timer = read_node->create_wall_timer(
     std::chrono::milliseconds(100), [&]() {
       auto joints = joint_manager->get_current_joints();
       std::vector<tachimawari::joint::Joint> new_joints(joints);
@@ -443,10 +445,10 @@ int main(int argc, char * argv[])
         arr[pos] = joint.get_position_value();
         pos++;
       }
-      RCLCPP_INFO(node->get_logger(), "Reading Servos' Value --- Calculating --- Publishing");
+      RCLCPP_INFO(read_node->get_logger(), "Reading Servos' Value --- Calculating --- Publishing");
     });
   ForwardKinematic joint_value(arr, 20);
-  executor->add_node(node);
+  executor->add_node(read_node);
   executor->add_node(publish_node);
   executor->spin();
   rclcpp::shutdown();
