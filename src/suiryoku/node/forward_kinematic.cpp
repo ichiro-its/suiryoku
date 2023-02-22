@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ichiro ITS
+// Copyright (c) 2023 Ichiro ITS
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -338,7 +338,16 @@ void ForwardKinematic::ForwardKinematicsNode::timer_callback()
   // Perform the forward kinematics calculations
   ForwardKinematic position(arr_, size_);
   ForwardKinematicResult result;
-  result.value = "1:" + std::to_string(arr_[0]) + "\n" + "2:" + std::to_string(arr_[1]) + "\n" + "3:" + std::to_string(arr_[2])  + "\n" + "4:" + std::to_string(arr_[3]) + "\n"  + "5:" + std::to_string(arr_[4]) + "\n" + "6:" + std::to_string(arr_[5]) + "\n" + "7:" + std::to_string(arr_[6]) + "\n" + "8:" + std::to_string(arr_[7]) + "\n" + "9:" + std::to_string(arr_[8]) + "\n" + "10:" + std::to_string(arr_[9]) + "\n" + "11:" + std::to_string(arr_[10]) + "\n" + "12:" + std::to_string(arr_[11]) + "\n" + "13:" + std::to_string(arr_[12]) + "\n" + "14:" + std::to_string(arr_[13]) + "\n" + "15:" + std::to_string(arr_[14]) + "\n" + "16:" + std::to_string(arr_[15]) + "\n" + "17:" + std::to_string(arr_[16]) + "\n" + "18:" + std::to_string(arr_[17]) + "\n" + "19:" + std::to_string(arr_[18]) + "\n" + "20:" + std::to_string(arr_[19]);
+  result.value = "1:" + std::to_string(arr_[0]) + "\n" + "2:" + std::to_string(arr_[1]) + "\n" +
+    "3:" + std::to_string(arr_[2]) + "\n" + "4:" + std::to_string(arr_[3]) + "\n" + "5:" +
+    std::to_string(arr_[4]) + "\n" + "6:" + std::to_string(arr_[5]) + "\n" + "7:" + std::to_string(
+    arr_[6]) + "\n" + "8:" + std::to_string(arr_[7]) + "\n" + "9:" + std::to_string(arr_[8]) +
+    "\n" + "10:" + std::to_string(arr_[9]) + "\n" + "11:" + std::to_string(arr_[10]) + "\n" +
+    "12:" + std::to_string(arr_[11]) + "\n" + "13:" + std::to_string(arr_[12]) + "\n" + "14:" +
+    std::to_string(arr_[13]) + "\n" + "15:" + std::to_string(arr_[14]) + "\n" + "16:" +
+    std::to_string(arr_[15]) + "\n" + "17:" + std::to_string(arr_[16]) + "\n" + "18:" +
+    std::to_string(arr_[17]) + "\n" + "19:" + std::to_string(arr_[18]) + "\n" + "20:" +
+    std::to_string(arr_[19]);
   result.camera_position = "(CAMERA) X: " +
     std::to_string(position.ForwardKinematic::getCameraPosition()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getCameraPosition()(1, 0)) +
@@ -375,7 +384,8 @@ void ForwardKinematic::ForwardKinematicsNode::timer_callback()
     position.ForwardKinematic::getLeftLegPositionFromCamera()(0, 0)) +
     " Y: " + std::to_string(position.ForwardKinematic::getLeftLegPositionFromCamera()(1, 0)) +
     " Z: " + std::to_string(position.ForwardKinematic::getLeftLegPositionFromCamera()(2, 0));
-  std::string message = result.value + "\n" + result.camera_position + "\n" + result.right_hand_position + "\n" +
+  std::string message = result.value + "\n" + result.camera_position + "\n" +
+    result.right_hand_position + "\n" +
     result.left_hand_position + "\n" + result.right_leg_position + "\n" +
     result.right_hand_position_from_camera + "\n" + result.left_hand_position_from_camera + "\n" +
     result.right_leg_position_from_camera + "\n" + result.left_leg_position_from_camera + "\n";
@@ -428,16 +438,6 @@ int main(int argc, char * argv[])
         );
         value = (current_value == -1) ? value : current_value;
         joint.set_position_value(value);
-      }
-      for (const auto & joint : new_joints) {
-        for (auto & current_joint : joints) {
-          if (current_joint.get_id() == joint.get_id()) {
-            current_joint.set_position(joint.get_position());
-            current_joint.set_pid_gain(
-              joint.get_pid_gain()[0], joint.get_pid_gain()[1], joint.get_pid_gain()[2]);
-            break;
-          }
-        }
       }
 
       int pos = 0;
