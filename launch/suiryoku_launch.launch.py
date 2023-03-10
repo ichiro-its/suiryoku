@@ -9,6 +9,7 @@ def generate_launch_description():
     thirdPackage = LaunchConfiguration('thirdPackage')
     fourthPackage = LaunchConfiguration('fourthPackage')
     mode = LaunchConfiguration('mode')
+    port = LaunchConfiguration('port')
 
     firstPackage_launch_arg = DeclareLaunchArgument(
         'firstPackage',
@@ -32,19 +33,24 @@ def generate_launch_description():
         description='choose mode between sdk/cm740!',
         choices=['sdk', 'cm740']
     )
+    port_launch_arg = DeclareLaunchArgument(
+        'port',
+        default_value=['/dev/ttyUSB1'],
+        description='choose port name if /dev/ttyUSB0 not working!'
+    )
 
     firstNode = Node(
         package=firstPackage,
         executable='main',
         name='suiryoku',
-        arguments=['src/suiryoku/data'],
+        arguments=['./src/suiryoku/data/'],
         output='screen'
     )
     secondNode = Node(
         package=secondPackage,
         executable='main',
         name='aruku',
-        arguments=['src/aruku/data'],
+        arguments=['./src/aruku/data/'],
         output='screen'
     )
     thirdNode = Node(
@@ -58,7 +64,7 @@ def generate_launch_description():
         package=fourthPackage,
         executable='main',
         name='kansei',
-        arguments=['src/kansei/data'],
+        arguments=[port],
         output='screen'
     )
 
@@ -68,6 +74,7 @@ def generate_launch_description():
         thirdPackage_launch_arg,
         fourthPackage_launch_arg,
         mode_launch_arg,
+        port_launch_arg,
         firstNode,
         secondNode,
         thirdNode,
