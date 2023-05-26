@@ -37,7 +37,6 @@ public:
   keisan::Angle<double> get_tilt() const;
 
   // member for getting
-  bool is_calibrated;
   keisan::Angle<double> orientation;
   keisan::Point2 position;
 

@@ -18,9 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <string>
-
 #include "suiryoku/locomotion/model/robot.hpp"
+
+#include <string>
 
 #include "keisan/keisan.hpp"
 
@@ -30,21 +30,25 @@ namespace suiryoku
 {
 
 Robot::Robot()
-: pan(0_deg), tilt(0_deg), pan_center(0_deg), tilt_center(0_deg), x_speed(0.0),
-  y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false),
-  orientation(0_deg), position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0),
-  a_amplitude(0.0), is_calibrated(false)
+: pan(0_deg),
+  tilt(0_deg),
+  pan_center(0_deg),
+  tilt_center(0_deg),
+  x_speed(0.0),
+  y_speed(0.0),
+  a_speed(0.0),
+  aim_on(false),
+  is_walking(false),
+  orientation(0_deg),
+  position(0.0, 0.0),
+  x_amplitude(0.0),
+  y_amplitude(0.0),
+  a_amplitude(0.0)
 {
 }
 
-keisan::Angle<double> Robot::get_pan() const
-{
-  return pan + pan_center;
-}
+keisan::Angle<double> Robot::get_pan() const { return pan + pan_center; }
 
-keisan::Angle<double> Robot::get_tilt() const
-{
-  return tilt + tilt_center;
-}
+keisan::Angle<double> Robot::get_tilt() const { return tilt + tilt_center; }
 
 }  // namespace suiryoku
