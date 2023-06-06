@@ -17,6 +17,7 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(aruku REQUIRED)
 find_package(aruku_interfaces REQUIRED)
+find_package(atama REQUIRED)
 find_package(atama_interfaces REQUIRED)
 find_package(kansei REQUIRED)
 find_package(kansei_interfaces REQUIRED)
@@ -46,6 +47,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 ament_target_dependencies(${PROJECT_NAME}
   aruku
   aruku_interfaces
+  atama
   atama_interfaces
   kansei
   kansei_interfaces
@@ -110,6 +112,7 @@ ament_export_dependencies(
   ament_index_cpp
   aruku
   aruku_interfaces
+  atama
   atama_interfaces
   kansei
   kansei_interfaces

@@ -10,6 +10,7 @@
   <depend>ament_index_cpp</depend>
   <depend>aruku</depend>
   <depend>aruku_interfaces</depend>
+  <depend>atama</depend>
   <depend>atama_interfaces</depend>
   <depend>kansei</depend>
   <depend>kansei_interfaces</depend>

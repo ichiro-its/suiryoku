@@ -18,12 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "suiryoku/locomotion/node/locomotion_node.hpp"
+
 #include <memory>
 #include <string>
 
-#include "suiryoku/locomotion/node/locomotion_node.hpp"
-
 #include "aruku/walking/walking.hpp"
+#include "atama/head/head.hpp"
 #include "kansei/measurement/measurement.hpp"
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
@@ -33,32 +34,25 @@
 namespace suiryoku
 {
 
-std::string LocomotionNode::get_node_prefix()
-{
-  return "locomotion";
-}
+std::string LocomotionNode::get_node_prefix() { return "locomotion"; }
 
-LocomotionNode::LocomotionNode(
-  rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion)
+LocomotionNode::LocomotionNode(rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion)
 : locomotion(locomotion), robot(locomotion->get_robot()), walking_state(false)
 {
-  set_walking_publisher = node->create_publisher<SetWalking>(
-    aruku::WalkingNode::set_walking_topic(), 10);
+  set_walking_publisher =
+    node->create_publisher<SetWalking>(aruku::WalkingNode::set_walking_topic(), 10);
 
   measurement_status_subscriber = node->create_subscription<MeasurementStatus>(
-    "/measurement/orientation", 10,
+    kansei::measurement::MeasurementNode::status_topic(), 10,
     [this](const MeasurementStatus::SharedPtr message) {
-      this->robot->is_calibrated = message->is_calibrated;
       this->robot->orientation = keisan::make_degree(message->orientation.yaw);
     });
 
-  set_odometry_publisher = node->create_publisher<Point2>(
-    aruku::WalkingNode::set_odometry_topic(), 10);
+  set_odometry_publisher =
+    node->create_publisher<Point2>(aruku::WalkingNode::set_odometry_topic(), 10);
 
   walking_status_subscriber = node->create_subscription<WalkingStatus>(
-    aruku::WalkingNode::status_topic(), 10,
-    [this](const WalkingStatus::SharedPtr message)
-    {
+    aruku::WalkingNode::status_topic(), 10, [this](const WalkingStatus::SharedPtr message) {
       this->robot->is_walking = message->is_running;
       this->robot->x_amplitude = message->x_amplitude;
       this->robot->y_amplitude = message->y_amplitude;
@@ -68,20 +62,16 @@ LocomotionNode::LocomotionNode(
     });
 
   head_subscriber = node->create_subscription<Head>(
-    "/head/set_head_data", 10,
-    [this](const Head::SharedPtr message) {
+    atama::HeadNode::head_topic(), 10, [this](const Head::SharedPtr message) {
       this->robot->pan = keisan::make_degree(message->pan_angle);
       this->robot->tilt = keisan::make_degree(message->tilt_angle);
     });
 
-  locomotion->stop = [this]() {this->walking_state = false;};
-  locomotion->start = [this]() {this->walking_state = true;};
+  locomotion->stop = [this]() { this->walking_state = false; };
+  locomotion->start = [this]() { this->walking_state = true; };
 }
 
-void LocomotionNode::update()
-{
-  publish_walking();
-}
+void LocomotionNode::update() { publish_walking(); }
 
 void LocomotionNode::publish_walking()
 {
