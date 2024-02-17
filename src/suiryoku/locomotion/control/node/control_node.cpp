@@ -28,6 +28,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/control/helper/command.hpp"
 #include "suiryoku/locomotion/locomotion.hpp"
+#include "bezier.h"
 
 using keisan::literals::operator""_deg;
 using std::placeholders::_1;
@@ -273,6 +274,72 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
             };
         }
 
+        break;
+      }
+
+    case Command::BEZIER:
+      {
+        keisan::Point2 initial_point(
+          this->locomotion->get_robot()->position.x, 
+          this->locomotion->get_robot()->position.y);
+        keisan::Angle<double> target_direction;
+        keisan::Point2 target_point;
+
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "direction") {
+            target_direction = keisan::make_degree(val.get<double>());
+          } else if (key == "target") {
+            target_point.x = val["x"].get<double>();
+            target_point.y = val["y"].get<double>();
+          }
+        }
+
+        double distance_diff = std::hypot(initial_point.x - target_point.x, initial_point.y - target_point.y);
+
+        keisan::Point2 curve_point(initial_point.x, initial_point.y);
+        
+        keisan::Angle<double> direction_to_destination(
+          keisan::make_degree(atan2(target_point.y - initial_point.y, target_point.x - initial_point.x)));
+        
+        keisan::Angle<double> direction_difference_between_direction_and_target(
+          (direction_to_destination >= target_direction) ? 
+            direction_to_destination - target_direction : target_direction - direction_to_destination);
+
+        if(direction_difference_between_direction_and_target <= 45_deg && direction_to_destination <= target_direction){
+          curve_point.x = target_point.x + 0.5 * distance_diff;
+          curve_point.y = target_point.y - 0.5 * distance_diff;
+        } else if(direction_difference_between_direction_and_target <= 45_deg && direction_to_destination >= target_direction){
+          curve_point.x = target_point.x - 0.5 * distance_diff;
+          curve_point.y = target_point.y + 0.5 * distance_diff;
+        }
+
+        keisan::Point2 angle_point(
+          target_point.x + 2 * -target_direction.cos(),
+          target_point.y + 2 * -target_direction.sin());
+
+        std::vector<keisan::Point2> bezier_path;
+        
+        bezier::Bezier<3> bezier_curve({
+          {initial_point.x, initial_point.y}, 
+          {curve_point.x, curve_point.y}, 
+          {angle_point.x, angle_point.y},
+          {target_point.x, target_point.y}});
+        
+        double bezier_precision = 1.0 / 5.0;
+
+        for(double t = 0; t < 1.0 + bezier_precision / 2.0; t += bezier_precision){
+          bezier::Point point_at_t = bezier_curve.valueAt(t);
+          bezier_path.push_back(keisan::Point2(point_at_t.x, point_at_t.y));
+        }
+
+        size_t bezier_index = 1;
+
+        while(bezier_index < bezier_path.size()) {
+          if(this->locomotion->move_forward_to(bezier_path[bezier_index])) {
+            bezier_index++;
+          }
+        }
+        process = []() {return true;};
         break;
       }
   }
