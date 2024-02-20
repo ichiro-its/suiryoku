@@ -28,7 +28,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/control/helper/command.hpp"
 #include "suiryoku/locomotion/locomotion.hpp"
-#include "bezier.h"
+#include "suiryoku/locomotion/control/node/bezier.h"
 
 using keisan::literals::operator""_deg;
 using std::placeholders::_1;
