@@ -15,7 +15,7 @@ public:
     suiryoku_interfaces::msg::RunLocomotion beziercommand;
     beziercommand.command = 9;
     nlohmann::json json_params;
-    json_params["direction"] = -M_PI_2;
+    json_params["direction"] = -135;
     json_params["target"]["x"] = 2000.0;
     json_params["target"]["y"] = 2000.0;
     beziercommand.parameters = json_params.dump();

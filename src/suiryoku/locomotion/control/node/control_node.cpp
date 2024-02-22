@@ -299,23 +299,26 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
         keisan::Point2 curve_point(initial_point.x, initial_point.y);
         
         keisan::Angle<double> direction_to_destination(
-          keisan::make_degree(atan2(target_point.y - initial_point.y, target_point.x - initial_point.x)));
+          keisan::make_degree(atan2(target_point.y - initial_point.y, target_point.x - initial_point.x)) * 180.0 / M_PI);
         
         keisan::Angle<double> direction_difference_between_direction_and_target(
-          (direction_to_destination >= target_direction) ? 
-            direction_to_destination - target_direction : target_direction - direction_to_destination);
+          (direction_to_destination - (target_direction - 180_deg).normalize()).normalize());
 
-        if(direction_difference_between_direction_and_target <= 45_deg && direction_to_destination <= target_direction){
-          curve_point.x = target_point.x + 0.5 * distance_diff;
-          curve_point.y = target_point.y - 0.5 * distance_diff;
-        } else if(direction_difference_between_direction_and_target <= 45_deg && direction_to_destination >= target_direction){
-          curve_point.x = target_point.x - 0.5 * distance_diff;
-          curve_point.y = target_point.y + 0.5 * distance_diff;
-        }
+        if(direction_difference_between_direction_and_target <= 0_deg
+            && direction_difference_between_direction_and_target >= -45_deg)
+          curve_point.x = target_point.x + distance_diff;
+        
+        else if(direction_difference_between_direction_and_target >= 0_deg
+            && direction_difference_between_direction_and_target <= 45_deg)
+          curve_point.x = target_point.x - distance_diff;
+        
+        if(direction_difference_between_direction_and_target >= -45_deg 
+            && direction_difference_between_direction_and_target <= 45_deg)
+          curve_point.y = target_point.y + (target_point.y >= initial_point.y ? 1 : -1) * distance_diff;
 
         keisan::Point2 angle_point(
-          target_point.x + 2 * -target_direction.cos(),
-          target_point.y + 2 * -target_direction.sin());
+          target_point.x + distance_diff * -target_direction.cos(),
+          target_point.y + distance_diff * -target_direction.sin());
 
         std::vector<keisan::Point2> bezier_path;
         
@@ -325,7 +328,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           {angle_point.x, angle_point.y},
           {target_point.x, target_point.y}});
         
-        double bezier_precision = 1.0 / 5.0;
+        double bezier_precision = 1.0 / std::max(ceil(std::pow(bezier_curve.length(), 1.0 / 4.0)), 5.0);
 
         for(double t = 0; t < 1.0 + bezier_precision / 2.0; t += bezier_precision){
           bezier::Point point_at_t = bezier_curve.valueAt(t);
