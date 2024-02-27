@@ -66,6 +66,12 @@ jobs:
           repository: ichiro-its/suiryoku_interfaces
           path: suiryoku_interfaces
 
+      - name: Checkout Atama Interfaces
+        uses: actions/checkout@v2.3.4
+        with:
+          repository: ichiro-its/atama_interfaces
+          path: atama_interfaces
+
       - name: Setup workspace
         uses: ichiro-its/ros2-ws-action/setup@v1.0.1
 
