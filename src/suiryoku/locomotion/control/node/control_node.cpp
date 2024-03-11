@@ -320,7 +320,6 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           target_point.x + distance_diff * -target_direction.cos(),
           target_point.y + distance_diff * -target_direction.sin());
 
-        std::vector<keisan::Point2> bezier_path;
         
         bezier::Bezier<3> bezier_curve({
           {initial_point.x, initial_point.y}, 
@@ -328,11 +327,37 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           {angle_point.x, angle_point.y},
           {target_point.x, target_point.y}});
         
-        double bezier_precision = 1.0 / std::max(ceil(std::pow(bezier_curve.length(), 1.0 / 4.0)), 5.0);
+        std::vector<keisan::Point2> bezier_path;
+        
+        double current_progress = 0.00;
 
-        for(double t = 0; t < 1.0 + bezier_precision / 2.0; t += bezier_precision){
-          bezier::Point point_at_t = bezier_curve.valueAt(t);
-          bezier_path.push_back(keisan::Point2(point_at_t.x, point_at_t.y));
+        keisan::Point2 bezier_current_point = keisan::Point2(
+          bezier_curve.valueAt(0.00).x, bezier_curve.valueAt(0.00).y);
+        
+        keisan::Angle<double> bezier_current_direction = keisan::make_degree(bezier_curve.valueAt(0.00).angle()).normalize();
+
+        bezier_path.push_back(bezier_current_point);
+        
+        for (double progress = 0.01; progress < 1.01; progress += 0.01) {
+          keisan::Point2 bezier_progress_point = keisan::Point2(
+          bezier_curve.valueAt(progress).x, bezier_curve.valueAt(progress).y);
+
+          double delta_x = (bezier_progress_point.x - bezier_current_point.x);
+          double delta_y = (bezier_progress_point.y - bezier_current_point.y);
+
+          auto direction_to_progress = keisan::make_radian(atan2(delta_x, delta_y)).normalize();
+          auto delta_direction_to_progress = (direction_to_progress - bezier_current_direction).normalize().degree();
+
+          if (std::abs(delta_direction_to_progress) <= 10.0 &&
+             !(progress > 0.99 or progress - current_progress > 0.09)) {
+            continue;
+          }
+
+          current_progress = progress;
+          bezier_path.push_back(bezier_progress_point);
+
+          bezier_current_point = bezier_progress_point;
+          bezier_current_direction = direction_to_progress;
         }
 
         size_t bezier_index = 1;
