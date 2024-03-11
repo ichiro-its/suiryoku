@@ -14,6 +14,7 @@ jobs:
 
       - name: Checkout Dependencies
         run: |
+          cd $GITHUB_WORKSPACE
           git clone https://github.com/ichiro-its/kansei.git
           git clone https://github.com/ichiro-its/kansei_interfaces.git
           git clone https://github.com/ichiro-its/keisan.git
