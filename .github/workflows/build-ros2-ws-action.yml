@@ -10,63 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.1
-        with:
-          path: suiryoku
+        uses: actions/checkout@v4.1.1        
 
-      - name: Checkout Kansei
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/kansei
-          path: kansei
-
-      - name: Checkout Kansei Interfaces
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/kansei_interfaces
-          path: kansei_interfaces
-
-      - name: Checkout Keisan
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/keisan
-          path: keisan
-
-      - name: Checkout Aruku
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/aruku
-          path: aruku
-
-      - name: Checkout Aruku Interfaces
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/aruku_interfaces
-          path: aruku_interfaces
-
-      - name: Checkout Tachimawari
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/tachimawari
-          path: tachimawari
-
-      - name: Checkout Tachimawari Interfaces
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/tachimawari_interfaces
-          path: tachimawari_interfaces
-
-      - name: Checkout Suiryoku Interfaces
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/suiryoku_interfaces
-          path: suiryoku_interfaces
-
-      - name: Checkout Atama Interfaces
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: ichiro-its/atama_interfaces
-          path: atama_interfaces
+      - name: Checkout Dependencies
+        run: |
+          git clone https://github.com/ichiro-its/kansei.git
+          git clone https://github.com/ichiro-its/kansei_interfaces.git
+          git clone https://github.com/ichiro-its/keisan.git
+          git clone https://github.com/ichiro-its/aruku.git
+          git clone https://github.com/ichiro-its/aruku_interfaces.git
+          git clone https://github.com/ichiro-its/tachimawari.git
+          git clone https://github.com/ichiro-its/tachimawari_interfaces.git
+          git clone https://github.com/ichiro-its/suiryoku_interfaces.git
+          git clone https://github.com/ichiro-its/atama_interfaces.git
 
       - name: Setup workspace
         uses: ichiro-its/ros2-ws-action/setup@v1.0.1
