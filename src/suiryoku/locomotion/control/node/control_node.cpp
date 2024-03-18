@@ -320,23 +320,16 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           target_point.x + distance_diff * -target_direction.cos(),
           target_point.y + distance_diff * -target_direction.sin());
 
-        
         bezier::Bezier<3> bezier_curve({
           {initial_point.x, initial_point.y}, 
           {curve_point.x, curve_point.y}, 
           {angle_point.x, angle_point.y},
           {target_point.x, target_point.y}});
-        
-        std::vector<keisan::Point2> bezier_path;
-        
-        double current_progress = 0.00;
 
         keisan::Point2 bezier_current_point = keisan::Point2(
           bezier_curve.valueAt(0.00).x, bezier_curve.valueAt(0.00).y);
         
-        keisan::Angle<double> bezier_current_direction = keisan::make_degree(bezier_curve.valueAt(0.00).angle()).normalize();
-
-        bezier_path.push_back(bezier_current_point);
+        keisan::Angle<double> bezier_current_direction = this->locomotion->get_robot()->orientation;
         
         for (double progress = 0.01; progress < 1.01; progress += 0.01) {
           keisan::Point2 bezier_progress_point = keisan::Point2(
@@ -345,29 +338,24 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           double delta_x = (bezier_progress_point.x - bezier_current_point.x);
           double delta_y = (bezier_progress_point.y - bezier_current_point.y);
 
-          auto direction_to_progress = keisan::make_radian(atan2(delta_x, delta_y)).normalize();
+          auto direction_to_progress = keisan::make_degree(atan2(delta_x, delta_y)).normalize();
           auto delta_direction_to_progress = (direction_to_progress - bezier_current_direction).normalize().degree();
 
           if (std::abs(delta_direction_to_progress) <= 10.0 &&
-             !(progress > 0.99 or progress - current_progress > 0.09)) {
+             !(progress > 0.99)) {
             continue;
           }
 
-          current_progress = progress;
-          bezier_path.push_back(bezier_progress_point);
-
           bezier_current_point = bezier_progress_point;
-          bezier_current_direction = direction_to_progress;
+          break;
         }
 
-        size_t bezier_index = 1;
+        RCLCPP_INFO(node->get_logger(), std::to_string(this->locomotion->get_robot()->position.x).c_str());
+        RCLCPP_INFO(node->get_logger(), std::to_string(this->locomotion->get_robot()->position.y).c_str());
+        RCLCPP_INFO(node->get_logger(), std::to_string(this->locomotion->get_robot()->orientation.degree()).c_str());
+        RCLCPP_INFO(node->get_logger(), "");
 
-        while(bezier_index < bezier_path.size()) {
-          if(this->locomotion->move_forward_to(bezier_path[bezier_index])) {
-            bezier_index++;
-          }
-        }
-        process = []() {return true;};
+        process = [this, bezier_current_point]() {return this->locomotion->move_forward_to(bezier_current_point);};
         break;
       }
   }
