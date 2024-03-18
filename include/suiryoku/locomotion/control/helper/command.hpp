@@ -35,6 +35,7 @@ enum Command
   DRIBBLE,
   PIVOT,
   POSITION,
+  BEZIER
 };
 
 }  // namespace suiryoku::control
