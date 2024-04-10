@@ -38,14 +38,14 @@ namespace suiryoku
 {
 
 Locomotion::Locomotion(std::shared_ptr<Robot> robot)
-: position_prev_delta_pan(0.0), position_prev_delta_tilt(0.0),
+: config_name("locomotion.json"), position_prev_delta_pan(0.0), position_prev_delta_tilt(0.0),
   position_in_belief(0.0), stop([]() {}), start([]() {}), robot(robot)
 {
 }
 
 void Locomotion::load_config(const std::string & path)
 {
-  std::ifstream file(path + "locomotion.json");
+  std::ifstream file(path + config_name);
   nlohmann::json data = nlohmann::json::parse(file);
 
   set_config(data);
