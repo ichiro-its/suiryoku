@@ -546,6 +546,86 @@ bool Locomotion::position_kick_general(const keisan::Angle<double> & direction)
   return position_until(target_pan, target_tilt, direction);
 }
 
+bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick)
+{
+  double tilt = robot->get_tilt().degree();
+  double pan = robot->get_pan().degree();
+
+  bool tilt_in_range = tilt > position_min_range_tilt && tilt < position_max_range_tilt;
+  bool right_kick_in_range = pan > position_min_range_pan && pan < -position_center_range_pan;
+  bool left_kick_in_range = pan > position_center_range_pan && pan < position_max_range_pan;
+  bool pan_in_range = precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range) : (right_kick_in_range || left_kick_in_range);
+
+  if (tilt_in_range && pan_in_range) {
+    return true;
+  }
+
+  double target_tilt = 0.5 * (position_min_range_tilt + position_max_range_tilt);
+  double delta_tilt = target_tilt - tilt;
+
+  bool pan_in_kick_range = pan > position_min_range_pan && pan < position_max_range_pan;
+  double closest_delta_pan = pan_in_kick_range ? 0 : std::min(std::abs(left_kick_target_pan.degree() - pan), std::abs(right_kick_target_pan.degree() - pan));
+
+  // x movement
+  double delta_tilt_pan = delta_tilt + (closest_delta_pan * 0.3);
+  printf("delta tilt pan %.1f\n", delta_tilt_pan);
+
+  double x_speed = 0.0;
+  if (!tilt_in_range) {
+    if (delta_tilt_pan > 3.0) {
+      x_speed = keisan::map(delta_tilt_pan, 3.0, 20.0, position_min_x * 0.5, position_min_x);
+    } else if (delta_tilt_pan < -3.0) {
+      x_speed = keisan::map(delta_tilt_pan, -20.0, -3.0, position_max_x, position_max_x * 0.5);
+    }
+  }
+
+  // a movement
+  double delta_direction = (direction - robot->orientation).normalize().degree();
+  double a_speed = 0;
+
+  bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction;
+  if (!direction_in_range) {
+    a_speed = keisan::map(delta_direction, -30.0, 30.0, position_max_a, -position_max_a);
+  }
+
+  // y movement
+  float target_pan = pan > 0.0 ? 0.5 * (position_center_range_pan + position_max_range_pan) : 0.5 * (-position_center_range_pan + position_min_range_pan);
+  if (precise_kick) {
+    target_pan = left_kick ? 0.5 * (position_center_range_pan + position_max_range_pan) : 0.5 * (-position_center_range_pan + position_min_range_pan);
+  }
+  double delta_pan = target_pan - pan;
+  double y_speed = 0.0;
+  
+  if (!pan_in_range) {
+    if (delta_pan < -(position_min_delta_pan)) {
+      y_speed = keisan::map(delta_pan, -20.0, -(position_min_delta_pan), position_max_ly, position_min_ly);
+    } else if (delta_pan > (position_min_delta_pan)) {
+      y_speed = keisan::map(delta_pan, (position_min_delta_pan), 20.0, position_min_ry, position_max_ry);
+    }
+  }
+
+  #if ITHAARO || UMARU || MIRU
+  double smooth_ratio = 1.0;
+  #else
+  double smooth_ratio = 0.8;
+  #endif
+
+  robot->x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
+  robot->y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
+  robot->a_speed = keisan::smooth(robot->a_speed, a_speed, smooth_ratio);
+  robot->aim_on = false;
+  start();
+
+  printf("delta pan %.1f, delta tilt %.1f, delta direction %.1f\n", delta_pan, delta_tilt, delta_direction);
+
+  if (tilt_in_range && pan_in_range) {
+    printf("done by range pan tilt\n");
+    return true;
+  }
+
+  return false;
+}
+
 bool Locomotion::is_time_to_follow()
 {
   return (robot->tilt - follow_min_tilt).degree() > 20.0;

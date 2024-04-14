@@ -67,6 +67,7 @@ public:
   bool position_left_kick(const keisan::Angle<double> & direction);
   bool position_right_kick(const keisan::Angle<double> & direction);
   bool position_kick_general(const keisan::Angle<double> & direction);
+  bool position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick);
 
   bool is_time_to_follow();
   bool pivot_fulfilled();
@@ -120,6 +121,11 @@ private:
   double position_prev_delta_pan;
   double position_prev_delta_tilt;
   double position_in_belief;
+  double position_min_range_tilt;
+  double position_max_range_tilt;
+  double position_min_range_pan;
+  double position_center_range_pan;
+  double position_max_range_pan;
 
   double skew_max_x;
   double skew_max_a;
