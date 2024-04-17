@@ -64,6 +64,7 @@ void Locomotion::set_config(const nlohmann::json & json)
         val.at("max_a").get_to(move_max_a);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
       }
     } else if (key == "follow") {
       try {
@@ -72,6 +73,7 @@ void Locomotion::set_config(const nlohmann::json & json)
         follow_min_tilt = keisan::make_degree(val.at("min_tilt_").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
       }
     } else if (key == "skew") {
       try {
@@ -82,6 +84,7 @@ void Locomotion::set_config(const nlohmann::json & json)
         val.at("delta_direction_comp").get_to(skew_delta_direction_comp);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
       }
     } else if (key == "dribble") {
       try {
@@ -94,6 +97,7 @@ void Locomotion::set_config(const nlohmann::json & json)
         val.at("max_a").get_to(dribble_max_a);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
       }
     } else if (key == "pivot") {
       try {
@@ -105,6 +109,7 @@ void Locomotion::set_config(const nlohmann::json & json)
         pivot_target_tilt = keisan::make_degree(val.at("target_tilt").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
       }
     } else if (key == "position") {
       try {
@@ -119,8 +124,14 @@ void Locomotion::set_config(const nlohmann::json & json)
         val.at("min_delta_pan").get_to(position_min_delta_pan);
         val.at("min_delta_pan_tilt").get_to(position_min_delta_pan_tilt);
         val.at("min_delta_direction").get_to(position_min_delta_direction);
+        val.at("min_range_tilt").get_to(position_min_range_tilt);
+        val.at("max_range_tilt").get_to(position_max_range_tilt);
+        val.at("min_range_pan").get_to(position_min_range_pan);
+        val.at("max_range_pan").get_to(position_max_range_pan);
+        val.at("center_range_pan").get_to(position_center_range_pan);
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
       }
     } else if (key == "left_kick") {
       try {
@@ -129,6 +140,7 @@ void Locomotion::set_config(const nlohmann::json & json)
           keisan::make_degree(val.at("target_tilt").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
       }
     } else if (key == "right_kick") {
       try {
@@ -137,6 +149,7 @@ void Locomotion::set_config(const nlohmann::json & json)
           keisan::make_degree(val.at("target_tilt").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
       }
     }
   }
