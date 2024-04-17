@@ -46,7 +46,7 @@ LocomotionNode::LocomotionNode(
     aruku::WalkingNode::set_walking_topic(), 10);
 
   measurement_status_subscriber = node->create_subscription<MeasurementStatus>(
-    "/measurement/orientation", 10,
+    kansei::measurement::MeasurementNode::status_topic(), 10,
     [this](const MeasurementStatus::SharedPtr message) {
       this->robot->is_calibrated = message->is_calibrated;
       this->robot->orientation = keisan::make_degree(message->orientation.yaw);
