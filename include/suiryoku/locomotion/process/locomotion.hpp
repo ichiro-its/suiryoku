@@ -72,6 +72,8 @@ public:
   bool in_pan_kick_range();
   bool in_tilt_kick_range();
 
+  void speed_control(double x_speed, double y_speed, double a_speed, bool aim_on);
+
   std::shared_ptr<Robot> get_robot() const;
   void update_move_amplitude(double x_amplitude, double y_amplitude);
 
