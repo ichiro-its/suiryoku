@@ -52,6 +52,9 @@ public:
   double y_amplitude;
   double a_amplitude;
 
+  keisan::Vector<3> gyro;
+  keisan::Vector<3> accelero;
+
   // member for setting
   double x_speed;
   double y_speed;

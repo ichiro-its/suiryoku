@@ -24,6 +24,7 @@
 #include "suiryoku/locomotion/node/locomotion_node.hpp"
 
 #include "aruku/walking/walking.hpp"
+#include "tachimawari/imu/imu.hpp"
 #include "kansei/measurement/measurement.hpp"
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
@@ -72,6 +73,15 @@ LocomotionNode::LocomotionNode(
     [this](const Head::SharedPtr message) {
       this->robot->pan = keisan::make_degree(message->pan_angle);
       this->robot->tilt = keisan::make_degree(message->tilt_angle);
+    });
+  
+  imu_subscriber = node->create_subscription<Unit>(
+    tachimawari::imu::ImuNode::unit_topic(), 10,
+    [this](const Unit::SharedPtr message) {
+      this->robot->gyro = keisan::Vector<3>(
+        message->gyro.roll, message->gyro.pitch, message->gyro.yaw);
+      this->robot->accelero = keisan::Vector<3>(
+        message->accelero.x, message->accelero.y, message->accelero.z);
     });
 
   locomotion->stop = [this]() {this->walking_state = false;};

@@ -29,6 +29,7 @@
 #include "aruku_interfaces/msg/status.hpp"
 #include "atama_interfaces/msg/head.hpp"
 #include "kansei_interfaces/msg/status.hpp"
+#include "kansei_interfaces/msg/unit.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
@@ -44,6 +45,7 @@ public:
   using Point2 = aruku_interfaces::msg::Point2;
   using SetWalking = aruku_interfaces::msg::SetWalking;
   using WalkingStatus = aruku_interfaces::msg::Status;
+  using Unit = kansei_interfaces::msg::Unit;
 
   static std::string get_node_prefix();
 
@@ -65,6 +67,8 @@ private:
   rclcpp::Subscription<WalkingStatus>::SharedPtr walking_status_subscriber;
 
   rclcpp::Subscription<Head>::SharedPtr head_subscriber;
+
+  rclcpp::Subscription<Unit>::SharedPtr imu_subscriber;
 
   std::shared_ptr<Locomotion> locomotion;
   std::shared_ptr<Robot> robot;
