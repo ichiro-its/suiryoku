@@ -88,8 +88,17 @@ private:
   double move_max_y;
   double move_max_a;
 
+  double follow_pan_ratio;
   double follow_max_x;
+  double follow_min_x;
   double follow_max_a;
+  double follow_l_a_offset;
+  double follow_r_a_offset;
+  bool follow_y_move;
+  double follow_max_ry;
+  double follow_min_ry;
+  double follow_max_ly;
+  double follow_min_ly;
   keisan::Angle<double> follow_min_tilt;
 
   double dribble_min_x;
