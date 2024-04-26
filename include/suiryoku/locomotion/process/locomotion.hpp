@@ -36,7 +36,6 @@ class Locomotion
 public:
   explicit Locomotion(std::shared_ptr<Robot> robot);
 
-  void set_config_name(const std::string & name) {config_name = name;}
   void load_config(const std::string & path);
   void set_config(const nlohmann::json & json);
 
@@ -80,8 +79,9 @@ public:
   std::function<void()> stop;
   std::function<void()> start;
 
-private:
   std::string config_name;
+
+private:
 
   double move_min_x;
   double move_max_x;
