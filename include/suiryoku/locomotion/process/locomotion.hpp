@@ -48,6 +48,7 @@ public:
   void move_forward(const keisan::Angle<double> & direction);
   bool move_forward_to(const keisan::Point2 & target);
 
+  bool rotate_to_target(const keisan::Angle<double> & direction);
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
   bool move_follow_head();
@@ -88,6 +89,9 @@ private:
   double move_max_y;
   double move_max_a;
 
+  double rotate_max_a;
+  double rotate_max_delta_direction;
+
   double follow_pan_ratio;
   double follow_max_x;
   double follow_min_x;
@@ -110,6 +114,8 @@ private:
   double dribble_max_a;
 
   keisan::Angle<double> pivot_target_tilt;
+  double pivot_max_delta_direction;
+  double pivot_pan_range_ratio;
   double pivot_min_x;
   double pivot_max_x;
   double pivot_max_ly;
