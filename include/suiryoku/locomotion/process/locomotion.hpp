@@ -66,6 +66,9 @@ public:
     const keisan::Angle<double> & direction);
   bool position_left_kick(const keisan::Angle<double> & direction);
   bool position_right_kick(const keisan::Angle<double> & direction);
+  bool position_kick_custom_pan_tilt(const keisan::Angle<double> & direction, const keisan::Angle<double> & min_pan, 
+                                     const keisan::Angle<double> & max_pan, const keisan::Angle<double> & min_tilt, 
+                                     const keisan::Angle<double> & max_tilt);
   bool position_kick_general(const keisan::Angle<double> & direction);
   bool position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick);
 
@@ -88,6 +91,10 @@ private:
   double move_max_x;
   double move_max_y;
   double move_max_a;
+
+  double backward_max_x;
+  double backward_min_x;
+  double backward_max_a;
 
   double rotate_max_a;
   double rotate_max_delta_direction;
@@ -112,6 +119,7 @@ private:
   double dribble_min_ry;
   double dribble_max_ry;
   double dribble_max_a;
+  double dribble_pan_comp;
 
   keisan::Angle<double> pivot_target_tilt;
   double pivot_max_delta_direction;
@@ -129,18 +137,18 @@ private:
   double position_min_ry;
   double position_max_ry;
   double position_max_a;
-  double position_min_delta_tilt;
-  double position_min_delta_pan;
-  double position_min_delta_pan_tilt;
-  double position_min_delta_direction;
-  double position_prev_delta_pan;
-  double position_prev_delta_tilt;
   double position_in_belief;
-  double position_min_range_tilt;
-  double position_max_range_tilt;
-  double position_min_range_pan;
-  double position_center_range_pan;
-  double position_max_range_pan;
+  keisan::Angle<double> position_min_delta_tilt;
+  keisan::Angle<double> position_min_delta_pan;
+  keisan::Angle<double> position_min_delta_pan_tilt;
+  keisan::Angle<double> position_min_delta_direction;
+  keisan::Angle<double> position_prev_delta_pan;
+  keisan::Angle<double> position_prev_delta_tilt;
+  keisan::Angle<double> position_min_range_tilt;
+  keisan::Angle<double> position_max_range_tilt;
+  keisan::Angle<double> position_min_range_pan;
+  keisan::Angle<double> position_center_range_pan;
+  keisan::Angle<double> position_max_range_pan;
 
   double skew_max_x;
   double skew_max_a;
