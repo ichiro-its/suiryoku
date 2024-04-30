@@ -40,7 +40,7 @@ std::string LocomotionNode::get_node_prefix()
 
 LocomotionNode::LocomotionNode(
   rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion)
-: locomotion(locomotion), robot(locomotion->get_robot()), walking_state(false)
+: locomotion(locomotion), robot(locomotion->get_robot()), walking_state(false), set_odometry(false)
 {
   set_walking_publisher = node->create_publisher<SetWalking>(
     aruku::WalkingNode::set_walking_topic(), 10);
@@ -81,6 +81,9 @@ LocomotionNode::LocomotionNode(
 void LocomotionNode::update()
 {
   publish_walking();
+  if (set_odometry) {
+    publish_odometry();
+  }
 }
 
 void LocomotionNode::publish_walking()
@@ -94,6 +97,17 @@ void LocomotionNode::publish_walking()
   walking_msg.aim_on = robot->aim_on;
 
   set_walking_publisher->publish(walking_msg);
+}
+
+void LocomotionNode::publish_odometry()
+{
+  auto odometry_msg = Point2();
+
+  odometry_msg.x = robot->position.x;
+  odometry_msg.y = robot->position.y;
+
+  set_odometry_publisher->publish(odometry_msg);
+  set_odometry = false;
 }
 
 }  // namespace suiryoku
