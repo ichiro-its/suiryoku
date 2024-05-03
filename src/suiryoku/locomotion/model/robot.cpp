@@ -34,7 +34,7 @@ Robot::Robot()
   y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false),
   orientation(0_deg), position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0),
   a_amplitude(0.0), is_calibrated(false),
-  gyro(0.0, 0.0, 0.0), accelero(0.0, 0.0, 0.0)
+  rpy(0.0, 0.0, 0.0)
 {
 }
 

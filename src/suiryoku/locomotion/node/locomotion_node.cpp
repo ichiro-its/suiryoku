@@ -51,6 +51,7 @@ LocomotionNode::LocomotionNode(
     [this](const MeasurementStatus::SharedPtr message) {
       this->robot->is_calibrated = message->is_calibrated;
       this->robot->orientation = keisan::make_degree(message->orientation.yaw);
+      this->robot->rpy = keisan::Vector<3>(message->orientation.roll, message->orientation.pitch, message->orientation.yaw);
     });
 
   set_odometry_publisher = node->create_publisher<Point2>(
@@ -73,15 +74,6 @@ LocomotionNode::LocomotionNode(
     [this](const Head::SharedPtr message) {
       this->robot->pan = keisan::make_degree(message->pan_angle);
       this->robot->tilt = keisan::make_degree(message->tilt_angle);
-    });
-  
-  imu_subscriber = node->create_subscription<Unit>(
-    tachimawari::imu::ImuNode::unit_topic(), 10,
-    [this](const Unit::SharedPtr message) {
-      this->robot->gyro = keisan::Vector<3>(
-        message->gyro.roll, message->gyro.pitch, message->gyro.yaw);
-      this->robot->accelero = keisan::Vector<3>(
-        message->accelero.x, message->accelero.y, message->accelero.z);
     });
 
   locomotion->stop = [this]() {this->walking_state = false;};

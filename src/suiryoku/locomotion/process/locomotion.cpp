@@ -178,7 +178,7 @@ bool Locomotion::walk_in_position_until_stop()
   return !robot->is_walking;
 }
 
-void Locomotion::move_backward(const keisan::Angle<double> & direction)
+void Locomotion::move_backward(const keisan::Angle<double> & direction, float delta_sec)
 {
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
@@ -190,10 +190,10 @@ void Locomotion::move_backward(const keisan::Angle<double> & direction)
     x_speed = 0.0;
   }
 
-  speed_control(x_speed, 0.0, a_speed, false);
+  speed_control(x_speed, 0.0, a_speed, false, delta_sec);
 }
 
-bool Locomotion::move_backward_to(const keisan::Point2 & target)
+bool Locomotion::move_backward_to(const keisan::Point2 & target, float delta_sec)
 {
   double delta_x = (robot->position.x - target.x);
   double delta_y = (robot->position.y - target.y);
@@ -215,12 +215,12 @@ bool Locomotion::move_backward_to(const keisan::Point2 & target)
     x_speed = 0.0;
   }
 
-  speed_control(x_speed, 0.0, a_speed, false);
+  speed_control(x_speed, 0.0, a_speed, false, delta_sec);
 
   return false;
 }
 
-void Locomotion::move_forward(const keisan::Angle<double> & direction)
+void Locomotion::move_forward(const keisan::Angle<double> & direction, float delta_sec)
 {
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
@@ -232,10 +232,10 @@ void Locomotion::move_forward(const keisan::Angle<double> & direction)
     x_speed = 0.0;
   }
 
-  speed_control(x_speed, 0.0, a_speed, false);  
+  speed_control(x_speed, 0.0, a_speed, false, delta_sec);
 }
 
-bool Locomotion::move_forward_to(const keisan::Point2 & target)
+bool Locomotion::move_forward_to(const keisan::Point2 & target, float delta_sec)
 {
   double delta_x = (target.x - robot->position.x);
   double delta_y = (target.y - robot->position.y);
@@ -262,12 +262,12 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target)
     x_speed = 0.0;
   }
 
-  speed_control(x_speed, 0.0, a_speed, false);
+  speed_control(x_speed, 0.0, a_speed, false, delta_sec);
 
   return false;
 }
 
-bool Locomotion::rotate_to(const keisan::Angle<double> & direction, bool a_move_only)
+bool Locomotion::rotate_to(const keisan::Angle<double> & direction, bool a_move_only, float delta_sec)
 {
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
@@ -282,17 +282,17 @@ bool Locomotion::rotate_to(const keisan::Angle<double> & direction, bool a_move_
 
   double a_speed = keisan::sign(delta_direction) * -move_max_a;
 
-  speed_control(0.0, y_speed, a_speed, false);
+  speed_control(0.0, y_speed, a_speed, false, delta_sec);
 
   return false;
 }
 
-bool Locomotion::move_follow_head()
+bool Locomotion::move_follow_head(float delta_sec)
 {
-  return move_follow_head(follow_min_tilt);
+  return move_follow_head(follow_min_tilt, delta_sec);
 }
 
-bool Locomotion::move_follow_head(const keisan::Angle<double> & min_tilt)
+bool Locomotion::move_follow_head(const keisan::Angle<double> & min_tilt, float delta_sec)
 {
   double a_speed = keisan::map(
     robot->pan.degree(), -10.0, 10.0, -follow_max_a, follow_max_a);
@@ -300,19 +300,19 @@ bool Locomotion::move_follow_head(const keisan::Angle<double> & min_tilt)
   double x_speed = keisan::map(std::abs(a_speed), 0.0, follow_max_a, follow_max_x, 0.);
   x_speed = keisan::map((robot->tilt - min_tilt).degree(), 10.0, 0.0, x_speed, 0.0);
 
-  speed_control(x_speed, 0.0, a_speed, false);
+  speed_control(x_speed, 0.0, a_speed, false, delta_sec);
 
   return robot->tilt < min_tilt;
 }
 
-bool Locomotion::move_skew(const keisan::Angle<double> & direction)
+bool Locomotion::move_skew(const keisan::Angle<double> & direction, float delta_sec)
 {
   auto current_direction = (robot->orientation - robot->pan).normalize();
   auto delta_direction = (direction - current_direction).normalize().degree();
-  return move_skew(direction, delta_direction > 0);
+  return move_skew(direction, delta_direction > 0, delta_sec);
 }
 
-bool Locomotion::move_skew(const keisan::Angle<double> & direction, bool skew_left)
+bool Locomotion::move_skew(const keisan::Angle<double> & direction, bool skew_left, float delta_sec)
 {
   auto current_direction = (robot->orientation - robot->pan).normalize();
   double delta_direction = (direction - current_direction).normalize().degree();
@@ -357,13 +357,13 @@ bool Locomotion::move_skew(const keisan::Angle<double> & direction, bool skew_le
       move_x = keisan::map(std::abs(move_a), 0.0, skew_max_a, skew_max_x, 0.0);
     }
 
-    speed_control(move_x, 0.0, move_a, false);
+    speed_control(move_x, 0.0, move_a, false, delta_sec);
   } else {
-    move_follow_head();
+    move_follow_head(delta_sec);
   }
 }
 
-bool Locomotion::dribble(const keisan::Angle<double> & direction)
+bool Locomotion::dribble(const keisan::Angle<double> & direction, float delta_sec)
 {
   double pan = robot->get_pan().degree();
   bool is_dribble = true;
@@ -387,12 +387,12 @@ bool Locomotion::dribble(const keisan::Angle<double> & direction)
   double a_speed = keisan::map(
     delta_direction, -15.0, 15.0, dribble_max_a, -dribble_max_a);
 
-  speed_control(x_speed, y_speed, a_speed, false);
+  speed_control(x_speed, y_speed, a_speed, false, delta_sec);
 
   return is_dribble;
 }
 
-bool Locomotion::pivot(const keisan::Angle<double> & direction)
+bool Locomotion::pivot(const keisan::Angle<double> & direction, float delta_sec)
 {
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
@@ -414,7 +414,7 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
   double a_speed = keisan::map(
     robot->get_pan().degree(), -10.0, 10.0, pivot_max_a, -pivot_max_a);
 
-  speed_control(x_speed, y_speed, a_speed, false);
+  speed_control(x_speed, y_speed, a_speed, true, delta_sec);
 
   return false;
 }
@@ -422,7 +422,8 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
 bool Locomotion::position_until(
   const keisan::Angle<double> & target_pan,
   const keisan::Angle<double> & target_tilt,
-  const keisan::Angle<double> & direction)
+  const keisan::Angle<double> & direction,
+  float delta_sec)
 {
   double delta_pan = std::abs((target_pan - robot->get_pan()).degree());
   double delta_tilt = std::abs((target_tilt - robot->get_tilt()).degree());
@@ -455,7 +456,7 @@ bool Locomotion::position_until(
   double a_speed = keisan::map(
     delta_direction, -15.0, 15.0, position_max_a, -position_max_a);
 
-  speed_control(x_speed, y_speed, a_speed, false);
+  speed_control(x_speed, y_speed, a_speed, false, delta_sec);
 
   if (abs_delta_pan < position_min_delta_pan && abs_delta_tilt < position_min_delta_tilt) {
     return true;
@@ -464,19 +465,19 @@ bool Locomotion::position_until(
   return false;
 }
 
-bool Locomotion::position_left_kick(const keisan::Angle<double> & direction)
+bool Locomotion::position_left_kick(const keisan::Angle<double> & direction, float delta_sec)
 {
   return position_until(
-    left_kick_target_pan, left_kick_target_tilt, direction);
+    left_kick_target_pan, left_kick_target_tilt, direction, delta_sec);
 }
 
-bool Locomotion::position_right_kick(const keisan::Angle<double> & direction)
+bool Locomotion::position_right_kick(const keisan::Angle<double> & direction, float delta_sec)
 {
   return position_until(
-    right_kick_target_pan, right_kick_target_tilt, direction);
+    right_kick_target_pan, right_kick_target_tilt, direction, delta_sec);
 }
 
-bool Locomotion::position_kick_general(const keisan::Angle<double> & direction)
+bool Locomotion::position_kick_general(const keisan::Angle<double> & direction, float delta_sec)
 {
   double delta_pan_left = std::abs((left_kick_target_pan - robot->get_pan()).degree());
   double delta_tilt_left = std::abs((left_kick_target_tilt - robot->get_tilt()).degree());
@@ -503,7 +504,7 @@ bool Locomotion::position_kick_general(const keisan::Angle<double> & direction)
     target_tilt = right_kick_target_tilt;
   }
 
-  return position_until(target_pan, target_tilt, direction);
+  return position_until(target_pan, target_tilt, direction, delta_sec);
 }
 
 bool Locomotion::is_time_to_follow()
@@ -532,17 +533,33 @@ bool Locomotion::in_tilt_kick_range()
   return tilt > min_target_tilt && tilt < max_target_tilt;
 }
 
-void Locomotion::speed_control(double x_speed, double y_speed, double a_speed, bool aim_on)
+void Locomotion::speed_control(double x_speed, double y_speed, double a_speed, bool aim_on, float delta_sec)
 {
-  enum gyro{roll, pitch, yaw};
+  enum rpy{roll, pitch, yaw};
   //  Speed control process
-  if (std::abs(robot->gyro[pitch]) > 15.0 && std::abs(x_speed) > 0.0) {  // TODO: Find the correct value to determine unstable walking
-    x_speed = keisan::map(std::abs(robot->gyro[pitch]), 40.0, 15.0, 0.0, x_speed); //  TODO: Find the range of max stable imu value to allow x_speed
-    a_speed = keisan::map(std::abs(robot->gyro[pitch]), 40.0, 15.0, 0.0, a_speed); //  TODO: Find the range of max stable imu value to allow a_speed
+  if (std::abs(robot->rpy[pitch]) - pitch_offset > pitch_unstable_threshold && std::abs(x_speed) > 0.0) {  // TODO: Find the correct value to determine unstable walking
+    std::cout << "Unstable walking detected!" << std::endl;
+    unstable_pitch = true;
+    stable_time = 0.0;
+  } else if (std::abs(robot->rpy[roll]) > 15.0 && std::abs(y_speed) > 0.0) {  // TODO: Find the correct value to determine unstable walking
+    std::cout << "Unstable walking detected!" << std::endl;
+    unstable_roll = true;
+    stable_time = 0.0;
+  } else {
+    stable_time += delta_sec;
+    if (stable_time > 5.0) {
+      unstable_pitch = false;
+      unstable_roll = false;
+    }
   }
-  if (std::abs(robot->gyro[roll]) > 15.0 && std::abs(y_speed) > 0.0) {  // TODO: Find the correct value to determine unstable walking
-    y_speed = keisan::map(std::abs(robot->gyro[roll]), 40.0, 15.0, 0.0, y_speed); //  TODO: Find the range of max stable imu value to allow x_speed
-    a_speed = keisan::map(std::abs(robot->gyro[roll]), 40.0, 15.0, 0.0, a_speed); //  TODO: Find the range of max stable imu value to allow a_speed
+
+  if (unstable_pitch) {
+    x_speed = keisan::map(std::abs(robot->rpy[pitch]) - pitch_offset, 25.0, pitch_unstable_threshold, 0.0, x_speed); //  TODO: Find the range of max stable imu value to allow x_speed
+    a_speed = keisan::map(std::abs(robot->rpy[pitch]) - pitch_offset, 25.0, pitch_unstable_threshold, 0.0, a_speed); //  TODO: Find the range of max stable imu value to allow a_speed
+  }
+  if (unstable_roll) {
+    y_speed = keisan::map(std::abs(robot->rpy[roll]) - roll_offset, 20.0, roll_unstable_threshold, 0.0, y_speed); //  TODO: Find the range of max stable imu value to allow x_speed
+    a_speed = keisan::map(std::abs(robot->rpy[roll]) - roll_offset, 20.0, roll_unstable_threshold, 0.0, a_speed); //  TODO: Find the range of max stable imu value to allow a_speed
   }
 
   robot->x_speed = x_speed;
