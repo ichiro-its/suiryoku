@@ -67,6 +67,26 @@ void Locomotion::set_config(const nlohmann::json & json)
         std::cerr << "parse error at byte " << ex.byte << std::endl;
         throw ex;
       }
+    } else if (key == "left") {
+      try {
+        val.at("min_ly").get_to(left_min_ly);
+        val.at("max_ly").get_to(left_max_ly);
+        val.at("max_a").get_to(left_max_a);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "error key: " << key << std::endl;
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
+      }
+    } else if (key == "right") {
+      try {
+        val.at("min_ry").get_to(right_min_ry);
+        val.at("max_ry").get_to(right_max_ry);
+        val.at("max_a").get_to(right_max_a);
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "error key: " << key << std::endl;
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+        throw ex;
+      }
     } else if (key == "rotate") {
       try {
         val.at("max_a").get_to(rotate_max_a);
@@ -351,6 +371,54 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target)
 
   robot->x_speed = x_speed;
   robot->y_speed = 0.0;
+  robot->a_speed = a_speed;
+  robot->aim_on = false;
+  start();
+
+  return false;
+}
+
+bool Locomotion::move_to_left_and_right(const keisan::Point2 & target) {
+  printf("walking y : %.1f\n", robot->position.y);
+  double delta_x = target.x - robot->position.x;
+  double delta_y = std::abs(target.y) - robot->position.y;
+
+  double target_distance = std::hypot(delta_x, delta_y);
+  printf("targetRL distance : %.1f\n", target_distance);
+
+  if (target_distance < 5.0) {
+    walk_in_position();
+    return true;
+  }
+
+  double delta_direction = (keisan::make_degree(0).normalize() - robot->orientation).normalize().degree();
+  double max_y, min_y, max_a;
+
+  if (target.y > 0) {
+    max_y = right_max_ry;
+    min_y = right_min_ry;
+    max_a = right_max_a;
+  } else if (target.y < 0) {
+    max_y = left_max_ly;
+    min_y = left_min_ly;
+    max_a = left_max_a;
+  }
+
+  double y_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, max_y, min_y);
+  if (target_distance < 100.0) {
+    y_speed = keisan::map(target_distance, 0.0, 100.0, max_y * 0.5, max_y);
+  }
+
+  double a_speed = keisan::map(delta_direction, -25.0, 25.0, max_a, -max_a);
+  if (std::abs(delta_direction) > 15.0) {
+    a_speed = (delta_direction < 0.0) ? max_a : -max_a;
+    y_speed = keisan::map(std::abs(a_speed), 0.0, max_a, max_a, 0.0);
+  }
+
+  y_speed = keisan::smooth(robot->y_speed, y_speed, 0.8);
+
+  robot->x_speed = 0;
+  robot->y_speed = y_speed;
   robot->a_speed = a_speed;
   robot->aim_on = false;
   start();
