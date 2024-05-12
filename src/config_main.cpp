@@ -30,12 +30,11 @@ int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  if (argc < 2) {
-    std::cerr << "Please specify the path!" << std::endl;
-    return 0;
-  }
-
-  std::string path = argv[1];
+  char host_name[64];
+  gethostname(host_name, 64);
+  std::string path = "/home/ichiro/ros2-ws/configuration/";
+  path += host_name;
+  path += "/locomotion/";
   auto node = std::make_shared<rclcpp::Node>("suiryoku_node");
   auto suiryoku_node = std::make_shared<suiryoku::SuiryokuNode>(node);
 
