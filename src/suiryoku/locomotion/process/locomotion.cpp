@@ -132,20 +132,6 @@ void Locomotion::set_config(const nlohmann::json & json)
         std::cerr << "parse error at byte " << ex.byte << std::endl;
         throw ex;
       }
-    } else if (key == "dribble") {
-      try {
-        val.at("min_x").get_to(dribble_min_x);
-        val.at("max_x").get_to(dribble_max_x);
-        val.at("min_ly").get_to(dribble_min_ly);
-        val.at("max_ly").get_to(dribble_max_ly);
-        val.at("min_ry").get_to(dribble_min_ry);
-        val.at("max_ry").get_to(dribble_max_ry);
-        val.at("max_a").get_to(dribble_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
     } else if (key == "pivot") {
       try {
         val.at("min_x").get_to(pivot_min_x);
