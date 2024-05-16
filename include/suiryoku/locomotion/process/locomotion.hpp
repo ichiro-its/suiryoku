@@ -70,7 +70,7 @@ public:
                                      const keisan::Angle<double> & max_pan, const keisan::Angle<double> & min_tilt, 
                                      const keisan::Angle<double> & max_tilt);
   bool position_kick_general(const keisan::Angle<double> & direction);
-  bool position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick);
+  bool position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool dynamic_kick);
 
   bool is_time_to_follow();
   bool pivot_fulfilled();
@@ -163,6 +163,10 @@ private:
   keisan::Angle<double> right_kick_target_tilt;
 
   std::shared_ptr<Robot> robot;
+
+  keisan::Angle<double> max_dynamic_range_pan;
+  keisan::Angle<double> min_dynamic_range_pan;
+  double mapped_tilt;
 };
 
 }  // namespace suiryoku

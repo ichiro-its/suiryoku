@@ -179,6 +179,8 @@ void Locomotion::set_config(const nlohmann::json & json)
         position_min_range_pan = keisan::make_degree(val.at("min_range_pan").get<double>());
         position_max_range_pan = keisan::make_degree(val.at("max_range_pan").get<double>());
         position_center_range_pan = keisan::make_degree(val.at("center_range_pan").get<double>());
+        min_dynamic_range_pan = keisan::make_degree(val.at("min_dynamic_range_pan").get<double>());
+        max_dynamic_range_pan = keisan::make_degree(val.at("max_dynamic_range_pan").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "error key: " << key << std::endl;
         std::cerr << "parse error at byte " << ex.byte << std::endl;
@@ -751,12 +753,26 @@ bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & dir
   return false;
 }
 
-bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick)
+bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool dynamic_kick)
 {
+  if (dynamic_kick) {
+    position_max_range_pan = max_dynamic_range_pan;
+    position_min_range_pan = min_dynamic_range_pan;
+  }
+
   auto tilt = robot->get_tilt();
   auto pan = robot->get_pan();
 
-  bool tilt_in_range = tilt > position_min_range_tilt && tilt < position_max_range_tilt;
+  if (dynamic_kick && pan < keisan::make_degree(0.0))
+    mapped_tilt = keisan::exponentialmap(pan.degree(), 0.0, position_min_range_pan.degree(), position_min_range_tilt.degree(), position_max_range_tilt.degree());
+  else if (dynamic_kick && pan >= keisan::make_degree(0.0))
+    mapped_tilt = keisan::exponentialmap(pan.degree(), 0.0, position_max_range_pan.degree(), position_min_range_tilt.degree(), position_max_range_tilt.degree());
+
+  keisan::Angle<double> min_tilt = (dynamic_kick) ? keisan::clamp(keisan::make_degree(mapped_tilt) - position_min_delta_tilt, position_min_range_tilt, position_max_range_tilt) : position_min_range_tilt;
+  keisan::Angle<double> max_tilt = (dynamic_kick) ? keisan::clamp(keisan::make_degree(mapped_tilt) + position_min_delta_tilt, position_min_range_tilt, position_max_range_tilt) : position_max_range_tilt;
+  printf("tilt range: %.2f to %.2f\n", min_tilt.degree(), max_tilt.degree());
+
+  bool tilt_in_range = tilt > min_tilt && tilt < max_tilt;
   bool right_kick_in_range = pan > position_min_range_pan && pan < -position_center_range_pan;
   bool left_kick_in_range = pan > position_center_range_pan && pan < position_max_range_pan;
   bool pan_in_range = precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range) : (right_kick_in_range || left_kick_in_range);
