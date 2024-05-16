@@ -139,6 +139,13 @@ void Locomotion::set_config(const nlohmann::json & json)
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
+    } else if (key == "bezier") {
+      try {
+        bezier_default_curve_coefficient = val.at("curve_coefficient").get<double>();
+        bezier_default_target_coefficient = val.at("target_coefficient").get<double>();
+      } catch (nlohmann::json::parse_error & ex) {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+      }
     }
   }
 }
