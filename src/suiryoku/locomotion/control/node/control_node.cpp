@@ -279,9 +279,6 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
 
     case Command::BEZIER:
       {
-        keisan::Point2 initial_point(
-          this->locomotion->get_robot()->position.x, 
-          this->locomotion->get_robot()->position.y);
         keisan::Angle<double> target_direction;
         keisan::Point2 target_point;
 
@@ -294,68 +291,9 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
           }
         }
 
-        double distance_diff = std::hypot(initial_point.x - target_point.x, initial_point.y - target_point.y);
-
-        keisan::Point2 curve_point(initial_point.x, initial_point.y);
-        
-        keisan::Angle<double> direction_to_destination(
-          keisan::make_degree(atan2(target_point.y - initial_point.y, target_point.x - initial_point.x)) * 180.0 / M_PI);
-        
-        keisan::Angle<double> direction_difference_between_direction_and_target(
-          (direction_to_destination - (target_direction - 180_deg).normalize()).normalize());
-
-        if(direction_difference_between_direction_and_target <= 0_deg
-            && direction_difference_between_direction_and_target >= -45_deg)
-          curve_point.x = target_point.x + distance_diff;
-        
-        else if(direction_difference_between_direction_and_target >= 0_deg
-            && direction_difference_between_direction_and_target <= 45_deg)
-          curve_point.x = target_point.x - distance_diff;
-        
-        if(direction_difference_between_direction_and_target >= -45_deg 
-            && direction_difference_between_direction_and_target <= 45_deg)
-          curve_point.y = target_point.y + (target_point.y >= initial_point.y ? 1 : -1) * distance_diff;
-
-        keisan::Point2 angle_point(
-          target_point.x + distance_diff * -target_direction.cos(),
-          target_point.y + distance_diff * -target_direction.sin());
-
-        bezier::Bezier<3> bezier_curve({
-          {initial_point.x, initial_point.y}, 
-          {curve_point.x, curve_point.y}, 
-          {angle_point.x, angle_point.y},
-          {target_point.x, target_point.y}});
-
-        keisan::Point2 bezier_current_point = keisan::Point2(
-          bezier_curve.valueAt(0.00).x, bezier_curve.valueAt(0.00).y);
-        
-        keisan::Angle<double> bezier_current_direction = this->locomotion->get_robot()->orientation;
-        
-        for (double progress = 0.01; progress < 1.01; progress += 0.01) {
-          keisan::Point2 bezier_progress_point = keisan::Point2(
-          bezier_curve.valueAt(progress).x, bezier_curve.valueAt(progress).y);
-
-          double delta_x = (bezier_progress_point.x - bezier_current_point.x);
-          double delta_y = (bezier_progress_point.y - bezier_current_point.y);
-
-          auto direction_to_progress = keisan::make_degree(atan2(delta_x, delta_y)).normalize();
-          auto delta_direction_to_progress = (direction_to_progress - bezier_current_direction).normalize().degree();
-
-          if (std::abs(delta_direction_to_progress) <= 10.0 &&
-             !(progress > 0.99)) {
-            continue;
-          }
-
-          bezier_current_point = bezier_progress_point;
-          break;
-        }
-
-        RCLCPP_INFO(node->get_logger(), std::to_string(this->locomotion->get_robot()->position.x).c_str());
-        RCLCPP_INFO(node->get_logger(), std::to_string(this->locomotion->get_robot()->position.y).c_str());
-        RCLCPP_INFO(node->get_logger(), std::to_string(this->locomotion->get_robot()->orientation.degree()).c_str());
-        RCLCPP_INFO(node->get_logger(), "");
-
-        process = [this, bezier_current_point]() {return this->locomotion->move_forward_to(bezier_current_point);};
+        process = [this, target_point, target_direction]() {
+            return this->locomotion->move_bezier(target_point, target_direction);
+          };
         break;
       }
   }
