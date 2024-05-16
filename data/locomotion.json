@@ -54,5 +54,9 @@
   "right_kick": {
     "target_pan": -20,
     "target_tilt": -5
+  },
+  "bezier": {
+    "curve_coefficient": 1,
+    "target_coefficient": 2
   }
 }

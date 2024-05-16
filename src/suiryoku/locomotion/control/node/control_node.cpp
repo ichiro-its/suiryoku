@@ -28,6 +28,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/control/helper/command.hpp"
 #include "suiryoku/locomotion/locomotion.hpp"
+#include <bezier/bezier.h>
 
 using keisan::literals::operator""_deg;
 using std::placeholders::_1;
@@ -273,6 +274,26 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
             };
         }
 
+        break;
+      }
+
+    case Command::BEZIER:
+      {
+        keisan::Angle<double> target_direction;
+        keisan::Point2 target_point;
+
+        for (auto &[key, val] : parameters.items()) {
+          if (key == "direction") {
+            target_direction = keisan::make_degree(val.get<double>());
+          } else if (key == "target") {
+            target_point.x = val["x"].get<double>();
+            target_point.y = val["y"].get<double>();
+          }
+        }
+
+        process = [this, target_point, target_direction]() {
+            return this->locomotion->move_bezier(target_point, target_direction);
+          };
         break;
       }
   }

@@ -72,6 +72,10 @@ public:
   bool in_pan_kick_range();
   bool in_tilt_kick_range();
 
+  void update_bezier_points(const keisan::Angle<double> & direction);
+  bool move_bezier_to(const keisan::Angle<double> & direction);
+  bool move_bezier(const keisan::Point2 & target, const keisan::Angle<double> & direction);
+
   std::shared_ptr<Robot> get_robot() const;
   void update_move_amplitude(double x_amplitude, double y_amplitude);
 
@@ -129,6 +133,18 @@ private:
 
   keisan::Angle<double> right_kick_target_pan;
   keisan::Angle<double> right_kick_target_tilt;
+
+  keisan::Point2 bezier_initial_point;
+  keisan::Point2 bezier_curve_point;
+  keisan::Point2 bezier_target_point;
+  keisan::Point2 bezier_current_ball;
+  double bezier_progress;
+  double bezier_length;
+  double bezier_default_curve_coefficient;
+  double bezier_default_target_coefficient;
+  double bezier_curve_coefficient;
+  double bezier_target_coefficient;
+  bool bezier_behind_ball;
 
   std::shared_ptr<Robot> robot;
 };
