@@ -54,6 +54,9 @@ public:
 
   bool set_odometry;
 
+  void set_action_manager_is_open(bool is_open) { action_manager_is_open = is_open;}
+  void set_walk_setting_is_open(bool is_open) { walk_setting_is_open = is_open;}
+
 private:
   void publish_walking();
   void publish_odometry();
@@ -74,6 +77,9 @@ private:
 
   // teporary for start/stop the walking
   bool walking_state;
+
+  bool action_manager_is_open;
+  bool walk_setting_is_open;
 };
 
 }  // namespace suiryoku

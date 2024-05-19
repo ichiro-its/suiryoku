@@ -40,7 +40,8 @@ std::string LocomotionNode::get_node_prefix()
 
 LocomotionNode::LocomotionNode(
   rclcpp::Node::SharedPtr node, std::shared_ptr<Locomotion> locomotion)
-: locomotion(locomotion), robot(locomotion->get_robot()), walking_state(false), set_odometry(false)
+: locomotion(locomotion), robot(locomotion->get_robot()), walking_state(false), set_odometry(false),
+  action_manager_is_open(false), walk_setting_is_open(false)
 {
   set_walking_publisher = node->create_publisher<SetWalking>(
     aruku::WalkingNode::set_walking_topic(), 10);
@@ -80,6 +81,10 @@ LocomotionNode::LocomotionNode(
 
 void LocomotionNode::update()
 {
+  if (action_manager_is_open || walk_setting_is_open) {
+    return;
+  }
+
   publish_walking();
   if (set_odometry) {
     publish_odometry();
