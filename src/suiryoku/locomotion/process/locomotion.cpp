@@ -616,6 +616,62 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
   return false;
 }
 
+bool Locomotion::pivot_inverse_a_move(const keisan::Angle<double> & direction)
+{
+  if (initial_pivot) {
+    initial_pivot = false;
+    walk_in_position();
+    return false;
+  }
+
+  auto delta_direction = (direction - robot->orientation).normalize().degree();
+
+  if (std::abs(delta_direction) < pivot_max_delta_direction) {
+    walk_in_position();
+    robot->inverse_a_move = false;
+    return true;
+  }
+
+  double delta_tilt = (pivot_target_tilt - robot->tilt + robot->tilt_center).degree();
+
+  printf("pivot inverse a move\n");
+  printf("delta direction %f\n", delta_direction);
+  printf("delta tilt %f\n", delta_tilt);
+
+  // x_movement
+  double x_speed = delta_tilt > 0.0  
+    ? keisan::map(delta_tilt, 0.0, 20.0, 0.0, pivot_min_x)  
+    : keisan::map(delta_tilt, -20.0, 0.0, pivot_max_x, 0.0); 
+
+  // y movement
+  double y_speed = delta_direction < 0  
+    ? keisan::map(delta_direction, 180.0, 0.0, pivot_max_ry * 0.9, pivot_max_ry)  
+    : keisan::map(delta_direction, -180.0, 0.0, pivot_max_ly * 0.9, pivot_max_ly);
+
+  // a movement
+  double a_speed = y_speed < 0.0
+    ? keisan::map(delta_direction, -180.0, 0.0, -pivot_max_a * 0.9, -pivot_max_a)
+    : keisan::map(delta_direction, 180.0, 0.0, pivot_max_a, pivot_max_a * 0.9);
+
+  #if ITHAARO || UMARU || MIRU
+  double smooth_ratio = 1.0;
+  #else
+  double smooth_ratio = 0.8;
+  #endif
+
+  a_speed = keisan::smooth(robot->a_speed, a_speed, smooth_ratio);
+  x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
+  y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
+
+  robot->inverse_a_move = true;
+  robot->x_speed = x_speed;
+  robot->y_speed = y_speed;
+  robot->a_speed = a_speed;
+  start();
+
+  return false;
+}
+
 bool Locomotion::position_until(
   const keisan::Angle<double> & target_pan,
   const keisan::Angle<double> & target_tilt,
