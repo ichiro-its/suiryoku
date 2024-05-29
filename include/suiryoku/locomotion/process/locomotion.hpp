@@ -166,6 +166,8 @@ private:
 
   keisan::Angle<double> max_dynamic_range_pan;
   keisan::Angle<double> min_dynamic_range_pan;
+  keisan::Angle<double> max_dynamic_range_tilt;
+  keisan::Angle<double> min_dynamic_range_tilt;
   double mapped_tilt;
 };
 
