@@ -671,6 +671,7 @@ bool Locomotion::pivot_inverse_a_move(const keisan::Angle<double> & direction)
   robot->x_speed = x_speed;
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
+  robot->aim_on = true;
   start();
 
   return false;
@@ -827,9 +828,10 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
     mapped_tilt = keisan::exponentialmap(pan.degree(), 0.0, position_min_range_pan.degree(), position_min_range_tilt.degree(), position_max_range_tilt.degree());
   else if (dynamic_kick && pan >= keisan::make_degree(0.0))
     mapped_tilt = keisan::exponentialmap(pan.degree(), 0.0, position_max_range_pan.degree(), position_min_range_tilt.degree(), position_max_range_tilt.degree());
+  printf("mapped tilt: %.2f\n", mapped_tilt);
 
-  keisan::Angle<double> min_tilt = (dynamic_kick) ? keisan::make_degree(mapped_tilt) - position_min_range_tilt : position_min_range_tilt;
-  keisan::Angle<double> max_tilt = (dynamic_kick) ? keisan::make_degree(mapped_tilt) + position_min_range_tilt : position_max_range_tilt;
+  keisan::Angle<double> min_tilt = (dynamic_kick) ? keisan::make_degree(mapped_tilt) - position_min_delta_tilt : position_min_range_tilt;
+  keisan::Angle<double> max_tilt = (dynamic_kick) ? keisan::make_degree(mapped_tilt) + position_min_delta_tilt : position_max_range_tilt;
   printf("tilt range: %.2f to %.2f\n", min_tilt.degree(), max_tilt.degree());
   printf("pan range: %.2f to %.2f\n", position_min_range_pan, position_max_range_pan);
 
