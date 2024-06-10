@@ -285,7 +285,7 @@ bool Locomotion::move_backward_to(const keisan::Point2 & target)
     return true;
   }
 
-  auto direction = keisan::make_degree(atan2(delta_x, delta_y)).normalize() + 180.0_deg;
+  auto direction = keisan::signed_arctan(delta_y, delta_x) + 180.0_deg;
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
   double x_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, backward_max_x, backward_min_x);
@@ -336,9 +336,9 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target)
   if (target_distance < 8.0) {
     return true;
   }
-
-  auto direction = keisan::make_degree(atan2(delta_x, delta_y)).normalize();
-  auto delta_direction = (direction - robot->orientation).normalize().degree();
+  
+  auto direction = keisan::signed_arctan(delta_y, delta_x);
+  double delta_direction = (direction - robot->orientation).normalize().degree();
 
   double x_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, move_max_x, move_min_x);
   if (target_distance < 100.0) {
