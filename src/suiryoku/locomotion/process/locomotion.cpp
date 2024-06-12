@@ -671,7 +671,6 @@ bool Locomotion::pivot_inverse_a_move(const keisan::Angle<double> & direction)
   robot->x_speed = x_speed;
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
-  robot->aim_on = true;
   start();
 
   return false;
