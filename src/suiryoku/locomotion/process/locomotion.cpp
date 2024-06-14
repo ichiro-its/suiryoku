@@ -394,6 +394,8 @@ bool Locomotion::move_to_left_and_right(const keisan::Point2 & target) {
   double delta_direction = (keisan::make_degree(0).normalize() - robot->orientation).normalize().degree();
   double max_y, min_y, max_a;
 
+  printf("delta direction : %f\n", delta_direction);
+
   if (target.y > 0) {
     max_y = right_max_ry;
     min_y = right_min_ry;
@@ -415,7 +417,7 @@ bool Locomotion::move_to_left_and_right(const keisan::Point2 & target) {
     y_speed = keisan::map(std::abs(a_speed), 0.0, max_a, max_a, 0.0);
   }
 
-  y_speed = keisan::smooth(robot->y_speed, y_speed, 0.8);
+  y_speed = keisan::smooth(robot->y_amplitude , y_speed, 0.8);
 
   robot->x_speed = 0;
   robot->y_speed = y_speed;
