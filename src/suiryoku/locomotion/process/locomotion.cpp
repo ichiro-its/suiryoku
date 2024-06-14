@@ -810,7 +810,7 @@ bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & dir
   return false;
 }
 
-bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool dynamic_kick)
+bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool dynamic_kick, double delta_sec)
 {
   if (dynamic_kick) {
     position_max_range_pan = max_dynamic_range_pan;
@@ -839,7 +839,14 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
   bool pan_in_range = precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range) : (right_kick_in_range || left_kick_in_range);
 
   if (tilt_in_range && pan_in_range) {
-    return true;
+    in_range_sec += delta_sec;
+    if(in_range_sec >= 0.5) {
+      in_range_sec = 0.0;
+      return true;
+    }
+    else {
+      return false;
+    } 
   }
 
   auto target_tilt = right_kick_target_tilt;
