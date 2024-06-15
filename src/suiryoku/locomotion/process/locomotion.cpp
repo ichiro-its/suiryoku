@@ -275,9 +275,9 @@ void Locomotion::move_backward(const keisan::Angle<double> & direction)
   #endif
 
   double x_speed = 0.0;
-  double a_speed = keisan::map(delta_direction, -min_delta_direction, min_delta_direction, backward_max_a, -backward_max_a);
+  double a_speed = keisan::map(delta_direction, -min_delta_direction, min_delta_direction, -backward_max_a, backward_max_a);
   if (std::abs(delta_direction) > 15.0) {
-    a_speed = (delta_direction < 0.0) ? backward_max_a : -backward_max_a;
+    a_speed = (delta_direction < 0.0) ? -backward_max_a : backward_max_a;
   } else {
     x_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, backward_max_x, backward_min_x);
   }
@@ -297,18 +297,17 @@ bool Locomotion::move_backward_to(const keisan::Point2 & target)
   double target_distance = std::hypot(delta_x, delta_y);
 
   if (target_distance < 8.0) {
-    walk_in_position();
     return true;
   }
 
-  auto direction = keisan::signed_arctan(delta_y, delta_x) + 180.0_deg;
+  auto direction = keisan::signed_arctan(delta_y, delta_x).normalize();
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
   double x_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, backward_max_x, backward_min_x);
 
-  double a_speed = keisan::map(delta_direction, -25.0, 25.0, backward_max_a, -backward_max_a);
+  double a_speed = keisan::map(delta_direction, -25.0, 25.0, -backward_max_a, backward_max_a);
   if (std::abs(delta_direction) > 15.0) {
-    a_speed = (delta_direction < 0.0) ? backward_max_a : -backward_max_a;
+    a_speed = (delta_direction < 0.0) ? -backward_max_a : backward_max_a;
     x_speed = keisan::map(std::abs(a_speed), 0.0, backward_max_a, backward_max_a, 0.0);
   }
 
@@ -353,7 +352,7 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target)
     return true;
   }
   
-  auto direction = keisan::signed_arctan(delta_y, delta_x);
+  auto direction = keisan::signed_arctan(delta_y, delta_x).normalize();
   double delta_direction = (direction - robot->orientation).normalize().degree();
 
   double x_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, move_max_x, move_min_x);
@@ -686,7 +685,7 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
   return false;
 }
 
-bool Locomotion::pivot_inverse_a_move(const keisan::Angle<double> & direction)
+bool Locomotion::pivot_new(const keisan::Angle<double> & direction)
 {
   if (initial_pivot) {
     initial_pivot = false;
@@ -698,13 +697,12 @@ bool Locomotion::pivot_inverse_a_move(const keisan::Angle<double> & direction)
 
   if (std::abs(delta_direction) < pivot_max_delta_direction) {
     walk_in_position();
-    robot->inverse_a_move = false;
     return true;
   }
 
   double delta_tilt = (pivot_target_tilt - robot->tilt + robot->tilt_center).degree();
 
-  printf("pivot inverse a move\n");
+  printf("pivot new\n");
   printf("delta direction %f\n", delta_direction);
   printf("delta tilt %f\n", delta_tilt);
 
@@ -733,7 +731,7 @@ bool Locomotion::pivot_inverse_a_move(const keisan::Angle<double> & direction)
   x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
   y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
 
-  robot->inverse_a_move = true;
+  robot->aim_on = true;
   robot->x_speed = x_speed;
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;

@@ -57,7 +57,6 @@ public:
   double y_speed;
   double a_speed;
   bool aim_on;
-  bool inverse_a_move;
 };
 
 }  // namespace suiryoku

@@ -61,7 +61,7 @@ public:
 
   bool dribble(const keisan::Angle<double> & direction);
   bool pivot(const keisan::Angle<double> & direction);
-  bool pivot_inverse_a_move(const keisan::Angle<double> & direction);
+  bool pivot_new(const keisan::Angle<double> & direction);
 
   bool position_until(
     const keisan::Angle<double> & target_pan,

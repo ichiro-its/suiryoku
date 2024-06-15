@@ -95,7 +95,6 @@ void LocomotionNode::publish_walking()
   walking_msg.y_move = robot->y_speed;
   walking_msg.a_move = robot->a_speed;
   walking_msg.aim_on = robot->aim_on;
-  walking_msg.inverse_a_move = robot->inverse_a_move;
 
   set_walking_publisher->publish(walking_msg);
 }
