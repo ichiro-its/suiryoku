@@ -764,7 +764,7 @@ bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & dir
   printf("delta tilt pan %.1f\n", delta_tilt_pan);
 
   double x_speed = 0.0;
-  if (!tilt == keisan::clamp(tilt, min_tilt.degree(), max_tilt.degree())) {
+  if (!(tilt == keisan::clamp(tilt, min_tilt.degree(), max_tilt.degree()))) {
     if (delta_tilt_pan > 3.0) {
       x_speed = keisan::map(delta_tilt_pan, 3.0, 20.0, position_min_x * 0.5, position_min_x);
     } else if (delta_tilt_pan < -3.0) {
@@ -774,7 +774,7 @@ bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & dir
 
   // y movement
   double y_speed = 0.0;
-  if (!pan == keisan::clamp(pan, min_pan.degree(), max_pan.degree())) {
+  if (!(pan == keisan::clamp(pan, min_pan.degree(), max_pan.degree()))) {
     if (delta_pan < -position_min_delta_pan.degree()) {
       y_speed = keisan::map(delta_pan, -20.0, -position_min_delta_pan.degree(), position_max_ly, position_min_ly);
     } else if (delta_pan > position_min_delta_pan.degree()) {
@@ -819,11 +819,26 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
     return true;
   }
 
-  auto target_tilt = 0.5 * (position_min_range_tilt + position_max_range_tilt);
+    // y movement
+  left_kick = precise_kick ? left_kick : pan > 0.0_deg;
+  auto target_pan = left_kick ? left_kick_target_pan : right_kick_target_pan;
+
+  double delta_pan = (target_pan - pan).degree();
+  double y_speed = 0.0;
+  
+  if (!pan_in_range) {
+    if (delta_pan < -position_min_delta_pan.degree()) {
+      y_speed = keisan::map(delta_pan, -20.0, -position_min_delta_pan.degree(), position_max_ly, position_min_ly);
+    } else if (delta_pan > position_min_delta_pan.degree()) {
+      y_speed = keisan::map(delta_pan, position_min_delta_pan.degree(), 20.0, position_min_ry, position_max_ry);
+    }
+  }
+
+  auto target_tilt = left_kick ? left_kick_target_tilt : right_kick_target_tilt;
   double delta_tilt = (target_tilt - tilt).degree();
 
   bool pan_in_kick_range = pan > position_min_range_pan && pan < position_max_range_pan;
-  double closest_delta_pan = pan_in_kick_range ? 0 : std::min(std::abs((left_kick_target_pan - pan).degree()), std::abs((right_kick_target_pan - pan).degree()));
+  double closest_delta_pan = pan_in_kick_range ? 0 : delta_pan;
 
   // x movement
   double delta_tilt_pan = delta_tilt + (closest_delta_pan * 0.3);
@@ -845,22 +860,6 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
   bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction.degree();
   if (!direction_in_range) {
     a_speed = keisan::map(delta_direction, -30.0, 30.0, position_max_a, -position_max_a);
-  }
-
-  // y movement
-  auto target_pan = pan > 0.0_deg ? 0.5 * (position_center_range_pan + position_max_range_pan) : 0.5 * (-position_center_range_pan + position_min_range_pan);
-  if (precise_kick) {
-    target_pan = left_kick ? 0.5 * (position_center_range_pan + position_max_range_pan) : 0.5 * (-position_center_range_pan + position_min_range_pan);
-  }
-  double delta_pan = (target_pan - pan).degree();
-  double y_speed = 0.0;
-  
-  if (!pan_in_range) {
-    if (delta_pan < -position_min_delta_pan.degree()) {
-      y_speed = keisan::map(delta_pan, -20.0, -position_min_delta_pan.degree(), position_max_ly, position_min_ly);
-    } else if (delta_pan > position_min_delta_pan.degree()) {
-      y_speed = keisan::map(delta_pan, position_min_delta_pan.degree(), 20.0, position_min_ry, position_max_ry);
-    }
   }
 
   #if ITHAARO || UMARU || MIRU
