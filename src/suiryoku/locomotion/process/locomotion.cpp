@@ -764,7 +764,7 @@ bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & dir
   printf("delta tilt pan %.1f\n", delta_tilt_pan);
 
   double x_speed = 0.0;
-  if (!(tilt == keisan::clamp(tilt, min_tilt.degree(), max_tilt.degree()))) {
+  if (tilt != keisan::clamp(tilt, min_tilt.degree(), max_tilt.degree())) {
     if (delta_tilt_pan > 3.0) {
       x_speed = keisan::map(delta_tilt_pan, 3.0, 20.0, position_min_x * 0.5, position_min_x);
     } else if (delta_tilt_pan < -3.0) {
@@ -774,7 +774,7 @@ bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & dir
 
   // y movement
   double y_speed = 0.0;
-  if (!(pan == keisan::clamp(pan, min_pan.degree(), max_pan.degree()))) {
+  if (pan != keisan::clamp(pan, min_pan.degree(), max_pan.degree())) {
     if (delta_pan < -position_min_delta_pan.degree()) {
       y_speed = keisan::map(delta_pan, -20.0, -position_min_delta_pan.degree(), position_max_ly, position_min_ly);
     } else if (delta_pan > position_min_delta_pan.degree()) {
@@ -820,7 +820,7 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
   }
 
     // y movement
-  left_kick = precise_kick ? left_kick : pan > 0.0_deg;
+  if (!precise_kick) left_kick = pan > 0.0_deg;
   auto target_pan = left_kick ? left_kick_target_pan : right_kick_target_pan;
 
   double delta_pan = (target_pan - pan).degree();
