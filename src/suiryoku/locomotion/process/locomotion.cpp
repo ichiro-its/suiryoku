@@ -154,7 +154,7 @@ void Locomotion::set_config(const nlohmann::json & json)
         val.at("max_ry").get_to(pivot_max_ry);
         val.at("max_a").get_to(pivot_max_a);
         val.at("max_delta_direction").get_to(pivot_max_delta_direction);
-        val.at("pan_range_ratio").get_to(pivot_pan_range_ratio);
+        val.at("pan_range_a_speed").get_to(pivot_pan_range_a_speed);
         pivot_target_tilt = keisan::make_degree(val.at("target_tilt").get<double>());
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "error key: " << key << std::endl;
@@ -603,18 +603,11 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
     y_speed = keisan::map(pan, -30.0, 0.0, pivot_max_ly * 0.5, pivot_max_ly);
   }
 
-  #if ITHAARO || UMARU || MIRU
-  double pan_range_a_speed = 15.0;
-  #else
-  double pan_range_a_speed = 10.0;
-  #endif
-
   double a_speed = 0.0;
-  if (fabs(pan) > pan_range_a_speed * pivot_pan_range_ratio) {
-    a_speed = keisan::map(pan, -pan_range_a_speed, pan_range_a_speed, pivot_max_a, -pivot_max_a);
+  if (fabs(pan) > pivot_pan_range_a_speed) {
+    a_speed = keisan::map(pan, -pivot_pan_range_a_speed, pivot_pan_range_a_speed, pivot_max_a, -pivot_max_a);
   }
   
-
   robot->x_speed = x_speed;
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
@@ -639,41 +632,40 @@ bool Locomotion::pivot_new(const keisan::Angle<double> & direction)
     return true;
   }
 
-  double delta_tilt = (pivot_target_tilt - robot->tilt + robot->tilt_center).degree();
+  auto tilt = robot->get_tilt();
+  double delta_tilt = (pivot_target_tilt - tilt).degree();
 
-  printf("pivot new\n");
-  printf("delta direction %f\n", delta_direction);
-  printf("delta tilt %f\n", delta_tilt);
+  double x_speed = 0;
+  if (delta_tilt > 0.0) {
+    x_speed = keisan::map(delta_tilt, 0.0, 20.0, 0.0, pivot_min_x);
+  } else {
+    x_speed = keisan::map(delta_tilt, -20.0, 0.0, pivot_max_x, 0.);
+  }
 
-  // x_movement
-  double x_speed = delta_tilt > 0.0  
-    ? keisan::map(delta_tilt, 0.0, 20.0, 0.0, pivot_min_x)  
-    : keisan::map(delta_tilt, -20.0, 0.0, pivot_max_x, 0.0); 
+  double pan = (robot->pan + robot->pan_center).degree();
 
-  // y movement
-  double y_speed = delta_direction < 0  
-    ? keisan::map(delta_direction, 180.0, 0.0, pivot_max_ry * 0.9, pivot_max_ry)  
-    : keisan::map(delta_direction, -180.0, 0.0, pivot_max_ly * 0.9, pivot_max_ly);
+  double y_speed = 0.0;
+  if (fabs(pan) < pivot_pan_range_a_speed) {
+    if (delta_direction < 0.0) {
+      y_speed = keisan::map(pan, 30.0, 0.0, pivot_max_ry * 0.5, pivot_max_ry);
+    } else {
+      y_speed = keisan::map(pan, -30.0, 0.0, pivot_max_ly * 0.5, pivot_max_ly);
+    }
+  }
 
-  // a movement
-  double a_speed = y_speed < 0.0
+  double a_speed = 0.0;
+  if (fabs(pan) > pivot_pan_range_a_speed) {
+    a_speed = keisan::map(pan, -pivot_pan_range_a_speed, pivot_pan_range_a_speed, pivot_max_a, -pivot_max_a);
+  } else {
+    a_speed = y_speed < 0.0
     ? keisan::map(delta_direction, -180.0, 0.0, -pivot_max_a * 0.9, -pivot_max_a)
     : keisan::map(delta_direction, 180.0, 0.0, pivot_max_a, pivot_max_a * 0.9);
+  }
 
-  #if ITHAARO || UMARU || MIRU
-  double smooth_ratio = 1.0;
-  #else
-  double smooth_ratio = 0.8;
-  #endif
-
-  a_speed = keisan::smooth(robot->a_speed, a_speed, smooth_ratio);
-  x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
-  y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
-
-  robot->aim_on = true;
   robot->x_speed = x_speed;
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
+  robot->aim_on = true;
   start();
 
   return false;

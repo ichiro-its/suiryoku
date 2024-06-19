@@ -126,7 +126,7 @@ private:
 
   keisan::Angle<double> pivot_target_tilt;
   double pivot_max_delta_direction;
-  double pivot_pan_range_ratio;
+  double pivot_pan_range_a_speed;
   double pivot_min_x;
   double pivot_max_x;
   double pivot_max_ly;
