@@ -28,6 +28,7 @@
 #include "suiryoku/locomotion/process/locomotion.hpp"
 
 #include "keisan/keisan.hpp"
+#include "jitsuyo/config.hpp"
 #include "nlohmann/json.hpp"
 
 #include "unistd.h"  // NOLINT
@@ -55,157 +56,127 @@ void Locomotion::load_config(const std::string & path)
 
 void Locomotion::set_config(const nlohmann::json & json)
 {
-  for (auto &[key, val] : json.items()) {
-    if (key == "move") {
-      try {
-        val.at("min_x").get_to(move_min_x);
-        val.at("max_x").get_to(move_max_x);
-        val.at("max_y").get_to(move_max_y);
-        val.at("max_a").get_to(move_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "rotate") {
-      try {
-        val.at("max_a").get_to(rotate_max_a);
-        val.at("max_delta_direction").get_to(rotate_max_delta_direction);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "backward") {
-      try {
-        val.at("min_x").get_to(backward_min_x);
-        val.at("max_x").get_to(backward_max_x);
-        val.at("max_a").get_to(backward_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "dribble") {
-      try {
-        val.at("max_x").get_to(dribble_max_x);
-        val.at("min_x").get_to(dribble_min_x);
-        val.at("max_ly").get_to(dribble_max_ly);
-        val.at("min_ly").get_to(dribble_min_ly);
-        val.at("max_ry").get_to(dribble_max_ry);
-        val.at("min_ry").get_to(dribble_min_ry);
-        val.at("max_a").get_to(dribble_max_a);
-        val.at("pan_comp").get_to(dribble_pan_comp);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "follow") {
-      try {
-        val.at("pan_ratio").get_to(follow_pan_ratio);
-        val.at("max_x").get_to(follow_max_x);
-        val.at("min_x").get_to(follow_min_x);
-        val.at("max_a").get_to(follow_max_a);
-        val.at("l_a_offset").get_to(follow_l_a_offset);
-        val.at("r_a_offset").get_to(follow_r_a_offset);
-        val.at("y_move").get_to(follow_y_move);
-        val.at("max_ry").get_to(follow_max_ry);
-        val.at("min_ry").get_to(follow_min_ry);
-        val.at("max_ly").get_to(follow_max_ly);
-        val.at("min_ly").get_to(follow_min_ly);
-        follow_min_tilt = keisan::make_degree(val.at("min_tilt_").get<double>());
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "skew") {
-      try {
-        val.at("max_x").get_to(skew_max_x);
-        val.at("max_a").get_to(skew_max_a);
-        val.at("tilt").get_to(skew_tilt);
-        val.at("pan_comp").get_to(skew_pan_comp);
-        val.at("delta_direction_comp").get_to(skew_delta_direction_comp);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "dribble") {
-      try {
-        val.at("min_x").get_to(dribble_min_x);
-        val.at("max_x").get_to(dribble_max_x);
-        val.at("min_ly").get_to(dribble_min_ly);
-        val.at("max_ly").get_to(dribble_max_ly);
-        val.at("min_ry").get_to(dribble_min_ry);
-        val.at("max_ry").get_to(dribble_max_ry);
-        val.at("max_a").get_to(dribble_max_a);
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "pivot") {
-      try {
-        val.at("min_x").get_to(pivot_min_x);
-        val.at("max_x").get_to(pivot_max_x);
-        val.at("max_ly").get_to(pivot_max_ly);
-        val.at("max_ry").get_to(pivot_max_ry);
-        val.at("max_a").get_to(pivot_max_a);
-        val.at("max_delta_direction").get_to(pivot_max_delta_direction);
-        val.at("pan_range_ratio").get_to(pivot_pan_range_ratio);
-        pivot_target_tilt = keisan::make_degree(val.at("target_tilt").get<double>());
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "position") {
-      try {
-        val.at("min_x").get_to(position_min_x);
-        val.at("max_x").get_to(position_max_x);
-        val.at("min_ly").get_to(position_min_ly);
-        val.at("max_ly").get_to(position_max_ly);
-        val.at("min_ry").get_to(position_min_ry);
-        val.at("max_ry").get_to(position_max_ry);
-        val.at("max_a").get_to(position_max_a);
-        position_min_delta_tilt = keisan::make_degree(val.at("min_delta_tilt").get<double>());
-        position_min_delta_pan = keisan::make_degree(val.at("min_delta_pan").get<double>());
-        position_min_delta_pan_tilt = keisan::make_degree(val.at("min_delta_pan_tilt").get<double>());
-        position_min_delta_direction = keisan::make_degree(val.at("min_delta_direction").get<double>());
-        position_min_range_tilt = keisan::make_degree(val.at("min_range_tilt").get<double>());
-        position_max_range_tilt = keisan::make_degree(val.at("max_range_tilt").get<double>());
-        position_min_range_pan = keisan::make_degree(val.at("min_range_pan").get<double>());
-        position_max_range_pan = keisan::make_degree(val.at("max_range_pan").get<double>());
-        position_center_range_pan = keisan::make_degree(val.at("center_range_pan").get<double>());
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "left_kick") {
-      try {
-        left_kick_target_pan = keisan::make_degree(val.at("target_pan").get<double>());
-        left_kick_target_tilt =
-          keisan::make_degree(val.at("target_tilt").get<double>());
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    } else if (key == "right_kick") {
-      try {
-        right_kick_target_pan = keisan::make_degree(val.at("target_pan").get<double>());
-        right_kick_target_tilt =
-          keisan::make_degree(val.at("target_tilt").get<double>());
-      } catch (nlohmann::json::parse_error & ex) {
-        std::cerr << "error key: " << key << std::endl;
-        std::cerr << "parse error at byte " << ex.byte << std::endl;
-        throw ex;
-      }
-    }
-  }
+  nlohmann::json move_section;
+  if (!jitsuyo::assign_val(json, "move", move_section)) return;
+  if (!jitsuyo::assign_val(move_section, "min_x", move_min_x) ||
+    !jitsuyo::assign_val(move_section, "max_x", move_max_x) ||
+    !jitsuyo::assign_val(move_section, "max_y", move_max_y) ||
+    !jitsuyo::assign_val(move_section, "max_a", move_max_a)) return;
+  
+  nlohmann::json rotate_section;
+  if (!jitsuyo::assign_val(json, "rotate", rotate_section)) return;
+  if (!jitsuyo::assign_val(rotate_section, "max_a", rotate_max_a) ||
+    !jitsuyo::assign_val(rotate_section, "max_delta_direction", rotate_max_delta_direction)) return;
+  
+  nlohmann::json backward_section;
+  if (!jitsuyo::assign_val(json, "backward", backward_section)) return;
+  if (!jitsuyo::assign_val(backward_section, "min_x", backward_min_x) ||
+    !jitsuyo::assign_val(backward_section, "max_x", backward_max_x) ||
+    !jitsuyo::assign_val(backward_section, "max_a", backward_max_a)) return;
+  
+  nlohmann::json dribble_section;
+  if (!jitsuyo::assign_val(json, "dribble", dribble_section)) return;
+  if (!jitsuyo::assign_val(dribble_section, "max_x", dribble_max_x) ||
+    !jitsuyo::assign_val(dribble_section, "min_x", dribble_min_x) ||
+    !jitsuyo::assign_val(dribble_section, "max_ly", dribble_max_ly) ||
+    !jitsuyo::assign_val(dribble_section, "min_ly", dribble_min_ly) ||
+    !jitsuyo::assign_val(dribble_section, "max_ry", dribble_max_ry) ||
+    !jitsuyo::assign_val(dribble_section, "min_ry", dribble_min_ry) ||
+    !jitsuyo::assign_val(dribble_section, "max_a", dribble_max_a) ||
+    !jitsuyo::assign_val(dribble_section, "pan_comp", dribble_pan_comp)) return;
+  
+  nlohmann::json follow_section;
+  if (!jitsuyo::assign_val(json, "follow", follow_section)) return;
+  double follow_min_tilt_double;
+  if (!jitsuyo::assign_val(follow_section, "pan_ratio", follow_pan_ratio) ||
+    !jitsuyo::assign_val(follow_section, "max_x", follow_max_x) ||
+    !jitsuyo::assign_val(follow_section, "min_x", follow_min_x) ||
+    !jitsuyo::assign_val(follow_section, "max_a", follow_max_a) ||
+    !jitsuyo::assign_val(follow_section, "l_a_offset", follow_l_a_offset) ||
+    !jitsuyo::assign_val(follow_section, "r_a_offset", follow_r_a_offset) ||
+    !jitsuyo::assign_val(follow_section, "y_move", follow_y_move) ||
+    !jitsuyo::assign_val(follow_section, "max_ry", follow_max_ry) ||
+    !jitsuyo::assign_val(follow_section, "min_ry", follow_min_ry) ||
+    !jitsuyo::assign_val(follow_section, "max_ly", follow_max_ly) ||
+    !jitsuyo::assign_val(follow_section, "min_ly", follow_min_ly) ||
+    !jitsuyo::assign_val(follow_section, "min_tilt_", follow_min_tilt_double)) return;
+  follow_min_tilt = keisan::make_degree(follow_min_tilt_double);
+  
+  nlohmann::json skew_section;
+  if (!jitsuyo::assign_val(json, "skew", skew_section)) return;
+  if (!jitsuyo::assign_val(skew_section, "max_x", skew_max_x) ||
+    !jitsuyo::assign_val(skew_section, "max_a", skew_max_a) ||
+    !jitsuyo::assign_val(skew_section, "tilt", skew_tilt) ||
+    !jitsuyo::assign_val(skew_section, "pan_comp", skew_pan_comp) ||
+    !jitsuyo::assign_val(skew_section, "delta_direction_comp", skew_delta_direction_comp)) return;
+  
+  nlohmann::json pivot_section;
+  if (!jitsuyo::assign_val(json, "pivot", pivot_section)) return;
+  double pivot_target_tilt_double;
+  if (!jitsuyo::assign_val(pivot_section, "min_x", pivot_min_x) ||
+    !jitsuyo::assign_val(pivot_section, "max_x", pivot_max_x) ||
+    !jitsuyo::assign_val(pivot_section, "max_ly", pivot_max_ly) ||
+    !jitsuyo::assign_val(pivot_section, "max_ry", pivot_max_ry) ||
+    !jitsuyo::assign_val(pivot_section, "max_a", pivot_max_a) ||
+    !jitsuyo::assign_val(pivot_section, "max_delta_direction", pivot_max_delta_direction) ||
+    !jitsuyo::assign_val(pivot_section, "pan_range_ratio", pivot_pan_range_ratio) ||
+    !jitsuyo::assign_val(pivot_section, "target_tilt", pivot_target_tilt_double)) return;
+  pivot_target_tilt = keisan::make_degree(pivot_target_tilt_double);
+  
+  nlohmann::json position_section;
+  if (!jitsuyo::assign_val(json, "position", position_section)) return;
+  double position_min_delta_tilt_double;
+  double position_min_delta_pan_double;
+  double position_min_delta_pan_tilt_double;
+  double position_min_delta_direction_double;
+  double position_min_range_tilt_double;
+  double position_max_range_tilt_double;
+  double position_min_range_pan_double;
+  double position_max_range_pan_double;
+  double position_center_range_pan_double;
+  if (!jitsuyo::assign_val(position_section, "min_x", position_min_x) ||
+    !jitsuyo::assign_val(position_section, "max_x", position_max_x) ||
+    !jitsuyo::assign_val(position_section, "min_ly", position_min_ly) ||
+    !jitsuyo::assign_val(position_section, "max_ly", position_max_ly) ||
+    !jitsuyo::assign_val(position_section, "min_ry", position_min_ry) ||
+    !jitsuyo::assign_val(position_section, "max_ry", position_max_ry) ||
+    !jitsuyo::assign_val(position_section, "max_a", position_max_a) ||
+    !jitsuyo::assign_val(position_section, "min_delta_tilt", position_min_delta_tilt_double) ||
+    !jitsuyo::assign_val(position_section, "min_delta_pan", position_min_delta_pan_double) ||
+    !jitsuyo::assign_val(position_section, "min_delta_pan_tilt", position_min_delta_pan_tilt_double) ||
+    !jitsuyo::assign_val(position_section, "min_delta_direction", position_min_delta_direction_double) ||
+    !jitsuyo::assign_val(position_section, "min_range_tilt", position_min_range_tilt_double) ||
+    !jitsuyo::assign_val(position_section, "max_range_tilt", position_max_range_tilt_double) ||
+    !jitsuyo::assign_val(position_section, "min_range_pan", position_min_range_pan_double) ||
+    !jitsuyo::assign_val(position_section, "max_range_pan", position_max_range_pan_double) ||
+    !jitsuyo::assign_val(position_section, "center_range_pan", position_center_range_pan_double)) return;
+  position_min_delta_tilt = keisan::make_degree(position_min_delta_tilt_double);
+  position_min_delta_pan = keisan::make_degree(position_min_delta_pan_double);
+  position_min_delta_pan_tilt = keisan::make_degree(position_min_delta_pan_tilt_double);
+  position_min_delta_direction = keisan::make_degree(position_min_delta_direction_double);
+  position_min_range_tilt = keisan::make_degree(position_min_range_tilt_double);
+  position_max_range_tilt = keisan::make_degree(position_max_range_tilt_double);
+  position_min_range_pan = keisan::make_degree(position_min_range_pan_double);
+  position_max_range_pan = keisan::make_degree(position_max_range_pan_double);
+  position_center_range_pan = keisan::make_degree(position_center_range_pan_double);
+
+  nlohmann::json left_kick_section;
+  if (!jitsuyo::assign_val(json, "left_kick", left_kick_section)) return;
+  double left_kick_target_pan_double;
+  double left_kick_target_tilt_double;
+  if (!jitsuyo::assign_val(left_kick_section, "target_pan", left_kick_target_pan_double) ||
+    !jitsuyo::assign_val(left_kick_section, "target_tilt", left_kick_target_tilt_double)) return;
+  left_kick_target_pan = keisan::make_degree(left_kick_target_pan_double);
+  left_kick_target_tilt = keisan::make_degree(left_kick_target_tilt_double);
+  
+  nlohmann::json right_kick_section;
+  if (!jitsuyo::assign_val(json, "right_kick", right_kick_section)) return;
+  double right_kick_target_pan_double;
+  double right_kick_target_tilt_double;
+  if (!jitsuyo::assign_val(right_kick_section, "target_pan", right_kick_target_pan_double) ||
+    !jitsuyo::assign_val(right_kick_section, "target_tilt", right_kick_target_tilt_double)) return;
+  right_kick_target_pan = keisan::make_degree(right_kick_target_pan_double);
+  right_kick_target_tilt = keisan::make_degree(right_kick_target_tilt_double);
 }
 
 bool Locomotion::walk_in_position()

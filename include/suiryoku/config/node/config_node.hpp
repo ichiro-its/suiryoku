@@ -25,7 +25,6 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include "suiryoku/config/utils/config.hpp"
 #include "suiryoku_interfaces/msg/set_config.hpp"
 #include "suiryoku_interfaces/srv/get_config.hpp"
 #include "suiryoku_interfaces/srv/save_config.hpp"
@@ -48,7 +47,6 @@ public:
 private:
   std::string get_node_prefix() const;
 
-  Config config;
   rclcpp::Node::SharedPtr node;
 
   rclcpp::Service<GetConfig>::SharedPtr get_config_server;

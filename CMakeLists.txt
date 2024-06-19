@@ -21,6 +21,7 @@ find_package(atama_interfaces REQUIRED)
 find_package(kansei REQUIRED)
 find_package(kansei_interfaces REQUIRED)
 find_package(keisan REQUIRED)
+find_package(jitsuyo REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(suiryoku_interfaces REQUIRED)
@@ -31,7 +32,6 @@ include_directories(${EIGEN3_INCLUDE_DIRS})
 
 add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/config/node/config_node.cpp"
-  "src/${PROJECT_NAME}/config/utils/config.cpp"
   "src/${PROJECT_NAME}/locomotion/control/helper/parameter.cpp"
   "src/${PROJECT_NAME}/locomotion/control/node/control_node.cpp"
   "src/${PROJECT_NAME}/locomotion/model/robot.cpp"
@@ -50,6 +50,7 @@ ament_target_dependencies(${PROJECT_NAME}
   kansei
   kansei_interfaces
   keisan
+  jitsuyo
   rclcpp
   std_msgs
   suiryoku_interfaces
