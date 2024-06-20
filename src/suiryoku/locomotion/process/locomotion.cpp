@@ -46,12 +46,9 @@ Locomotion::Locomotion(std::shared_ptr<Robot> robot)
 
 void Locomotion::load_config(const std::string & path)
 {
-  std::ifstream file(path + config_name);
-  nlohmann::json data = nlohmann::json::parse(file);
+  nlohmann::json data = jitsuyo::load_config(path, config_name);
 
   set_config(data);
-
-  file.close();
 }
 
 void Locomotion::set_config(const nlohmann::json & json)
