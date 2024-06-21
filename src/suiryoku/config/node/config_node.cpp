@@ -37,22 +37,17 @@ ConfigNode::ConfigNode(rclcpp::Node::SharedPtr node, const std::string & path)
   get_config_server = node->create_service<GetConfig>(
     get_node_prefix() + "/get_config",
     [this, path](GetConfig::Request::SharedPtr request, GetConfig::Response::SharedPtr response) {
-      response->json = jitsuyo::load_config(path, "locomotion.json").dump();
+      nlohmann::json data;
+      if (!jitsuyo::load_config(path, "/head.json", data)) {
+        return;
+      }
+      response->json = data.dump();
     });
 
   save_config_server = node->create_service<SaveConfig>(
     get_node_prefix() + "/save_config",
     [this, path](SaveConfig::Request::SharedPtr request, SaveConfig::Response::SharedPtr response) {
-      try {
-        jitsuyo::save_config(path, "locomotion.json", nlohmann::json::parse(request->json));
-        response->status = true;
-      } catch (std::ofstream::failure) {
-        // TODO(maroqijalil): log it
-        response->status = false;
-      } catch (nlohmann::json::exception) {
-        // TODO(maroqijalil): log it
-        response->status = false;
-      }
+      response->status = jitsuyo::save_config(path, "locomotion.json", nlohmann::json::parse(request->json));
     });
 }
 

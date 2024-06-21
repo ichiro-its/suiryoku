@@ -46,7 +46,10 @@ Locomotion::Locomotion(std::shared_ptr<Robot> robot)
 
 void Locomotion::load_config(const std::string & path)
 {
-  nlohmann::json data = jitsuyo::load_config(path, config_name);
+  nlohmann::json data;
+  if (!jitsuyo::load_config(path, config_name, data)) {
+    throw std::runtime_error("Failed to find config file");
+  }
 
   set_config(data);
 }
