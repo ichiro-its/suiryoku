@@ -48,7 +48,7 @@ void Locomotion::load_config(const std::string & path)
 {
   nlohmann::json data;
   if (!jitsuyo::load_config(path, config_name, data)) {
-    throw std::runtime_error("Failed to find config file");
+    throw std::runtime_error("Failed to find config file `locomotion.json`");
   }
 
   set_config(data);
@@ -60,98 +60,139 @@ void Locomotion::set_config(const nlohmann::json & json)
 
   nlohmann::json move_section;
   if (jitsuyo::assign_val(json, "move", move_section)) {
-    valid_config &= jitsuyo::assign_val(move_section, "min_x", move_min_x);
-    valid_config &= jitsuyo::assign_val(move_section, "max_x", move_max_x);
-    valid_config &= jitsuyo::assign_val(move_section, "max_y", move_max_y);
-    valid_config &= jitsuyo::assign_val(move_section, "max_a", move_max_a);
+    bool valid_section = true;
+    valid_section &= jitsuyo::assign_val(move_section, "min_x", move_min_x);
+    valid_section &= jitsuyo::assign_val(move_section, "max_x", move_max_x);
+    valid_section &= jitsuyo::assign_val(move_section, "max_y", move_max_y);
+    valid_section &= jitsuyo::assign_val(move_section, "max_a", move_max_a);
+    if (!valid_section) {
+      std::cout << "Error found at section `move`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
   
   nlohmann::json rotate_section;
   if (jitsuyo::assign_val(json, "rotate", rotate_section)) {
-    valid_config &= jitsuyo::assign_val(rotate_section, "max_a", rotate_max_a);
-    valid_config &= jitsuyo::assign_val(rotate_section, "max_delta_direction", rotate_max_delta_direction);
+    bool valid_section = true;
+    valid_section &= jitsuyo::assign_val(rotate_section, "max_a", rotate_max_a);
+    valid_section &= jitsuyo::assign_val(rotate_section, "max_delta_direction", rotate_max_delta_direction);
+    if (!valid_section) {
+      std::cout << "Error found at section `rotate`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
   
   nlohmann::json backward_section;
   if (jitsuyo::assign_val(json, "backward", backward_section)) {
-    valid_config &= jitsuyo::assign_val(backward_section, "min_x", backward_min_x);
-    valid_config &= jitsuyo::assign_val(backward_section, "max_x", backward_max_x);
-    valid_config &= jitsuyo::assign_val(backward_section, "max_a", backward_max_a);
+    bool valid_section = true;
+    valid_section &= jitsuyo::assign_val(backward_section, "min_x", backward_min_x);
+    valid_section &= jitsuyo::assign_val(backward_section, "max_x", backward_max_x);
+    valid_section &= jitsuyo::assign_val(backward_section, "max_a", backward_max_a);
+    if (!valid_section) {
+      std::cout << "Error found at section `backward`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
   
   nlohmann::json dribble_section;
   if (jitsuyo::assign_val(json, "dribble", dribble_section)) {
-    valid_config &= jitsuyo::assign_val(dribble_section, "max_x", dribble_max_x);
-    valid_config &= jitsuyo::assign_val(dribble_section, "min_x", dribble_min_x);
-    valid_config &= jitsuyo::assign_val(dribble_section, "max_ly", dribble_max_ly);
-    valid_config &= jitsuyo::assign_val(dribble_section, "min_ly", dribble_min_ly);
-    valid_config &= jitsuyo::assign_val(dribble_section, "max_ry", dribble_max_ry);
-    valid_config &= jitsuyo::assign_val(dribble_section, "min_ry", dribble_min_ry);
-    valid_config &= jitsuyo::assign_val(dribble_section, "max_a", dribble_max_a);
-    valid_config &= jitsuyo::assign_val(dribble_section, "pan_comp", dribble_pan_comp);
+    bool valid_section = true;
+    valid_section &= jitsuyo::assign_val(dribble_section, "max_x", dribble_max_x);
+    valid_section &= jitsuyo::assign_val(dribble_section, "min_x", dribble_min_x);
+    valid_section &= jitsuyo::assign_val(dribble_section, "max_ly", dribble_max_ly);
+    valid_section &= jitsuyo::assign_val(dribble_section, "min_ly", dribble_min_ly);
+    valid_section &= jitsuyo::assign_val(dribble_section, "max_ry", dribble_max_ry);
+    valid_section &= jitsuyo::assign_val(dribble_section, "min_ry", dribble_min_ry);
+    valid_section &= jitsuyo::assign_val(dribble_section, "max_a", dribble_max_a);
+    valid_section &= jitsuyo::assign_val(dribble_section, "pan_comp", dribble_pan_comp);
+    if (!valid_section) {
+      std::cout << "Error found at section `dribble`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
   
   nlohmann::json follow_section;
   if (jitsuyo::assign_val(json, "follow", follow_section)) {
+    bool valid_section = true;
+
     double follow_min_tilt_double;
 
-    valid_config &= jitsuyo::assign_val(follow_section, "pan_ratio", follow_pan_ratio);
-    valid_config &= jitsuyo::assign_val(follow_section, "max_x", follow_max_x);
-    valid_config &= jitsuyo::assign_val(follow_section, "min_x", follow_min_x);
-    valid_config &= jitsuyo::assign_val(follow_section, "max_a", follow_max_a);
-    valid_config &= jitsuyo::assign_val(follow_section, "l_a_offset", follow_l_a_offset);
-    valid_config &= jitsuyo::assign_val(follow_section, "r_a_offset", follow_r_a_offset);
-    valid_config &= jitsuyo::assign_val(follow_section, "y_move", follow_y_move);
-    valid_config &= jitsuyo::assign_val(follow_section, "max_ry", follow_max_ry);
-    valid_config &= jitsuyo::assign_val(follow_section, "min_ry", follow_min_ry);
-    valid_config &= jitsuyo::assign_val(follow_section, "max_ly", follow_max_ly);
-    valid_config &= jitsuyo::assign_val(follow_section, "min_ly", follow_min_ly);
-    valid_config &= jitsuyo::assign_val(follow_section, "min_tilt_", follow_min_tilt_double);
+    valid_section &= jitsuyo::assign_val(follow_section, "pan_ratio", follow_pan_ratio);
+    valid_section &= jitsuyo::assign_val(follow_section, "max_x", follow_max_x);
+    valid_section &= jitsuyo::assign_val(follow_section, "min_x", follow_min_x);
+    valid_section &= jitsuyo::assign_val(follow_section, "max_a", follow_max_a);
+    valid_section &= jitsuyo::assign_val(follow_section, "l_a_offset", follow_l_a_offset);
+    valid_section &= jitsuyo::assign_val(follow_section, "r_a_offset", follow_r_a_offset);
+    valid_section &= jitsuyo::assign_val(follow_section, "y_move", follow_y_move);
+    valid_section &= jitsuyo::assign_val(follow_section, "max_ry", follow_max_ry);
+    valid_section &= jitsuyo::assign_val(follow_section, "min_ry", follow_min_ry);
+    valid_section &= jitsuyo::assign_val(follow_section, "max_ly", follow_max_ly);
+    valid_section &= jitsuyo::assign_val(follow_section, "min_ly", follow_min_ly);
+    valid_section &= jitsuyo::assign_val(follow_section, "min_tilt_", follow_min_tilt_double);
 
     follow_min_tilt = keisan::make_degree(follow_min_tilt_double);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `follow`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
   
   nlohmann::json skew_section;
   if (jitsuyo::assign_val(json, "skew", skew_section)) {
-    valid_config &= jitsuyo::assign_val(skew_section, "max_x", skew_max_x);
-    valid_config &= jitsuyo::assign_val(skew_section, "max_a", skew_max_a);
-    valid_config &= jitsuyo::assign_val(skew_section, "tilt", skew_tilt);
-    valid_config &= jitsuyo::assign_val(skew_section, "pan_comp", skew_pan_comp);
-    valid_config &= jitsuyo::assign_val(skew_section, "delta_direction_comp", skew_delta_direction_comp);
+    bool valid_section = true;
+    valid_section &= jitsuyo::assign_val(skew_section, "max_x", skew_max_x);
+    valid_section &= jitsuyo::assign_val(skew_section, "max_a", skew_max_a);
+    valid_section &= jitsuyo::assign_val(skew_section, "tilt", skew_tilt);
+    valid_section &= jitsuyo::assign_val(skew_section, "pan_comp", skew_pan_comp);
+    valid_section &= jitsuyo::assign_val(skew_section, "delta_direction_comp", skew_delta_direction_comp);
+    if (!valid_section) {
+      std::cout << "Error found at section `skew`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
   
   nlohmann::json pivot_section;
   if (jitsuyo::assign_val(json, "pivot", pivot_section)) {
+    bool valid_section = true;
+
     double pivot_target_tilt_double;
 
-    valid_config &= jitsuyo::assign_val(pivot_section, "min_x", pivot_min_x);
-    valid_config &= jitsuyo::assign_val(pivot_section, "max_x", pivot_max_x);
-    valid_config &= jitsuyo::assign_val(pivot_section, "max_ly", pivot_max_ly);
-    valid_config &= jitsuyo::assign_val(pivot_section, "max_ry", pivot_max_ry);
-    valid_config &= jitsuyo::assign_val(pivot_section, "max_a", pivot_max_a);
-    valid_config &= jitsuyo::assign_val(pivot_section, "max_delta_direction", pivot_max_delta_direction);
-    valid_config &= jitsuyo::assign_val(pivot_section, "pan_range_ratio", pivot_pan_range_ratio);
-    valid_config &= jitsuyo::assign_val(pivot_section, "target_tilt", pivot_target_tilt_double);
+    valid_section &= jitsuyo::assign_val(pivot_section, "min_x", pivot_min_x);
+    valid_section &= jitsuyo::assign_val(pivot_section, "max_x", pivot_max_x);
+    valid_section &= jitsuyo::assign_val(pivot_section, "max_ly", pivot_max_ly);
+    valid_section &= jitsuyo::assign_val(pivot_section, "max_ry", pivot_max_ry);
+    valid_section &= jitsuyo::assign_val(pivot_section, "max_a", pivot_max_a);
+    valid_section &= jitsuyo::assign_val(pivot_section, "max_delta_direction", pivot_max_delta_direction);
+    valid_section &= jitsuyo::assign_val(pivot_section, "pan_range_ratio", pivot_pan_range_ratio);
+    valid_section &= jitsuyo::assign_val(pivot_section, "target_tilt", pivot_target_tilt_double);
     
     pivot_target_tilt = keisan::make_degree(pivot_target_tilt_double);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `pivot`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
   
   nlohmann::json position_section;
   if (jitsuyo::assign_val(json, "position", position_section)) {
+    bool valid_section = true;
+
     double position_min_delta_tilt_double;
     double position_min_delta_pan_double;
     double position_min_delta_pan_tilt_double;
@@ -162,22 +203,22 @@ void Locomotion::set_config(const nlohmann::json & json)
     double position_max_range_pan_double;
     double position_center_range_pan_double;
 
-    valid_config &= jitsuyo::assign_val(position_section, "min_x", position_min_x);
-    valid_config &= jitsuyo::assign_val(position_section, "max_x", position_max_x);
-    valid_config &= jitsuyo::assign_val(position_section, "min_ly", position_min_ly);
-    valid_config &= jitsuyo::assign_val(position_section, "max_ly", position_max_ly);
-    valid_config &= jitsuyo::assign_val(position_section, "min_ry", position_min_ry);
-    valid_config &= jitsuyo::assign_val(position_section, "max_ry", position_max_ry);
-    valid_config &= jitsuyo::assign_val(position_section, "max_a", position_max_a);
-    valid_config &= jitsuyo::assign_val(position_section, "min_delta_tilt", position_min_delta_tilt_double);
-    valid_config &= jitsuyo::assign_val(position_section, "min_delta_pan", position_min_delta_pan_double);
-    valid_config &= jitsuyo::assign_val(position_section, "min_delta_pan_tilt", position_min_delta_pan_tilt_double);
-    valid_config &= jitsuyo::assign_val(position_section, "min_delta_direction", position_min_delta_direction_double);
-    valid_config &= jitsuyo::assign_val(position_section, "min_range_tilt", position_min_range_tilt_double);
-    valid_config &= jitsuyo::assign_val(position_section, "max_range_tilt", position_max_range_tilt_double);
-    valid_config &= jitsuyo::assign_val(position_section, "min_range_pan", position_min_range_pan_double);
-    valid_config &= jitsuyo::assign_val(position_section, "max_range_pan", position_max_range_pan_double);
-    valid_config &= jitsuyo::assign_val(position_section, "center_range_pan", position_center_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_x", position_min_x);
+    valid_section &= jitsuyo::assign_val(position_section, "max_x", position_max_x);
+    valid_section &= jitsuyo::assign_val(position_section, "min_ly", position_min_ly);
+    valid_section &= jitsuyo::assign_val(position_section, "max_ly", position_max_ly);
+    valid_section &= jitsuyo::assign_val(position_section, "min_ry", position_min_ry);
+    valid_section &= jitsuyo::assign_val(position_section, "max_ry", position_max_ry);
+    valid_section &= jitsuyo::assign_val(position_section, "max_a", position_max_a);
+    valid_section &= jitsuyo::assign_val(position_section, "min_delta_tilt", position_min_delta_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_delta_pan", position_min_delta_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_delta_pan_tilt", position_min_delta_pan_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_delta_direction", position_min_delta_direction_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_range_tilt", position_min_range_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "max_range_tilt", position_max_range_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_range_pan", position_min_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "max_range_pan", position_max_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "center_range_pan", position_center_range_pan_double);
 
     position_min_delta_tilt = keisan::make_degree(position_min_delta_tilt_double);
     position_min_delta_pan = keisan::make_degree(position_min_delta_pan_double);
@@ -188,40 +229,59 @@ void Locomotion::set_config(const nlohmann::json & json)
     position_min_range_pan = keisan::make_degree(position_min_range_pan_double);
     position_max_range_pan = keisan::make_degree(position_max_range_pan_double);
     position_center_range_pan = keisan::make_degree(position_center_range_pan_double);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `position`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
 
   nlohmann::json left_kick_section;
   if (jitsuyo::assign_val(json, "left_kick", left_kick_section)) {
+    bool valid_section = true;
+
     double left_kick_target_pan_double;
     double left_kick_target_tilt_double;
 
-    valid_config &= jitsuyo::assign_val(left_kick_section, "target_pan", left_kick_target_pan_double);
-    valid_config &= jitsuyo::assign_val(left_kick_section, "target_tilt", left_kick_target_tilt_double);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "target_pan", left_kick_target_pan_double);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "target_tilt", left_kick_target_tilt_double);
 
     left_kick_target_pan = keisan::make_degree(left_kick_target_pan_double);
     left_kick_target_tilt = keisan::make_degree(left_kick_target_tilt_double);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `left_kick`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
   
   nlohmann::json right_kick_section;
   if (jitsuyo::assign_val(json, "right_kick", right_kick_section)) {
+    bool valid_section = true;
+
     double right_kick_target_pan_double;
     double right_kick_target_tilt_double;
 
-    valid_config &= jitsuyo::assign_val(right_kick_section, "target_pan", right_kick_target_pan_double);
-    valid_config &= jitsuyo::assign_val(right_kick_section, "target_tilt", right_kick_target_tilt_double);
+    valid_section &= jitsuyo::assign_val(right_kick_section, "target_pan", right_kick_target_pan_double);
+    valid_section &= jitsuyo::assign_val(right_kick_section, "target_tilt", right_kick_target_tilt_double);
 
     right_kick_target_pan = keisan::make_degree(right_kick_target_pan_double);
     right_kick_target_tilt = keisan::make_degree(right_kick_target_tilt_double);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `right_kick`" << std::endl;
+      valid_config = false;
+    }
   } else {
     valid_config = false;
   }
 
   if (!valid_config) {
-    throw std::runtime_error("Failed to load config file");
+    throw std::runtime_error("Failed to load config file `locomotion.json`");
   }
 }
 
