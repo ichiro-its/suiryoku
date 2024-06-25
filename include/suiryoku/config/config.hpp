@@ -21,7 +21,6 @@
 #ifndef SUIRYOKU__CONFIG__CONFIG_HPP_
 #define SUIRYOKU__CONFIG__CONFIG_HPP_
 
-#include "suiryoku/config/utils/config.hpp"
 #include "suiryoku/config/node/config_node.hpp"
 
 #endif  // SUIRYOKU__CONFIG__CONFIG_HPP_
