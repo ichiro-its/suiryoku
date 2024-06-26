@@ -203,6 +203,10 @@ void Locomotion::set_config(const nlohmann::json & json)
     double position_min_range_pan_double;
     double position_max_range_pan_double;
     double position_center_range_pan_double;
+    double min_dynamic_range_pan_double;
+    double max_dynamic_range_pan_double;
+    double min_dynamic_range_tilt_double;
+    double max_dynamic_range_tilt_double;
 
     valid_section &= jitsuyo::assign_val(position_section, "min_x", position_min_x);
     valid_section &= jitsuyo::assign_val(position_section, "max_x", position_max_x);
@@ -221,6 +225,11 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(position_section, "max_range_pan", position_max_range_pan_double);
     valid_section &= jitsuyo::assign_val(position_section, "center_range_pan", position_center_range_pan_double);
 
+    valid_section &= jitsuyo::assign_val(position_section, "min_dynamic_range_pan", min_dynamic_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "max_dynamic_range_pan", max_dynamic_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_dynamic_range_tilt", min_dynamic_range_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "max_dynamic_range_tilt", max_dynamic_range_tilt_double);
+
     position_min_delta_tilt = keisan::make_degree(position_min_delta_tilt_double);
     position_min_delta_pan = keisan::make_degree(position_min_delta_pan_double);
     position_min_delta_pan_tilt = keisan::make_degree(position_min_delta_pan_tilt_double);
@@ -230,6 +239,10 @@ void Locomotion::set_config(const nlohmann::json & json)
     position_min_range_pan = keisan::make_degree(position_min_range_pan_double);
     position_max_range_pan = keisan::make_degree(position_max_range_pan_double);
     position_center_range_pan = keisan::make_degree(position_center_range_pan_double);
+    min_dynamic_range_pan = keisan::make_degree(min_dynamic_range_pan_double);
+    max_dynamic_range_pan = keisan::make_degree(max_dynamic_range_pan_double);
+    min_dynamic_range_tilt = keisan::make_degree(min_dynamic_range_tilt_double);
+    max_dynamic_range_tilt = keisan::make_degree(max_dynamic_range_tilt_double);
 
     if (!valid_section) {
       std::cout << "Error found at section `position`" << std::endl;
