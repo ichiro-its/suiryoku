@@ -177,7 +177,7 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(pivot_section, "max_ry", pivot_max_ry);
     valid_section &= jitsuyo::assign_val(pivot_section, "max_a", pivot_max_a);
     valid_section &= jitsuyo::assign_val(pivot_section, "max_delta_direction", pivot_max_delta_direction);
-    valid_section &= jitsuyo::assign_val(pivot_section, "pan_range_ratio", pivot_pan_range_ratio);
+    valid_section &= jitsuyo::assign_val(pivot_section, "pan_range_a_speed", pivot_pan_range_a_speed);
     valid_section &= jitsuyo::assign_val(pivot_section, "target_tilt", pivot_target_tilt_double);
     
     pivot_target_tilt = keisan::make_degree(pivot_target_tilt_double);
