@@ -170,6 +170,7 @@ void Locomotion::set_config(const nlohmann::json & json)
     bool valid_section = true;
 
     double pivot_target_tilt_double;
+    double pivot_stop_limit_double;
 
     valid_section &= jitsuyo::assign_val(pivot_section, "min_x", pivot_min_x);
     valid_section &= jitsuyo::assign_val(pivot_section, "max_x", pivot_max_x);
@@ -179,8 +180,10 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(pivot_section, "max_delta_direction", pivot_max_delta_direction);
     valid_section &= jitsuyo::assign_val(pivot_section, "pan_range_a_speed", pivot_pan_range_a_speed);
     valid_section &= jitsuyo::assign_val(pivot_section, "target_tilt", pivot_target_tilt_double);
+    valid_section &= jitsuyo::assign_val(pivot_section, "pivot_stop_limit", pivot_stop_limit_double);
     
     pivot_target_tilt = keisan::make_degree(pivot_target_tilt_double);
+    pivot_stop_limit = keisan::make_degree(pivot_stop_limit_double);
 
     if (!valid_section) {
       std::cout << "Error found at section `pivot`" << std::endl;

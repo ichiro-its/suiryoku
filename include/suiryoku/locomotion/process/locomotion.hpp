@@ -87,6 +87,7 @@ public:
   std::string config_name;
 
   bool initial_pivot;
+  keisan::Angle<double> pivot_stop_limit;
 
 private:
 
