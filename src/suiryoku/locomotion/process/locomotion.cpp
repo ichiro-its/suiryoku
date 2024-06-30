@@ -887,7 +887,7 @@ bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & dir
   return false;
 }
 
-bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick)
+bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool is_positioning_center)
 {
   auto tilt = robot->get_tilt();
   auto pan = robot->get_pan();
@@ -906,6 +906,10 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
     // y movement
   if (!precise_kick) left_kick = pan > 0.0_deg;
   auto target_pan = left_kick ? left_kick_target_pan : right_kick_target_pan;
+
+  if (is_positioning_center) {
+    target_pan = (left_kick) ? position_center_range_pan : -position_center_range_pan;
+  }
 
   double delta_pan = (target_pan - pan).degree();
   double y_speed = 0.0;
