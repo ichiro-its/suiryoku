@@ -935,7 +935,7 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
   }
 
   // y movement
-  left_kick = precise_kick ? left_kick : (pan > 0.0_deg);
+  if (!precise_kick) left_kick = pan > 0.0_deg;
   auto target_pan = left_kick ? left_kick_target_pan : right_kick_target_pan;
 
   double delta_pan = (target_pan - pan).degree();
