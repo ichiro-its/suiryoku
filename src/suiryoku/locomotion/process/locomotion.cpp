@@ -911,7 +911,7 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
   auto target_pan = left_kick ? left_kick_target_pan : right_kick_target_pan;
 
   if (is_positioning_center) {
-    target_pan = (left_kick) ? position_center_left_range_pan : -position_center_right_range_pan;
+    target_pan = (left_kick) ? -position_center_right_range_pan : position_center_left_range_pan;
   }
 
   double delta_pan = (target_pan - pan).degree();
