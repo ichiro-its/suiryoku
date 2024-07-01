@@ -151,7 +151,8 @@ private:
   keisan::Angle<double> position_min_range_tilt;
   keisan::Angle<double> position_max_range_tilt;
   keisan::Angle<double> position_min_range_pan;
-  keisan::Angle<double> position_center_range_pan;
+  keisan::Angle<double> position_center_right_range_pan;
+  keisan::Angle<double> position_center_left_range_pan;
   keisan::Angle<double> position_max_range_pan;
 
   double skew_max_x;
