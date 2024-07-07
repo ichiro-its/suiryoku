@@ -48,6 +48,7 @@ public:
   void move_forward(const keisan::Angle<double> & direction);
   bool move_forward_to(const keisan::Point2 & target);
 
+  bool rotate_to_target(const keisan::Angle<double> & direction);
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
   bool move_follow_head();
@@ -58,6 +59,7 @@ public:
 
   bool dribble(const keisan::Angle<double> & direction);
   bool pivot(const keisan::Angle<double> & direction);
+  bool pivot_new(const keisan::Angle<double> & direction);
 
   bool position_until(
     const keisan::Angle<double> & target_pan,
@@ -65,7 +67,11 @@ public:
     const keisan::Angle<double> & direction);
   bool position_left_kick(const keisan::Angle<double> & direction);
   bool position_right_kick(const keisan::Angle<double> & direction);
+  bool position_kick_custom_pan_tilt(const keisan::Angle<double> & direction, const keisan::Angle<double> & min_pan, 
+                                     const keisan::Angle<double> & max_pan, const keisan::Angle<double> & min_tilt, 
+                                     const keisan::Angle<double> & max_tilt);
   bool position_kick_general(const keisan::Angle<double> & direction);
+  bool position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool is_positioning_center);
 
   bool is_time_to_follow();
   bool pivot_fulfilled();
@@ -82,14 +88,36 @@ public:
   std::function<void()> stop;
   std::function<void()> start;
 
+  std::string config_name;
+
+  bool initial_pivot;
+  keisan::Angle<double> pivot_stop_limit;
+
 private:
+
   double move_min_x;
   double move_max_x;
   double move_max_y;
   double move_max_a;
 
+  double backward_max_x;
+  double backward_min_x;
+  double backward_max_a;
+
+  double rotate_max_a;
+  double rotate_max_delta_direction;
+
+  double follow_pan_ratio;
   double follow_max_x;
+  double follow_min_x;
   double follow_max_a;
+  double follow_l_a_offset;
+  double follow_r_a_offset;
+  bool follow_y_move;
+  double follow_max_ry;
+  double follow_min_ry;
+  double follow_max_ly;
+  double follow_min_ly;
   keisan::Angle<double> follow_min_tilt;
 
   double dribble_min_x;
@@ -99,8 +127,11 @@ private:
   double dribble_min_ry;
   double dribble_max_ry;
   double dribble_max_a;
+  double dribble_pan_comp;
 
   keisan::Angle<double> pivot_target_tilt;
+  double pivot_max_delta_direction;
+  double pivot_pan_range_a_speed;
   double pivot_min_x;
   double pivot_max_x;
   double pivot_max_ly;
@@ -114,13 +145,19 @@ private:
   double position_min_ry;
   double position_max_ry;
   double position_max_a;
-  double position_min_delta_tilt;
-  double position_min_delta_pan;
-  double position_min_delta_pan_tilt;
-  double position_min_delta_direction;
-  double position_prev_delta_pan;
-  double position_prev_delta_tilt;
   double position_in_belief;
+  keisan::Angle<double> position_min_delta_tilt;
+  keisan::Angle<double> position_min_delta_pan;
+  keisan::Angle<double> position_min_delta_pan_tilt;
+  keisan::Angle<double> position_min_delta_direction;
+  keisan::Angle<double> position_prev_delta_pan;
+  keisan::Angle<double> position_prev_delta_tilt;
+  keisan::Angle<double> position_min_range_tilt;
+  keisan::Angle<double> position_max_range_tilt;
+  keisan::Angle<double> position_min_range_pan;
+  keisan::Angle<double> position_center_right_range_pan;
+  keisan::Angle<double> position_center_left_range_pan;
+  keisan::Angle<double> position_max_range_pan;
 
   double skew_max_x;
   double skew_max_a;

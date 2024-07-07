@@ -52,8 +52,11 @@ public:
 
   void update();
 
+  bool set_odometry;
+
 private:
   void publish_walking();
+  void publish_odometry();
 
   rclcpp::Node::SharedPtr node;
 
