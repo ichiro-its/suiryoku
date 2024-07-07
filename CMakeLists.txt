@@ -30,6 +30,14 @@ find_package(Eigen3 CONFIG REQUIRED)
 include_directories(/usr/include/eigen3)
 include_directories(${EIGEN3_INCLUDE_DIRS})
 
+include(FetchContent)
+FetchContent_Declare(
+    bezier
+    GIT_REPOSITORY https://github.com/oysteinmyrmo/bezier.git
+    GIT_TAG        v0.2.1
+)
+FetchContent_MakeAvailable(bezier)
+
 add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/config/node/config_node.cpp"
   "src/${PROJECT_NAME}/locomotion/control/helper/parameter.cpp"
@@ -38,6 +46,8 @@ add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/locomotion/node/locomotion_node.cpp"
   "src/${PROJECT_NAME}/locomotion/process/locomotion.cpp"
   "src/${PROJECT_NAME}/node/suiryoku_node.cpp")
+  
+target_link_libraries(${PROJECT_NAME} bezier)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -94,12 +104,19 @@ target_include_directories(forward_kinematic_subscriber PUBLIC
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(forward_kinematic_subscriber ${PROJECT_NAME})
 
+add_executable(control_publisher "src/control_publisher.cpp")
+target_include_directories(control_publisher PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(control_publisher ${PROJECT_NAME})
+
 install(TARGETS
   config
   locomotion
   main
   forward_kinematic
   forward_kinematic_subscriber
+  control_publisher
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
