@@ -143,6 +143,8 @@ void Locomotion::set_config(const nlohmann::json & json)
       try {
         bezier_default_curve_coefficient = val.at("curve_coefficient").get<double>();
         bezier_default_target_coefficient = val.at("target_coefficient").get<double>();
+        bezier_max_a = val.at("max_a").get<double>();
+        bezier_max_x = val.at("max_x").get<double>();
       } catch (nlohmann::json::parse_error & ex) {
         std::cerr << "parse error at byte " << ex.byte << std::endl;
       }
@@ -580,7 +582,7 @@ bool Locomotion::in_tilt_kick_range()
   return tilt > min_target_tilt && tilt < max_target_tilt;
 }
 
-bool Locomotion::update_bezier_points(const keisan::Angle<double> & direction)
+void Locomotion::update_bezier_points(const keisan::Angle<double> & direction)
 {
   bezier_initial_point.x = robot->position.x;
   bezier_initial_point.y = robot->position.y;
@@ -588,11 +590,11 @@ bool Locomotion::update_bezier_points(const keisan::Angle<double> & direction)
   bezier_target_point.x = bezier_current_ball.x - bezier_target_coefficient * direction.cos();
   bezier_target_point.y = bezier_current_ball.y - bezier_target_coefficient * direction.sin();
 
-  double delta_x_ = robot->position.x - bezier_current_ball.x;
-  double delta_y_ = (600 - robot->position.y) - (600 - bezier_current_ball.y);  
+  double delta_x = robot->position.x - bezier_current_ball.x;
+  double delta_y = (600 - robot->position.y) - (600 - bezier_current_ball.y);  
 
   keisan::Angle<double> direction_ball_to_robot = keisan::make_degree(std::atan2(delta_y, delta_x)).normalize();
-  keisan::Angle<double> direction_ball_to_target = keisan::make_degree(direction + 180_deg).normalize();
+  keisan::Angle<double> direction_ball_to_target = (direction + 180_deg).normalize();
 
   double middle_direction_robot_and_target_x = direction_ball_to_robot.cos() + direction_ball_to_target.cos();
   double middle_direction_robot_and_target_y = direction_ball_to_robot.sin() + direction_ball_to_target.sin();
@@ -604,19 +606,13 @@ bool Locomotion::update_bezier_points(const keisan::Angle<double> & direction)
 
 bool Locomotion::move_bezier_to(const keisan::Angle<double> & direction)
 {
-  if (robot->get_pan().degree() > 90.0) {
-    bezier_length = ball_distance;
-    bezier_curve_coefficient = std::max(45.0, bezier_length / bezier_default_curve_coefficient);
-    bezier_target_coefficient = std::max(30.0, bezier_length / bezier_default_target_coefficient);
-    update_bezier_points(direction);
-  }
-
   bezier::Bezier<2> bezier_curve({
     {bezier_initial_point.x, bezier_initial_point.y},
     {bezier_curve_point.x, bezier_curve_point.y},
     {bezier_target_point.x, bezier_target_point.y}});
   
-  keisan::Point2 target = bezier_curve.valueAt(bezier_progress);
+  auto bezier_target = bezier_curve.valueAt(bezier_progress);
+  keisan::Point2 target(bezier_target.x, bezier_target.y);
 
   double delta_x = (target.x - robot->position.x);
   double delta_y = (target.y - robot->position.y);
@@ -626,20 +622,20 @@ bool Locomotion::move_bezier_to(const keisan::Angle<double> & direction)
   if (target_distance < 40.0) {
     return true;
   }
-
-  auto direction = keisan::make_radian(atan2(delta_x, delta_y)).normalize();
-  auto delta_direction = (direction - robot->orientation).normalize().degree();
+  
+  auto direction_to_target = keisan::make_radian(atan2(delta_x, delta_y)).normalize();
+  auto delta_direction = (direction_to_target - robot->orientation).normalize().degree();
 
   double a_speed =
-    keisan::map(delta_direction, -10.0, 10.0, move_max_a, -move_max_a);
-  double x_speed = keisan::map(std::abs(a_speed), 0.0, move_max_a, move_max_x, 0.);
+    keisan::map(delta_direction, -10.0, 10.0, bezier_max_a, -bezier_max_a);
+  double x_speed = keisan::map(std::abs(a_speed), 0.0, bezier_max_a, bezier_max_x, 0.);
 
   if (target_distance < 100.0) {
-    x_speed = keisan::map(target_distance, 0.0, 100.0, move_max_x * 0.25, move_max_x);
+    x_speed = keisan::map(target_distance, 0.0, 100.0, bezier_max_x * 0.25, bezier_max_x);
   }
 
   if (std::abs(delta_direction) > 15.0) {
-    a_speed = keisan::sign(delta_direction) * -move_max_a;
+    a_speed = keisan::sign(delta_direction) * -bezier_max_a;
     x_speed = 0.0;
   }
 
@@ -656,11 +652,11 @@ bool Locomotion::move_bezier(const keisan::Point2 & ball, const keisan::Angle<do
 {
   double delta_x = (ball.x - robot->position.x);
   double delta_y = (ball.y - robot->position.y);
-  double ball_distance = std::hypot(delta_x, delta_y);
-
-  if (ball_distance < 40.0) {
+  double current_ball_distance = std::hypot(delta_x, delta_y);
+  
+  if (std::hypot(current_ball_distance, bezier_length) > 20.0) {
     bezier_current_ball = ball;
-    bezier_length = ball_distance;
+    bezier_length = current_ball_distance;
     bezier_curve_coefficient = std::max(45.0, bezier_length / bezier_default_curve_coefficient);
     bezier_target_coefficient = std::max(30.0, bezier_length / bezier_default_target_coefficient);
     bezier_progress = 0.25;

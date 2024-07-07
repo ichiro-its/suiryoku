@@ -144,6 +144,8 @@ private:
   double bezier_default_target_coefficient;
   double bezier_curve_coefficient;
   double bezier_target_coefficient;
+  double bezier_max_a;
+  double bezier_max_x;
   bool bezier_behind_ball;
 
   std::shared_ptr<Robot> robot;
