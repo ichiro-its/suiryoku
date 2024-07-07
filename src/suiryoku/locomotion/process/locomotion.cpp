@@ -582,8 +582,6 @@ bool Locomotion::in_tilt_kick_range()
 
 bool Locomotion::update_bezier_points(const keisan::Angle<double> & direction)
 {
-  bezier_behind_ball = false;
-
   bezier_initial_point.x = robot->position.x;
   bezier_initial_point.y = robot->position.y;
 
@@ -666,21 +664,22 @@ bool Locomotion::move_bezier(const keisan::Point2 & ball, const keisan::Angle<do
     bezier_curve_coefficient = std::max(45.0, bezier_length / bezier_default_curve_coefficient);
     bezier_target_coefficient = std::max(30.0, bezier_length / bezier_default_target_coefficient);
     bezier_progress = 0.25;
+    bezier_behind_ball = false;
   }
 
   keisan::Angle<double> direction_from_ball = keisan::make_degree(std::atan2(
     (600 - robot->position.y) - (600 - bezier_current_ball.y), 
     robot->position.x - bezier_current_ball.x) * 180.0 / M_PI).normalize();
   
-  auto direction_to_opposite_target_direction = ((direction + 180_deg).normalize() - robot->orientation).normalize().degree();
+  auto direction_to_opposite_target_direction = ((direction + 180_deg).normalize() - direction_from_ball).normalize().degree();
 
   if (std::abs(direction_to_opposite_target_direction) < 60.0) {
     bezier_behind_ball = true;
   }
 
-  if (bezier_behind_ball) return move_forward_to(bezier_target_point);
-
   update_bezier_points(direction);
+
+  if (bezier_behind_ball) return move_forward_to(bezier_target_point);
 
   if (move_bezier_to(direction_from_ball)) {
     bezier_progress += 0.25;
