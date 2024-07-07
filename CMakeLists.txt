@@ -18,6 +18,7 @@ find_package(ament_index_cpp REQUIRED)
 find_package(aruku REQUIRED)
 find_package(aruku_interfaces REQUIRED)
 find_package(atama_interfaces REQUIRED)
+find_package(jitsuyo REQUIRED)
 find_package(kansei REQUIRED)
 find_package(kansei_interfaces REQUIRED)
 find_package(keisan REQUIRED)
@@ -31,7 +32,6 @@ include_directories(${EIGEN3_INCLUDE_DIRS})
 
 add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/config/node/config_node.cpp"
-  "src/${PROJECT_NAME}/config/utils/config.cpp"
   "src/${PROJECT_NAME}/locomotion/control/helper/parameter.cpp"
   "src/${PROJECT_NAME}/locomotion/control/node/control_node.cpp"
   "src/${PROJECT_NAME}/locomotion/model/robot.cpp"
@@ -47,6 +47,7 @@ ament_target_dependencies(${PROJECT_NAME}
   aruku
   aruku_interfaces
   atama_interfaces
+  jitsuyo
   kansei
   kansei_interfaces
   keisan
@@ -111,6 +112,7 @@ ament_export_dependencies(
   aruku
   aruku_interfaces
   atama_interfaces
+  jitsuyo
   kansei
   kansei_interfaces
   keisan
