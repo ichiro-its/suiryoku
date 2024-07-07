@@ -290,7 +290,7 @@ void Locomotion::set_config(const nlohmann::json & json)
 
   nlohmann::json bezier_section;
   if (jitsuyo::assign_val(json, "bezier", bezier_section)) {
-    bool valid_section &= jitsuyo::assign_val(bezier_section, "curve_coefficient", bezier_curve_coefficient);
+    bool valid_section = jitsuyo::assign_val(bezier_section, "curve_coefficient", bezier_curve_coefficient);
     valid_section &= jitsuyo::assign_val(bezier_section, "target_coefficient", bezier_target_coefficient);
     valid_section &= jitsuyo::assign_val(bezier_section, "max_a", bezier_max_a);
     valid_section &= jitsuyo::assign_val(bezier_section, "max_x", bezier_max_x);
