@@ -287,6 +287,24 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_config = false;
   }
 
+  nlohmann::json speed_control_section;
+  if (jitsuyo::assign_val(json, "speed_control", speed_control_section)) {
+    bool valid_section = true;
+
+    valid_section &= jitsuyo::assign_val(speed_control_section, "pitch_offset", pitch_offset);
+    valid_section &= jitsuyo::assign_val(speed_control_section, "roll_offset", roll_offset);
+    valid_section &= jitsuyo::assign_val(speed_control_section, "pitch_unstable_threshold", pitch_unstable_threshold);
+    valid_section &= jitsuyo::assign_val(speed_control_section, "roll_unstable_threshold", roll_unstable_threshold);
+    valid_section &= jitsuyo::assign_val(speed_control_section, "using_speed_control", using_speed_control);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `speed_control`" << std::endl;
+      valid_config = false;
+    }
+  } else {
+    valid_config = false;
+  }
+
   if (!valid_config) {
     throw std::runtime_error("Failed to load config file `locomotion.json`");
   }
@@ -566,11 +584,7 @@ bool Locomotion::move_skew(const keisan::Angle<double> & direction, bool skew_le
       move_x = keisan::map(std::abs(move_a), 0.0, skew_max_a, skew_max_x, 0.0);
     }
 
-    robot->x_speed = move_x;
-    robot->y_speed = 0.0;
-    robot->a_speed = move_a;
-    robot->aim_on = false;
-    start();
+    speed_control(move_x, 0.0, move_a, false, delta_sec);
 
     return false;
   } else {
@@ -626,16 +640,12 @@ bool Locomotion::dribble(const keisan::Angle<double> & direction, float delta_se
   x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
   y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
 
-  robot->x_speed = x_speed;
-  robot->y_speed = y_speed;
-  robot->a_speed = a_speed;
-  robot->aim_on = false;
-  start();
+  speed_control(x_speed, y_speed, a_speed, false, delta_sec);
 
   return false;
 }
 
-bool Locomotion::pivot(const keisan::Angle<double> & direction)
+bool Locomotion::pivot(const keisan::Angle<double> & direction, float delta_sec)
 {
   if (initial_pivot) {
     initial_pivot = false;
@@ -673,17 +683,13 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
   if (fabs(pan) > pivot_pan_range_a_speed) {
     a_speed = keisan::map(pan, -pivot_pan_range_a_speed, pivot_pan_range_a_speed, pivot_max_a, -pivot_max_a);
   }
-  
-  robot->x_speed = x_speed;
-  robot->y_speed = y_speed;
-  robot->a_speed = a_speed;
-  robot->aim_on = true;
-  start();
+
+  speed_control(x_speed, y_speed, a_speed, true, delta_sec);
 
   return false;
 }
 
-bool Locomotion::pivot_new(const keisan::Angle<double> & direction)
+bool Locomotion::pivot_new(const keisan::Angle<double> & direction, float delta_sec)
 {
   if (initial_pivot) {
     initial_pivot = false;
@@ -728,11 +734,7 @@ bool Locomotion::pivot_new(const keisan::Angle<double> & direction)
     : keisan::map(delta_direction, 180.0, 0.0, pivot_max_a, pivot_max_a * 0.9);
   }
 
-  robot->x_speed = x_speed;
-  robot->y_speed = y_speed;
-  robot->a_speed = a_speed;
-  robot->aim_on = true;
-  start();
+  speed_control(x_speed, y_speed, a_speed, true, delta_sec);
 
   return false;
 }
@@ -783,6 +785,7 @@ bool Locomotion::position_until(
   y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
 
   speed_control(x_speed, y_speed, a_speed, false, delta_sec);
+
   if (std::abs(delta_tilt) < position_min_delta_tilt.degree() && std::abs(delta_pan) < position_min_delta_pan.degree()) {
     printf("done by pan tilt\n");
     return true;
@@ -939,6 +942,7 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
   x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
   y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
   a_speed = keisan::smooth(robot->a_speed, a_speed, smooth_ratio);
+
   speed_control(x_speed, y_speed, a_speed, false, delta_sec);
 
   printf("delta pan %.1f, delta tilt %.1f, delta direction %.1f\n", delta_pan, delta_tilt, delta_direction);
@@ -976,11 +980,21 @@ void Locomotion::speed_control(double x_speed, double y_speed, double a_speed, b
 {
   enum rpy{roll, pitch, yaw};
   //  Speed control process
-  if (std::abs(robot->rpy[pitch]) - pitch_offset > pitch_unstable_threshold && std::abs(x_speed) > 0.0) {  // TODO: Find the correct value to determine unstable walking
+
+  if (!using_speed_control) {
+    robot->x_speed = x_speed;
+    robot->y_speed = y_speed;
+    robot->a_speed = a_speed;
+    robot->aim_on = aim_on;
+    start();
+    return;
+  }
+
+  if (std::abs(robot->rpy[pitch]) - pitch_offset > pitch_unstable_threshold) {
     std::cout << "Unstable walking detected!" << std::endl;
     unstable_pitch = true;
     stable_time = 0.0;
-  } else if (std::abs(robot->rpy[roll]) > 15.0 && std::abs(y_speed) > 0.0) {  // TODO: Find the correct value to determine unstable walking
+  } else if (std::abs(robot->rpy[roll]) - roll_offset > roll_unstable_threshold) {
     std::cout << "Unstable walking detected!" << std::endl;
     unstable_roll = true;
     stable_time = 0.0;
@@ -993,12 +1007,12 @@ void Locomotion::speed_control(double x_speed, double y_speed, double a_speed, b
   }
 
   if (unstable_pitch) {
-    x_speed = keisan::map(std::abs(robot->rpy[pitch]) - pitch_offset, 25.0, pitch_unstable_threshold, 0.0, x_speed); //  TODO: Find the range of max stable imu value to allow x_speed
-    a_speed = keisan::map(std::abs(robot->rpy[pitch]) - pitch_offset, 25.0, pitch_unstable_threshold, 0.0, a_speed); //  TODO: Find the range of max stable imu value to allow a_speed
+    x_speed = keisan::map(std::abs(robot->rpy[pitch]) - pitch_offset, 25.0, pitch_unstable_threshold, 0.0, x_speed);
+    a_speed = keisan::map(std::abs(robot->rpy[pitch]) - pitch_offset, 25.0, pitch_unstable_threshold, 0.0, a_speed);
   }
   if (unstable_roll) {
-    y_speed = keisan::map(std::abs(robot->rpy[roll]) - roll_offset, 20.0, roll_unstable_threshold, 0.0, y_speed); //  TODO: Find the range of max stable imu value to allow x_speed
-    a_speed = keisan::map(std::abs(robot->rpy[roll]) - roll_offset, 20.0, roll_unstable_threshold, 0.0, a_speed); //  TODO: Find the range of max stable imu value to allow a_speed
+    y_speed = keisan::map(std::abs(robot->rpy[roll]) - roll_offset, 20.0, roll_unstable_threshold, 0.0, y_speed);
+    a_speed = keisan::map(std::abs(robot->rpy[roll]) - roll_offset, 20.0, roll_unstable_threshold, 0.0, a_speed);
   }
 
   robot->x_speed = x_speed;

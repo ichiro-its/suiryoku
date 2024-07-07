@@ -59,7 +59,7 @@ public:
 
   bool dribble(const keisan::Angle<double> & direction, float delta_sec);
   bool pivot(const keisan::Angle<double> & direction, float delta_sec);
-  bool pivot_new(const keisan::Angle<double> & direction);
+  bool pivot_new(const keisan::Angle<double> & direction, float delta_sec);
 
   bool position_until(
     const keisan::Angle<double> & target_pan,
@@ -164,13 +164,14 @@ private:
   double skew_pan_comp;
   double skew_delta_direction_comp;
 
-  double pitch_offset = 6.0;
-  double roll_offset = 1.0;
-  double pitch_unstable_threshold = 12.0;
-  double roll_unstable_threshold = 8.0;
+  double pitch_offset;
+  double roll_offset;
+  double pitch_unstable_threshold;
+  double roll_unstable_threshold;
   bool unstable_pitch;
   bool unstable_roll;
   float stable_time;
+  bool using_speed_control;
 
   keisan::Angle<double> left_kick_target_pan;
   keisan::Angle<double> left_kick_target_tilt;
