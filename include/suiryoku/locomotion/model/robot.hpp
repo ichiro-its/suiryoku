@@ -51,6 +51,8 @@ public:
   double x_amplitude;
   double y_amplitude;
   double a_amplitude;
+  
+  keisan::Vector<3> rpy;
 
   // member for setting
   double x_speed;

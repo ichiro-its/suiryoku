@@ -24,6 +24,7 @@
 #include "suiryoku/locomotion/node/locomotion_node.hpp"
 
 #include "aruku/walking/walking.hpp"
+#include "tachimawari/imu/imu.hpp"
 #include "kansei/measurement/measurement.hpp"
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
@@ -50,6 +51,7 @@ LocomotionNode::LocomotionNode(
     [this](const MeasurementStatus::SharedPtr message) {
       this->robot->is_calibrated = message->is_calibrated;
       this->robot->orientation = keisan::make_degree(message->orientation.yaw);
+      this->robot->rpy = keisan::Vector<3>(message->orientation.roll, message->orientation.pitch, message->orientation.yaw);
     });
 
   set_odometry_publisher = node->create_publisher<Point2>(

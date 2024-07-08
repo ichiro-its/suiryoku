@@ -97,7 +97,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
             auto direction = keisan::make_degree(val.get<double>());
 
             process = [this, direction]() {
-                this->locomotion->move_backward(direction);
+                this->locomotion->move_backward(direction, 0.0);
 
                 return false;
               };
@@ -108,7 +108,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
               val["x"].get<double>(), val["y"].get<double>());
 
             process = [this, target]() {
-                return this->locomotion->move_backward_to(target);
+                return this->locomotion->move_backward_to(target, 0.0);
               };
 
             break;
@@ -125,7 +125,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
             auto direction = keisan::make_degree(val.get<double>());
 
             process = [this, direction]() {
-                this->locomotion->move_forward(direction);
+                this->locomotion->move_forward(direction, 0.0);
 
                 return false;
               };
@@ -136,7 +136,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
               val["x"].get<double>(), val["y"].get<double>());
 
             process = [this, target]() {
-                return this->locomotion->move_forward_to(target);
+                return this->locomotion->move_forward_to(target, 0.0);
               };
           }
         }
@@ -158,7 +158,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
         }
 
         process = [this, direction, a_move_only]() {
-            return this->locomotion->rotate_to(direction, a_move_only);
+            return this->locomotion->rotate_to(direction, a_move_only, 0.0);
           };
 
         break;
@@ -178,11 +178,11 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
 
         if (is_default) {
           process = [this]() {
-              return this->locomotion->move_follow_head();
+              return this->locomotion->move_follow_head(0.0);
             };
         } else {
           process = [this, min_tilt]() {
-              return this->locomotion->move_follow_head(min_tilt);
+              return this->locomotion->move_follow_head(min_tilt, 0.0);
             };
         }
 
@@ -196,7 +196,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
             auto direction = keisan::make_degree(val.get<double>());
 
             process = [this, direction]() {
-                return !this->locomotion->move_skew(direction);
+                return !this->locomotion->move_skew(direction, 0.0);
               };
           }
         }
@@ -211,7 +211,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
             auto direction = keisan::make_degree(val.get<double>());
 
             process = [this, direction]() {
-                return !this->locomotion->dribble(direction);
+                return !this->locomotion->dribble(direction, 0.0);
               };
           }
         }
@@ -226,7 +226,7 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
             auto direction = keisan::make_degree(val.get<double>());
 
             process = [this, direction]() {
-                return this->locomotion->pivot(direction);
+                return this->locomotion->pivot(direction, 0.0);
               };
           }
         }
@@ -257,19 +257,19 @@ void ControlNode::run_locomotion_callback(const RunLocomotion::SharedPtr message
 
         if (is_left_kick && is_right_kick) {
           process = [this, direction]() {
-              return this->locomotion->position_kick_general(direction);
+              return this->locomotion->position_kick_general(direction, 0.0);
             };
         } else if (is_left_kick) {
           process = [this, direction]() {
-              return this->locomotion->position_left_kick(direction);
+              return this->locomotion->position_left_kick(direction, 0.0);
             };
         } else if (is_right_kick) {
           process = [this, direction]() {
-              return this->locomotion->position_right_kick(direction);
+              return this->locomotion->position_right_kick(direction, 0.0);
             };
         } else {
           process = [this, target_pan, target_tilt, direction]() {
-              return this->locomotion->position_until(target_pan, target_tilt, direction);
+              return this->locomotion->position_until(target_pan, target_tilt, direction, 0.0); // TODO
             };
         }
 
