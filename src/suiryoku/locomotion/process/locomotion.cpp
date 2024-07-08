@@ -291,8 +291,6 @@ void Locomotion::set_config(const nlohmann::json & json)
   if (jitsuyo::assign_val(json, "speed_control", speed_control_section)) {
     bool valid_section = true;
 
-    valid_section &= jitsuyo::assign_val(speed_control_section, "pitch_offset", pitch_offset);
-    valid_section &= jitsuyo::assign_val(speed_control_section, "roll_offset", roll_offset);
     valid_section &= jitsuyo::assign_val(speed_control_section, "pitch_unstable_threshold", pitch_unstable_threshold);
     valid_section &= jitsuyo::assign_val(speed_control_section, "roll_unstable_threshold", roll_unstable_threshold);
     valid_section &= jitsuyo::assign_val(speed_control_section, "using_speed_control", using_speed_control);
@@ -989,17 +987,20 @@ void Locomotion::speed_control(double x_speed, double y_speed, double a_speed, b
     start();
     return;
   }
+  std::cout << "pitch " << std::abs(robot->rpy[pitch]) << std::endl;
+  std::cout << "roll " << std::abs(robot->rpy[roll]) << std::endl;
 
-  if (std::abs(robot->rpy[pitch]) - pitch_offset > pitch_unstable_threshold) {
-    std::cout << "Unstable walking detected!" << std::endl;
+  if (std::abs(robot->rpy[pitch]) > pitch_unstable_threshold) {
+    std::cout << "unstable walking detected!" << std::endl;
     unstable_pitch = true;
     stable_time = 0.0;
-  } else if (std::abs(robot->rpy[roll]) - roll_offset > roll_unstable_threshold) {
-    std::cout << "Unstable walking detected!" << std::endl;
+  } else if (std::abs(robot->rpy[roll]) > roll_unstable_threshold) {
+    std::cout << "unstable walking detected!" << std::endl;
     unstable_roll = true;
     stable_time = 0.0;
   } else {
     stable_time += delta_sec;
+    std::cout << "stable time: " << stable_time << std::endl; 
     if (stable_time > 5.0) {
       unstable_pitch = false;
       unstable_roll = false;
@@ -1007,12 +1008,14 @@ void Locomotion::speed_control(double x_speed, double y_speed, double a_speed, b
   }
 
   if (unstable_pitch) {
-    x_speed = keisan::map(std::abs(robot->rpy[pitch]) - pitch_offset, 25.0, pitch_unstable_threshold, 0.0, x_speed);
-    a_speed = keisan::map(std::abs(robot->rpy[pitch]) - pitch_offset, 25.0, pitch_unstable_threshold, 0.0, a_speed);
+    std::cout << "pitch speed stabilization trigerred!" << std::endl;
+    x_speed = keisan::map(std::abs(robot->rpy[pitch]), 25.0, pitch_unstable_threshold, 0.0, x_speed - 5.0);
+    a_speed = keisan::map(std::abs(robot->rpy[pitch]), 25.0, pitch_unstable_threshold, 0.0, a_speed);
   }
   if (unstable_roll) {
-    y_speed = keisan::map(std::abs(robot->rpy[roll]) - roll_offset, 20.0, roll_unstable_threshold, 0.0, y_speed);
-    a_speed = keisan::map(std::abs(robot->rpy[roll]) - roll_offset, 20.0, roll_unstable_threshold, 0.0, a_speed);
+    std::cout << "roll speed stabilization trigerred!" << std::endl;
+    y_speed = keisan::map(std::abs(robot->rpy[roll]), 20.0, roll_unstable_threshold, 0.0, y_speed- 5.0);
+    a_speed = keisan::map(std::abs(robot->rpy[roll]), 20.0, roll_unstable_threshold, 0.0, a_speed);
   }
 
   robot->x_speed = x_speed;

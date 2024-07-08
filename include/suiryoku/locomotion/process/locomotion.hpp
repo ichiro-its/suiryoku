@@ -164,8 +164,6 @@ private:
   double skew_pan_comp;
   double skew_delta_direction_comp;
 
-  double pitch_offset;
-  double roll_offset;
   double pitch_unstable_threshold;
   double roll_unstable_threshold;
   bool unstable_pitch;
