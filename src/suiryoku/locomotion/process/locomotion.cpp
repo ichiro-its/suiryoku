@@ -241,7 +241,8 @@ void Locomotion::set_config(const nlohmann::json & json)
     double position_max_range_tilt_double;
     double position_min_range_pan_double;
     double position_max_range_pan_double;
-    double position_center_range_pan_double;
+    double position_center_right_range_pan_double;
+    double position_center_left_range_pan_double;
 
     valid_section &= jitsuyo::assign_val(position_section, "min_x", position_min_x);
     valid_section &= jitsuyo::assign_val(position_section, "max_x", position_max_x);
@@ -250,24 +251,16 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(position_section, "min_ry", position_min_ry);
     valid_section &= jitsuyo::assign_val(position_section, "max_ry", position_max_ry);
     valid_section &= jitsuyo::assign_val(position_section, "max_a", position_max_a);
-    valid_section &=
-      jitsuyo::assign_val(position_section, "min_delta_tilt", position_min_delta_tilt_double);
-    valid_section &=
-      jitsuyo::assign_val(position_section, "min_delta_pan", position_min_delta_pan_double);
-    valid_section &= jitsuyo::assign_val(
-      position_section, "min_delta_pan_tilt", position_min_delta_pan_tilt_double);
-    valid_section &= jitsuyo::assign_val(
-      position_section, "min_delta_direction", position_min_delta_direction_double);
-    valid_section &=
-      jitsuyo::assign_val(position_section, "min_range_tilt", position_min_range_tilt_double);
-    valid_section &=
-      jitsuyo::assign_val(position_section, "max_range_tilt", position_max_range_tilt_double);
-    valid_section &=
-      jitsuyo::assign_val(position_section, "min_range_pan", position_min_range_pan_double);
-    valid_section &=
-      jitsuyo::assign_val(position_section, "max_range_pan", position_max_range_pan_double);
-    valid_section &=
-      jitsuyo::assign_val(position_section, "center_range_pan", position_center_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_delta_tilt", position_min_delta_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_delta_pan", position_min_delta_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_delta_pan_tilt", position_min_delta_pan_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_delta_direction", position_min_delta_direction_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_range_tilt", position_min_range_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "max_range_tilt", position_max_range_tilt_double);
+    valid_section &= jitsuyo::assign_val(position_section, "min_range_pan", position_min_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "max_range_pan", position_max_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "center_right_range_pan", position_center_right_range_pan_double);
+    valid_section &= jitsuyo::assign_val(position_section, "center_left_range_pan", position_center_left_range_pan_double);
 
     position_min_delta_tilt = keisan::make_degree(position_min_delta_tilt_double);
     position_min_delta_pan = keisan::make_degree(position_min_delta_pan_double);
@@ -277,7 +270,8 @@ void Locomotion::set_config(const nlohmann::json & json)
     position_max_range_tilt = keisan::make_degree(position_max_range_tilt_double);
     position_min_range_pan = keisan::make_degree(position_min_range_pan_double);
     position_max_range_pan = keisan::make_degree(position_max_range_pan_double);
-    position_center_range_pan = keisan::make_degree(position_center_range_pan_double);
+    position_center_right_range_pan = keisan::make_degree(position_center_right_range_pan_double);
+    position_center_left_range_pan = keisan::make_degree(position_center_left_range_pan_double);
 
     if (!valid_section) {
       std::cout << "Error found at section `position`" << std::endl;
@@ -539,6 +533,52 @@ bool Locomotion::move_to_left_and_right(const keisan::Point2 & target)
   start();
 
   return false;
+}
+
+void Locomotion::move_left(const keisan::Angle<double> & direction)
+{
+  double delta_direction =
+    (keisan::make_degree(0).normalize() - robot->orientation).normalize().degree();
+  printf("delta direction : %f\n", delta_direction);
+
+  double y_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, left_max_ly, left_min_ly);
+
+  double a_speed = keisan::map(delta_direction, -25.0, 25.0, left_max_a, -left_max_a);
+  if (std::abs(delta_direction) > 15.0) {
+    a_speed = (delta_direction < 0.0) ? left_max_a : -left_max_a;
+    y_speed = keisan::map(std::abs(a_speed), 0.0, left_max_a, left_max_a, 0.0);
+  }
+
+  y_speed = keisan::smooth(robot->y_amplitude, y_speed, 0.8);
+
+  robot->x_speed = 0;
+  robot->y_speed = y_speed;
+  robot->a_speed = a_speed;
+  robot->aim_on = false;
+  start();
+}
+
+void Locomotion::move_right(const keisan::Angle<double> & direction)
+{
+  double delta_direction =
+    (keisan::make_degree(0).normalize() - robot->orientation).normalize().degree();
+  printf("delta direction : %f\n", delta_direction);
+
+  double y_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, right_max_ry, right_min_ry);
+
+  double a_speed = keisan::map(delta_direction, -25.0, 25.0, right_max_a, -right_max_a);
+  if (std::abs(delta_direction) > 15.0) {
+    a_speed = (delta_direction < 0.0) ? right_max_a : -right_max_a;
+    y_speed = keisan::map(std::abs(a_speed), 0.0, right_max_a, right_max_a, 0.0);
+  }
+
+  y_speed = keisan::smooth(robot->y_amplitude, y_speed, 0.8);
+
+  robot->x_speed = 0;
+  robot->y_speed = y_speed;
+  robot->a_speed = a_speed;
+  robot->aim_on = false;
+  start();
 }
 
 bool Locomotion::rotate_to_target(const keisan::Angle<double> & direction)
@@ -1014,18 +1054,16 @@ bool Locomotion::position_kick_custom_pan_tilt(
   return false;
 }
 
-bool Locomotion::position_kick_range_pan_tilt(
-  const keisan::Angle<double> & direction, bool precise_kick, bool left_kick)
+bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool is_positioning_center)
 {
   auto tilt = robot->get_tilt();
   auto pan = robot->get_pan();
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
   bool tilt_in_range = tilt > position_min_range_tilt && tilt < position_max_range_tilt;
-  bool right_kick_in_range = pan > position_min_range_pan && pan < -position_center_range_pan;
-  bool left_kick_in_range = pan > position_center_range_pan && pan < position_max_range_pan;
-  bool pan_in_range = precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range)
-                                   : (right_kick_in_range || left_kick_in_range);
+  bool right_kick_in_range = pan > position_min_range_pan && pan < -position_center_right_range_pan;
+  bool left_kick_in_range = pan > position_center_left_range_pan && pan < position_max_range_pan;
+  bool pan_in_range = precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range) : (right_kick_in_range || left_kick_in_range);
   bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction.degree();
 
   if (tilt_in_range && pan_in_range && direction_in_range) {
@@ -1035,6 +1073,10 @@ bool Locomotion::position_kick_range_pan_tilt(
   // y movement
   if (!precise_kick) left_kick = pan > 0.0_deg;
   auto target_pan = left_kick ? left_kick_target_pan : right_kick_target_pan;
+
+  if (is_positioning_center) {
+    target_pan = (left_kick) ? -position_center_right_range_pan : position_center_left_range_pan;
+  }
 
   double delta_pan = (target_pan - pan).degree();
   double y_speed = 0.0;

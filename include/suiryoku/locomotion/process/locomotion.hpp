@@ -49,6 +49,8 @@ public:
   bool move_forward_to(const keisan::Point2 & target);
 
   bool move_to_left_and_right(const keisan::Point2 & target);
+  void move_left(const keisan::Angle<double> & direction);
+  void move_right(const keisan::Angle<double> & direction);
 
   bool rotate_to_target(const keisan::Angle<double> & direction);
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
@@ -73,7 +75,7 @@ public:
                                      const keisan::Angle<double> & max_pan, const keisan::Angle<double> & min_tilt, 
                                      const keisan::Angle<double> & max_tilt);
   bool position_kick_general(const keisan::Angle<double> & direction);
-  bool position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick);
+  bool position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool is_positioning_center);
 
   bool is_time_to_follow();
   bool pivot_fulfilled();
@@ -153,7 +155,8 @@ private:
   keisan::Angle<double> position_min_range_tilt;
   keisan::Angle<double> position_max_range_tilt;
   keisan::Angle<double> position_min_range_pan;
-  keisan::Angle<double> position_center_range_pan;
+  keisan::Angle<double> position_center_right_range_pan;
+  keisan::Angle<double> position_center_left_range_pan;
   keisan::Angle<double> position_max_range_pan;
 
   double skew_max_x;
