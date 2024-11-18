@@ -18,6 +18,7 @@ find_package(ament_index_cpp REQUIRED)
 find_package(aruku REQUIRED)
 find_package(aruku_interfaces REQUIRED)
 find_package(atama_interfaces REQUIRED)
+find_package(gyakuenki_interfaces REQUIRED)
 find_package(jitsuyo REQUIRED)
 find_package(kansei REQUIRED)
 find_package(kansei_interfaces REQUIRED)
@@ -47,6 +48,7 @@ ament_target_dependencies(${PROJECT_NAME}
   aruku
   aruku_interfaces
   atama_interfaces
+  gyakuenki_interfaces
   jitsuyo
   kansei
   kansei_interfaces
@@ -112,6 +114,7 @@ ament_export_dependencies(
   aruku
   aruku_interfaces
   atama_interfaces
+  gyakuenki_interfaces
   jitsuyo
   kansei
   kansei_interfaces

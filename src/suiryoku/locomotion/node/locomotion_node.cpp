@@ -74,6 +74,21 @@ LocomotionNode::LocomotionNode(
       this->robot->tilt = keisan::make_degree(message->tilt_angle);
     });
 
+  projected_objects_subscriber = node->create_subscription<ProjectedObjects>(
+    "/gyakuenki/projected_objects", 10,
+    [this](const ProjectedObjects::SharedPtr message) {
+      this->robot->projected_objects.clear();
+      for (const auto & obj : message->projected_objects) {
+        this->robot->projected_objects.push_back(
+          ProjectedObject{
+            obj.label,
+            obj.center.x,
+            obj.center.y,
+            obj.center.z
+          });
+      }
+    });
+
   locomotion->stop = [this]() {this->walking_state = false;};
   locomotion->start = [this]() {this->walking_state = true;};
 }

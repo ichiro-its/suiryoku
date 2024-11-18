@@ -28,6 +28,14 @@
 namespace suiryoku
 {
 
+struct ProjectedObject
+{
+  std::string label;
+  double x;
+  double y;
+  double z;
+};
+
 class Robot
 {
 public:
@@ -57,6 +65,9 @@ public:
   double y_speed;
   double a_speed;
   bool aim_on;
+
+  // IPM
+  std::vector<ProjectedObject> projected_objects;
 };
 
 }  // namespace suiryoku
