@@ -65,6 +65,10 @@ LocomotionNode::LocomotionNode(
       this->robot->a_amplitude = message->a_amplitude;
       this->robot->position.x = message->odometry.x;
       this->robot->position.y = message->odometry.y;
+
+      if (!this->robot->projected_objects.empty()) {
+        this->robot->localize();
+      }
     });
 
   head_subscriber = node->create_subscription<Head>(
