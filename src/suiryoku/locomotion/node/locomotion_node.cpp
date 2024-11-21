@@ -82,9 +82,7 @@ LocomotionNode::LocomotionNode(
         this->robot->projected_objects.push_back(
           ProjectedObject{
             obj.label,
-            obj.center.x,
-            obj.center.y,
-            obj.center.z
+            keisan::Point3{obj.center.x, obj.center.y, obj.center.z}
           });
       }
     });

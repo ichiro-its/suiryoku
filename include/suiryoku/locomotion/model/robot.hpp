@@ -24,6 +24,7 @@
 #include <string>
 
 #include "keisan/keisan.hpp"
+#include "suiryoku/locomotion/model/field.hpp"
 
 namespace suiryoku
 {
@@ -31,9 +32,14 @@ namespace suiryoku
 struct ProjectedObject
 {
   std::string label;
-  double x;
-  double y;
-  double z;
+  keisan::Point3 center;
+};
+
+struct Particle
+{
+  keisan::Point2 position;
+  keisan::Angle<double> orientation;
+  double weight;
 };
 
 class Robot
@@ -44,10 +50,31 @@ public:
   keisan::Angle<double> get_pan() const;
   keisan::Angle<double> get_tilt() const;
 
+  // localizations
+  void localize();
+  void init_particles();
+  void resample_particles();
+  void update_particles();
+  void calculate_weight();
+  void estimate_position();
+  double calculate_total_likelihood(const Particle & particle);
+  double calculate_object_likelihood(const ProjectedObject & measurement, const Particle & particle);
+  double get_sum_weight();
+
+  Field field;
+  std::vector<Particle> particles;
+  int num_particles;
+  bool kidnapped;
+  keisan::Point2 estimated_position;
+
+  // IPM
+  std::vector<ProjectedObject> projected_objects;
+
   // member for getting
   bool is_calibrated;
   keisan::Angle<double> orientation;
   keisan::Point2 position;
+  keisan::Point2 prev_position;
 
   bool is_walking;
 
@@ -66,8 +93,6 @@ public:
   double a_speed;
   bool aim_on;
 
-  // IPM
-  std::vector<ProjectedObject> projected_objects;
 };
 
 }  // namespace suiryoku
