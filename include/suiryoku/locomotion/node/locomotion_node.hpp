@@ -73,6 +73,8 @@ private:
 
   rclcpp::Subscription<ProjectedObjects>::SharedPtr projected_objects_subscriber;
 
+  rclcpp::Subscription<Point2>::SharedPtr delta_position_subscriber;
+
   std::shared_ptr<Locomotion> locomotion;
   std::shared_ptr<Robot> robot;
 

@@ -128,16 +128,11 @@ void Robot::resample_particles()
 
 void Robot::update_particles()
 {
-  double dx = position.x - prev_position.x;
-  double dy = position.y - prev_position.y;
-
   for (int i = 0; i < num_particles; ++i) {
-    particles[i].position.x += dx;
-    particles[i].position.y += dy;
+    particles[i].position.x += delta_position.x;
+    particles[i].position.y += delta_position.y;
     particles[i].orientation = orientation;
   }
-
-  prev_position = position;
 }
 
 double Robot::get_sum_weight()

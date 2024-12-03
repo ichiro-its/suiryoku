@@ -78,6 +78,13 @@ LocomotionNode::LocomotionNode(
       this->robot->tilt = keisan::make_degree(message->tilt_angle);
     });
 
+  delta_position_subscriber = node->create_subscription<Point2>(
+    aruku::WalkingNode::delta_position_topic(), 10,
+    [this](const Point2::SharedPtr message) {
+      this->robot->delta_position.x = message->x;
+      this->robot->delta_position.y = message->y;
+    });
+
   projected_objects_subscriber = node->create_subscription<ProjectedObjects>(
     "/gyakuenki/projected_objects", 10,
     [this](const ProjectedObjects::SharedPtr message) {

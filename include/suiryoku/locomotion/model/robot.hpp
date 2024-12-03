@@ -74,7 +74,7 @@ public:
   bool is_calibrated;
   keisan::Angle<double> orientation;
   keisan::Point2 position;
-  keisan::Point2 prev_position;
+  keisan::Point2 delta_position;
 
   bool is_walking;
 
