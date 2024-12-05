@@ -96,6 +96,16 @@ LocomotionNode::LocomotionNode(
       }
     });
 
+  button_status_subscriber = node->create_subscription<TachimawariStatus>(
+    "/control/status", 10,
+    [this](const TachimawariStatus::SharedPtr message) {
+      if (message->button == 1) {
+        this->robot->kidnapped = false;
+        this->robot->init_particles();
+        this->robot->print_particles();
+      }
+    });
+
   locomotion->stop = [this]() {this->walking_state = false;};
   locomotion->start = [this]() {this->walking_state = true;};
 }

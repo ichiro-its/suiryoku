@@ -220,4 +220,32 @@ void Robot::estimate_position() {
   estimated_position.y = y_mean;
 }
 
+void Robot::print_particles() {
+  estimate_position();
+  double sum_samples = 0.0;
+
+  for (int i = 0; i < num_particles; i++) {
+    if (particles[i].weight > 0.0001) {
+      std::cout << "Particle " << std::setw(5) << i
+                << "  weight: " << std::fixed << std::setprecision(5)
+                << particles[i].weight << std::setw(5) << " ["
+                << std::fixed << std::setprecision(2) << particles[i].position.x
+                << ", " << std::fixed << std::setprecision(2)
+                << particles[i].position.y << ", " << std::fixed
+                << std::setprecision(2) << particles[i].orientation.degree() << "]"
+                << std::endl;
+
+      sum_samples += particles[i].weight;
+    }
+  }
+
+  std::cout << "Num particles: " << num_particles << std::endl;
+  std::cout << "Sum weights: " << sum_samples << std::endl;
+  std::cout << "Pose estimation: "
+            << " [" << std::fixed << std::setprecision(2)
+            << estimated_position.x << ", " << std::fixed
+            << std::setprecision(2) << estimated_position.y
+            << "])" << std::endl;
+}
+
 }  // namespace suiryoku

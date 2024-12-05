@@ -57,6 +57,7 @@ public:
   void update_particles();
   void calculate_weight();
   void estimate_position();
+  void print_particles();
   double calculate_total_likelihood(const Particle & particle);
   double calculate_object_likelihood(const ProjectedObject & measurement, const Particle & particle);
   double get_sum_weight();
