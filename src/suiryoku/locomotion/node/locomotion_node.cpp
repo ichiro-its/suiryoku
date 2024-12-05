@@ -65,10 +65,6 @@ LocomotionNode::LocomotionNode(
       this->robot->a_amplitude = message->a_amplitude;
       this->robot->position.x = message->odometry.x;
       this->robot->position.y = message->odometry.y;
-
-      if (!this->robot->projected_objects.empty()) {
-        this->robot->localize();
-      }
     });
 
   head_subscriber = node->create_subscription<Head>(
@@ -83,6 +79,8 @@ LocomotionNode::LocomotionNode(
     [this](const Point2::SharedPtr message) {
       this->robot->delta_position.x = message->x;
       this->robot->delta_position.y = message->y;
+
+      this->robot->localize();
     });
 
   projected_objects_subscriber = node->create_subscription<ProjectedObjects>(

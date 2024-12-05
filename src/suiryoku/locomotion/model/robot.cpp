@@ -58,6 +58,10 @@ void Robot::localize()
     update_particles();
   }
 
+  if (projected_objects.empty()) {
+    return;
+  }
+
   calculate_weight();
   resample_particles();
   estimate_position();
