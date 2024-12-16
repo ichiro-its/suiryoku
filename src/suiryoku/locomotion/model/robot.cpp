@@ -179,12 +179,23 @@ double Robot::calculate_total_likelihood(const Particle & particle) {
 
 double Robot::calculate_object_likelihood(
   const ProjectedObject & measurement, const Particle & particle) {
+  std::vector<keisan::Point2> landmarks;
   const double sigma_x = 1.0, sigma_y = 1.0;
   double relative_position_x, relative_position_y;
   double dx, dy, x_rot, y_rot, exponent, likelihood;
   double current_likelihood = 0.0;
 
-  for (int i = 0; i < field.num_landmarks; i++) {
+  if (measurement.label == "L-Intersection") {
+    landmarks = field.landmarks_L;
+  } else if (measurement.label == "T-Intersection") {
+    landmarks = field.landmarks_T;
+  } else if (measurement.label == "X-Intersection") {
+    landmarks = field.landmarks_X;
+  } else if (measurement.label == "goalpost") {
+    landmarks = field.landmarks_X;
+  }
+
+  for (int i = 0; i < landmarks.size(); i++) {
     dx = measurement.center.x * 100;
     dy = measurement.center.y * 100;
 
@@ -196,8 +207,8 @@ double Robot::calculate_object_likelihood(
 
     exponent =
       -0.5 *
-      (pow((field.landmarks[i].x - relative_position_x), 2) / pow(sigma_x, 2) +
-       pow((field.landmarks[i].y - relative_position_y), 2) / pow(sigma_y, 2));
+      (pow((landmarks[i].x - relative_position_x), 2) / pow(sigma_x, 2) +
+       pow((landmarks[i].y - relative_position_y), 2) / pow(sigma_y, 2));
 
     likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y);
 

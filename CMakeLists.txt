@@ -35,7 +35,6 @@ add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/config/node/config_node.cpp"
   "src/${PROJECT_NAME}/locomotion/control/helper/parameter.cpp"
   "src/${PROJECT_NAME}/locomotion/control/node/control_node.cpp"
-  "src/${PROJECT_NAME}/locomotion/model/field.cpp"
   "src/${PROJECT_NAME}/locomotion/model/robot.cpp"
   "src/${PROJECT_NAME}/locomotion/node/locomotion_node.cpp"
   "src/${PROJECT_NAME}/locomotion/process/locomotion.cpp"
