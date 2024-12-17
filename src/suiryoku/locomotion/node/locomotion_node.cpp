@@ -96,13 +96,14 @@ LocomotionNode::LocomotionNode(
       }
     });
 
+  // temporary button subscriber for testing
   button_status_subscriber = node->create_subscription<TachimawariStatus>(
     "/control/status", 10,
     [this](const TachimawariStatus::SharedPtr message) {
       if (message->button == 1) {
         this->robot->kidnapped = false;
         this->robot->init_particles();
-        this->robot->print_particles();
+        // this->robot->print_particles();
       }
     });
 
@@ -113,7 +114,7 @@ LocomotionNode::LocomotionNode(
 void LocomotionNode::update()
 {
   publish_walking();
-  if (set_odometry) {
+  if (set_odometry || this->robot->get_apply_localization()) {
     publish_odometry();
   }
 }

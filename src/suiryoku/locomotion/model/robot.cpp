@@ -33,9 +33,10 @@ namespace suiryoku
 
 Robot::Robot()
 : pan(0_deg), tilt(0_deg), pan_center(0_deg), tilt_center(0_deg), x_speed(0.0),
-  y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false),
-  orientation(0_deg), position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0),
-  a_amplitude(0.0), is_calibrated(false), kidnapped(false), num_particles(0)
+  y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false), orientation(0_deg),
+  position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0), a_amplitude(0.0),
+  is_calibrated(false), kidnapped(false), num_particles(0), apply_localization(false),
+  xvar(10.0), yvar(10.0)
 {
 }
 
@@ -49,13 +50,17 @@ keisan::Angle<double> Robot::get_tilt() const
   return tilt + tilt_center;
 }
 
+bool Robot::get_apply_localization() {
+  return apply_localization;
+}
+
 void Robot::localize()
 {
   if (kidnapped) {
     init_particles();
     kidnapped = false;
   } else {
-    update_particles();
+    update_motion();
   }
 
   if (projected_objects.empty()) {
@@ -71,16 +76,14 @@ void Robot::init_particles()
 {
   particles.clear();
   if (!kidnapped) {
-    const double var_x = 10.0, var_y = 10.0, var_w = 0.05;
     num_particles = 1000;
-    std::random_device xrd, yrd, wrd;
-    std::normal_distribution<double> xrg(position.x, var_x),
-      yrg(position.y, var_y), wrg(orientation.degree(), var_w);
+    std::random_device xrd, yrd;
+    std::normal_distribution<double> xrg(position.x, xvar), yrg(position.y, yvar);
 
     for (int i = 0; i < num_particles; ++i) {
       Particle new_particle;
       new_particle.position = keisan::Point2(xrg(xrd), yrg(yrd));
-      new_particle.orientation = keisan::make_degree(wrg(wrd)).normalize();
+      new_particle.orientation = orientation;
       new_particle.weight = 1.0 / num_particles;
 
       particles.push_back(new_particle);
@@ -106,20 +109,17 @@ void Robot::resample_particles()
 {
   std::vector<Particle> new_particles;
   std::random_device xrd, yrd, wrd;
-  const double var_x = 5.0, var_y = 5.0, var_w = 0.01;
 
-  for (auto & particle : particles) {
-    if (particle.weight >= 1.0 / (particles.size() * 10.0)) {
-      new_particles.push_back(particle);
-      std::normal_distribution<double> xrg(particle.position.x, var_x),
-        yrg(particle.position.y, var_y), wrg(particle.orientation.degree(), var_w);
+  for (auto & p : particles) {
+    if (p.weight >= 1.0 / (particles.size() * 10.0)) {
+      new_particles.push_back(p);
+      std::normal_distribution<double> xrg(p.position.x, xvar), yrg(p.position.y, yvar);
 
-      int n = particle.weight * 100;
-
+      int n = p.weight * 100;
       for (int i = 0; i < n; ++i) {
         Particle new_particle;
         new_particle.position = keisan::Point2(xrg(xrd), yrg(yrd));
-        new_particle.orientation = keisan::make_degree(wrg(wrd)).normalize();
+        new_particle.orientation = orientation;
         new_particle.weight = 1.0 / n;
 
         new_particles.push_back(new_particle);
@@ -130,12 +130,21 @@ void Robot::resample_particles()
   num_particles = particles.size();
 }
 
-void Robot::update_particles()
+void Robot::update_motion()
 {
-  for (int i = 0; i < num_particles; ++i) {
-    particles[i].position.x += delta_position.x;
-    particles[i].position.y += delta_position.y;
-    particles[i].orientation = orientation;
+  static std::random_device xrd, yrd, wrd;
+  static std::normal_distribution<> xgen(0.0, xvar), ygen(0.0, yvar);
+
+  for (auto & p : particles) {
+    double static_noise_x = xgen(xrd) / 5.0;
+    double static_noise_y = ygen(yrd) / 5.0;
+    double dynamic_noise_x = fabs(delta_position.x) * xgen(xrd) / 5.0;
+    double dynamic_noise_y = fabs(delta_position.y) * ygen(yrd) / 5.0;
+    double x_yterm = fabs(delta_position.y)*xgen(xrd) / 30.0;
+    double y_xterm = fabs(delta_position.x)*ygen(yrd) / 30.0;
+    p.position.x += delta_position.x + static_noise_x + dynamic_noise_x + x_yterm;
+    p.position.y += delta_position.y + static_noise_y + dynamic_noise_y + y_xterm;
+    p.orientation = orientation;
   }
 }
 
@@ -196,8 +205,8 @@ double Robot::calculate_object_likelihood(
   }
 
   for (int i = 0; i < landmarks.size(); i++) {
-    dx = measurement.center.x * 100;
-    dy = measurement.center.y * 100;
+    dx = measurement.center.x;
+    dy = measurement.center.y;
 
     x_rot = dx * cos(particle.orientation.degree()) - dy * sin(particle.orientation.degree());
     y_rot = dx * sin(particle.orientation.degree()) + dy * cos(particle.orientation.degree());
@@ -229,6 +238,13 @@ void Robot::estimate_position() {
   }
   estimated_position.x = x_mean;
   estimated_position.y = y_mean;
+
+  // validate estimated position before assign to odometry
+  if (abs(estimated_position.x - position.x) < 20 &&
+    abs(estimated_position.y - position.y) < 20) {
+    position = estimated_position;
+    apply_localization = true;
+  }
 }
 
 void Robot::print_particles() {

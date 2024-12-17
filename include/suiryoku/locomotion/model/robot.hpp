@@ -54,13 +54,14 @@ public:
   void localize();
   void init_particles();
   void resample_particles();
-  void update_particles();
+  void update_motion();
   void calculate_weight();
   void estimate_position();
   void print_particles();
   double calculate_total_likelihood(const Particle & particle);
   double calculate_object_likelihood(const ProjectedObject & measurement, const Particle & particle);
   double get_sum_weight();
+  bool get_apply_localization();
 
   Field field;
   std::vector<Particle> particles;
@@ -94,6 +95,10 @@ public:
   double a_speed;
   bool aim_on;
 
+private:
+  bool apply_localization;
+  double xvar;
+  double yvar;
 };
 
 }  // namespace suiryoku
