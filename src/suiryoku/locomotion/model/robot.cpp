@@ -35,8 +35,8 @@ Robot::Robot()
 : pan(0_deg), tilt(0_deg), pan_center(0_deg), tilt_center(0_deg), x_speed(0.0),
   y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false), orientation(0_deg),
   position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0), a_amplitude(0.0),
-  is_calibrated(false), kidnapped(false), num_particles(0), apply_localization(false),
-  xvar(10.0), yvar(10.0)
+  is_calibrated(false), num_particles(0), apply_localization(false),
+  initial_localization(true), xvar(10.0), yvar(10.0)
 {
 }
 
@@ -54,28 +54,43 @@ bool Robot::get_apply_localization() {
   return apply_localization;
 }
 
+void Robot::set_apply_localization(bool apply_localization) {
+  this->apply_localization = apply_localization;
+}
+
+void Robot::set_initial_localization(bool initial_localization) {
+  this->initial_localization = initial_localization;
+}
+
 void Robot::localize()
 {
-  if (kidnapped) {
+  if (num_particles == 0) {
     init_particles();
-    kidnapped = false;
   } else {
+    std::cout << "update motion" << std::endl;
     update_motion();
   }
 
+  print_particles();
+
   if (projected_objects.empty()) {
+    std::cout << "not receive projected objects" << std::endl;
     return;
   }
 
+  std::cout << "calculate weight" << std::endl;
   calculate_weight();
+  std::cout << "resample particles" << std::endl;
   resample_particles();
+  std::cout << "estimate_position" << std::endl;
   estimate_position();
 }
 
 void Robot::init_particles()
 {
   particles.clear();
-  if (!kidnapped) {
+  if (initial_localization) {
+    initial_localization = false;
     num_particles = 1000;
     std::random_device xrd, yrd;
     std::normal_distribution<double> xrg(position.x, xvar), yrg(position.y, yvar);
@@ -88,7 +103,7 @@ void Robot::init_particles()
 
       particles.push_back(new_particle);
     }
-  } else { // if kidnapped, generate particles all over the field
+  } else { // if not initial, generate particles all over the field
     const int x_gap = 5, y_gap = 5;
     num_particles = field.width * field.length / (x_gap * y_gap);
 
@@ -151,28 +166,27 @@ void Robot::update_motion()
 double Robot::get_sum_weight()
 {
   double sum_weight = 0.0;
-  for (int i = 0; i < num_particles; ++i) {
-    sum_weight += particles[i].weight;
+  for (auto & p : particles) {
+    sum_weight += p.weight;
   }
   return sum_weight;
 }
 
 void Robot::calculate_weight()
 {
-  for (int i = 0; i < num_particles; ++i) {
-    double likelihood = calculate_total_likelihood(particles[i]);
-    particles[i].weight = likelihood;
+  for (auto & p : particles) {
+    double likelihood = calculate_total_likelihood(p);
+    p.weight = likelihood;
   }
 
   double sum_weight = get_sum_weight();
   if (sum_weight > 0.0) {
-    for (int i = 0; i < num_particles; ++i) {
-      particles[i].weight /= sum_weight;
+    for (auto & p : particles) {
+      p.weight /= sum_weight;
     }
   } else {
-    for (int i = 0; i < num_particles; ++i) {
-      particles[i].weight = 1 / num_particles;
-    }
+    initial_localization = true;
+    init_particles();
   }
 }
 
@@ -189,7 +203,7 @@ double Robot::calculate_total_likelihood(const Particle & particle) {
 double Robot::calculate_object_likelihood(
   const ProjectedObject & measurement, const Particle & particle) {
   std::vector<keisan::Point2> landmarks;
-  const double sigma_x = 1.0, sigma_y = 1.0;
+  double sigma_x = 1.0, sigma_y = 1.0;
   double relative_position_x, relative_position_y;
   double dx, dy, x_rot, y_rot, exponent, likelihood;
   double current_likelihood = 0.0;
@@ -205,8 +219,8 @@ double Robot::calculate_object_likelihood(
   }
 
   for (int i = 0; i < landmarks.size(); i++) {
-    dx = measurement.center.x;
-    dy = measurement.center.y;
+    dx = measurement.center.x * 100;
+    dy = measurement.center.y * 100;
 
     x_rot = dx * cos(particle.orientation.degree()) - dy * sin(particle.orientation.degree());
     y_rot = dx * sin(particle.orientation.degree()) + dy * cos(particle.orientation.degree());
@@ -230,6 +244,10 @@ double Robot::calculate_object_likelihood(
 }
 
 void Robot::estimate_position() {
+  if (num_particles == 0 || get_sum_weight() == 0) {
+    return;
+  }
+
   double x_mean = 0.0;
   double y_mean = 0.0;
   for (auto p : particles) {
