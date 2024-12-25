@@ -64,14 +64,17 @@ void Robot::set_initial_localization(bool initial_localization) {
 
 void Robot::localize()
 {
-  if (num_particles == 0) {
+  if (num_particles == 0 || initial_localization) {
     init_particles();
   } else {
     std::cout << "update motion" << std::endl;
     update_motion();
   }
 
-  print_particles();
+  // print_particles();
+  std::cout << "estimate_position" << std::endl;
+  estimate_position();
+  print_estimate_position();
 
   if (projected_objects.empty()) {
     std::cout << "not receive projected objects" << std::endl;
@@ -82,16 +85,16 @@ void Robot::localize()
   calculate_weight();
   std::cout << "resample particles" << std::endl;
   resample_particles();
-  std::cout << "estimate_position" << std::endl;
-  estimate_position();
 }
 
 void Robot::init_particles()
 {
   particles.clear();
   if (initial_localization) {
+    std::cout << "INIT PARTICLES BASED ON INITIAL POSE" << std::endl;
+
     initial_localization = false;
-    num_particles = 1000;
+    num_particles = 250;
     std::random_device xrd, yrd;
     std::normal_distribution<double> xrg(position.x, xvar), yrg(position.y, yvar);
 
@@ -104,6 +107,8 @@ void Robot::init_particles()
       particles.push_back(new_particle);
     }
   } else { // if not initial, generate particles all over the field
+    std::cout << "INIT PARTICLES ALL OVER FIELD" << std::endl;
+
     const int x_gap = 5, y_gap = 5;
     num_particles = field.width * field.length / (x_gap * y_gap);
 
@@ -257,16 +262,11 @@ void Robot::estimate_position() {
   estimated_position.x = x_mean;
   estimated_position.y = y_mean;
 
-  // validate estimated position before assign to odometry
-  if (abs(estimated_position.x - position.x) < 20 &&
-    abs(estimated_position.y - position.y) < 20) {
-    position = estimated_position;
-    apply_localization = true;
-  }
+  position = estimated_position;
+  apply_localization = true;
 }
 
 void Robot::print_particles() {
-  estimate_position();
   double sum_samples = 0.0;
 
   for (int i = 0; i < num_particles; i++) {
@@ -286,6 +286,16 @@ void Robot::print_particles() {
 
   std::cout << "Num particles: " << num_particles << std::endl;
   std::cout << "Sum weights: " << sum_samples << std::endl;
+  std::cout << "Pose estimation: "
+            << " [" << std::fixed << std::setprecision(2)
+            << estimated_position.x << ", " << std::fixed
+            << std::setprecision(2) << estimated_position.y
+            << "])" << std::endl;
+}
+
+void Robot::print_estimate_position() {
+  std::cout << "Num particles: " << num_particles << std::endl;
+  std::cout << "Sum weights: " << get_sum_weight() << std::endl;
   std::cout << "Pose estimation: "
             << " [" << std::fixed << std::setprecision(2)
             << estimated_position.x << ", " << std::fixed
