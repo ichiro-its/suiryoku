@@ -32,7 +32,7 @@ namespace suiryoku
 struct ProjectedObject
 {
   std::string label;
-  keisan::Point3 center;
+  keisan::Point3 position;
 };
 
 struct Particle

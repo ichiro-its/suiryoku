@@ -91,9 +91,9 @@ LocomotionNode::LocomotionNode(
         this->robot->projected_objects.push_back(
           ProjectedObject{
             obj.label,
-            keisan::Point3{obj.center.x, obj.center.y, obj.center.z}
+            keisan::Point3{obj.position.x, obj.position.y, obj.position.z}
           });
-        std::cout << "receive projected_objests" << std::endl;
+        // std::cout << "receive projected_objests" << std::endl;
       }
     });
 

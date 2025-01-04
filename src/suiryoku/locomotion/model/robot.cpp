@@ -92,9 +92,10 @@ void Robot::init_particles()
   particles.clear();
   if (initial_localization) {
     std::cout << "INIT PARTICLES BASED ON INITIAL POSE" << std::endl;
+    std::cout << "position: " << position.x << ", " << position.y << std::endl;
 
     initial_localization = false;
-    num_particles = 250;
+    num_particles = 1000;
     std::random_device xrd, yrd;
     std::normal_distribution<double> xrg(position.x, xvar), yrg(position.y, yvar);
 
@@ -165,6 +166,10 @@ void Robot::update_motion()
     p.position.x += delta_position.x + static_noise_x + dynamic_noise_x + x_yterm;
     p.position.y += delta_position.y + static_noise_y + dynamic_noise_y + y_xterm;
     p.orientation = orientation;
+
+    // p.position.x += delta_position.x;
+    // p.position.y += delta_position.y;
+    // p.orientation = orientation;
   }
 }
 
@@ -190,6 +195,7 @@ void Robot::calculate_weight()
       p.weight /= sum_weight;
     }
   } else {
+    std::cout << "SUM WEIGHT = 0" << std::endl;
     initial_localization = true;
     init_particles();
   }
@@ -224,8 +230,8 @@ double Robot::calculate_object_likelihood(
   }
 
   for (int i = 0; i < landmarks.size(); i++) {
-    dx = measurement.center.x * 100;
-    dy = measurement.center.y * 100;
+    dx = measurement.position.x * 100;
+    dy = measurement.position.y * 100;
 
     x_rot = dx * cos(particle.orientation.degree()) - dy * sin(particle.orientation.degree());
     y_rot = dx * sin(particle.orientation.degree()) + dy * cos(particle.orientation.degree());
