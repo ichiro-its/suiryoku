@@ -104,7 +104,7 @@ void Robot::init_particles()
   } else { // if not initial, generate particles all over the field
     std::cout << "INIT PARTICLES ALL OVER FIELD" << std::endl;
 
-    const int x_gap = 5, y_gap = 5;
+    const int x_gap = 10, y_gap = 10;
     num_particles = field.width * field.length / (x_gap * y_gap);
 
     for (int i = -field.width / 2; i < field.width / 2; i += x_gap) {
@@ -191,12 +191,13 @@ void Robot::calculate_weight()
     }
     kidnap_counter = 0;
   } else {
-    kidnap_counter++;
-    if (kidnap_counter < 5) {
+    if (kidnap_counter++ < 1) {
       initial_localization = true;
     }
     init_particles();
   }
+
+  projected_objects.clear();
 }
 
 double Robot::calculate_total_likelihood(const Particle & particle) {
