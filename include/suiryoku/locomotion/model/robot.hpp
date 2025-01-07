@@ -102,6 +102,7 @@ private:
   bool initial_localization;
   double xvar;
   double yvar;
+  int kidnap_counter;
 };
 
 }  // namespace suiryoku

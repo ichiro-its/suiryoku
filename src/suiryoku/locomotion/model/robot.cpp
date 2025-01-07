@@ -36,7 +36,7 @@ Robot::Robot()
   y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false), orientation(0_deg),
   position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0), a_amplitude(0.0),
   is_calibrated(false), num_particles(0), apply_localization(false),
-  initial_localization(true), xvar(10.0), yvar(10.0)
+  initial_localization(true), xvar(10.0), yvar(10.0), kidnap_counter(0)
 {
 }
 
@@ -86,7 +86,7 @@ void Robot::init_particles()
 {
   particles.clear();
   if (initial_localization) {
-    std::cout << "INIT PARTICLES BASED ON INITIAL POSE" << std::endl;
+    std::cout << "INIT PARTICLES BASED ON LAST POSE" << std::endl;
 
     initial_localization = false;
     num_particles = 1000;
@@ -117,6 +117,7 @@ void Robot::init_particles()
         particles.push_back(new_particle);
       }
     }
+    kidnap_counter = 0;
   }
 }
 
@@ -188,8 +189,12 @@ void Robot::calculate_weight()
     for (auto & p : particles) {
       p.weight /= sum_weight;
     }
+    kidnap_counter = 0;
   } else {
-    initial_localization = true;
+    kidnap_counter++;
+    if (kidnap_counter < 5) {
+      initial_localization = true;
+    }
     init_particles();
   }
 }
@@ -258,8 +263,8 @@ void Robot::estimate_position() {
     x_mean += (1.0 / num_particles) * p.position.x;
     y_mean += (1.0 / num_particles) * p.position.y;
   }
-  estimated_position.x = x_mean;
-  estimated_position.y = y_mean;
+  estimated_position.x = (x_mean < 0.0) ? 0.0 : (x_mean > 900.0 ? 900.0 : x_mean);
+  estimated_position.y = (y_mean < 0.0) ? 0.0 : (y_mean > 600.0 ? 600.0 : y_mean);
 
   position = estimated_position;
   apply_localization = true;
