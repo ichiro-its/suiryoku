@@ -67,23 +67,18 @@ void Robot::localize()
   if (num_particles == 0 || initial_localization) {
     init_particles();
   } else {
-    std::cout << "update motion" << std::endl;
     update_motion();
   }
 
   // print_particles();
-  std::cout << "estimate_position" << std::endl;
   estimate_position();
   print_estimate_position();
 
   if (projected_objects.empty()) {
-    std::cout << "not receive projected objects" << std::endl;
     return;
   }
 
-  std::cout << "calculate weight" << std::endl;
   calculate_weight();
-  std::cout << "resample particles" << std::endl;
   resample_particles();
 }
 
@@ -92,7 +87,6 @@ void Robot::init_particles()
   particles.clear();
   if (initial_localization) {
     std::cout << "INIT PARTICLES BASED ON INITIAL POSE" << std::endl;
-    std::cout << "position: " << position.x << ", " << position.y << std::endl;
 
     initial_localization = false;
     num_particles = 1000;
@@ -195,7 +189,6 @@ void Robot::calculate_weight()
       p.weight /= sum_weight;
     }
   } else {
-    std::cout << "SUM WEIGHT = 0" << std::endl;
     initial_localization = true;
     init_particles();
   }
@@ -292,16 +285,10 @@ void Robot::print_particles() {
 
   std::cout << "Num particles: " << num_particles << std::endl;
   std::cout << "Sum weights: " << sum_samples << std::endl;
-  std::cout << "Pose estimation: "
-            << " [" << std::fixed << std::setprecision(2)
-            << estimated_position.x << ", " << std::fixed
-            << std::setprecision(2) << estimated_position.y
-            << "])" << std::endl;
+  print_estimate_position();
 }
 
 void Robot::print_estimate_position() {
-  std::cout << "Num particles: " << num_particles << std::endl;
-  std::cout << "Sum weights: " << get_sum_weight() << std::endl;
   std::cout << "Pose estimation: "
             << " [" << std::fixed << std::setprecision(2)
             << estimated_position.x << ", " << std::fixed

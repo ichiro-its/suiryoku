@@ -84,7 +84,7 @@ LocomotionNode::LocomotionNode(
     });
 
   projected_objects_subscriber = node->create_subscription<ProjectedObjects>(
-    "/gyakuenki/projected_objects", 10,
+    "/gyakuenki_cpp/projected_objects", 10,
     [this](const ProjectedObjects::SharedPtr message) {
       this->robot->projected_objects.clear();
       for (const auto & obj : message->projected_objects) {
