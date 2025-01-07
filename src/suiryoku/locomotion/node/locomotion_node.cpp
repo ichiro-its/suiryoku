@@ -93,20 +93,8 @@ LocomotionNode::LocomotionNode(
             obj.label,
             keisan::Point3{obj.position.x, obj.position.y, obj.position.z}
           });
-        // std::cout << "receive projected_objests" << std::endl;
       }
     });
-
-  // temporary button subscriber for testing
-  // button_status_subscriber = node->create_subscription<TachimawariStatus>(
-  //   "/measurement/button_status", 10,
-  //   [this](const TachimawariStatus::SharedPtr message) {
-  //     if (message->button == 1) {
-  //       this->robot->set_initial_localization(true);
-  //       this->robot->init_particles();
-  //       this->robot->print_estimate_position();
-  //     }
-  //   });
 
   locomotion->stop = [this]() {this->walking_state = false;};
   locomotion->start = [this]() {this->walking_state = true;};
@@ -115,13 +103,9 @@ LocomotionNode::LocomotionNode(
 void LocomotionNode::update()
 {
   publish_walking();
-  if (set_odometry) {
-    publish_odometry();
-  }
-
-  if (this->robot->get_apply_localization()) {
+  if (set_odometry || this->robot->get_apply_localization()) {
     this->robot->set_apply_localization(false);
-    std::cout << "odometry_updated" << std::endl;
+    publish_odometry();
   }
 }
 
