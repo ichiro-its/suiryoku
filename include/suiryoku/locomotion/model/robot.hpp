@@ -51,11 +51,10 @@ public:
   keisan::Angle<double> get_tilt() const;
   bool get_apply_localization();
   void set_apply_localization(bool apply_localization);
-  void set_initial_localization(bool initial_localization);
 
   // localizations
-  void localize();
-  void init_particles();
+  void localize(bool initial_localization = false);
+  void init_particles(bool initial_localization);
   void resample_particles();
   void update_motion();
   void calculate_weight();
@@ -99,7 +98,6 @@ public:
 
 private:
   bool apply_localization;
-  bool initial_localization;
   double xvar;
   double yvar;
   int kidnap_counter;

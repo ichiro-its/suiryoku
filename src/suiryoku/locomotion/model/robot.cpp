@@ -36,7 +36,7 @@ Robot::Robot()
   y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false), orientation(0_deg),
   position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0), a_amplitude(0.0),
   is_calibrated(false), num_particles(0), apply_localization(false),
-  initial_localization(true), xvar(10.0), yvar(10.0), kidnap_counter(0)
+  xvar(10.0), yvar(10.0), kidnap_counter(0)
 {
 }
 
@@ -58,19 +58,14 @@ void Robot::set_apply_localization(bool apply_localization) {
   this->apply_localization = apply_localization;
 }
 
-void Robot::set_initial_localization(bool initial_localization) {
-  this->initial_localization = initial_localization;
-}
-
-void Robot::localize()
+void Robot::localize(bool initial_localization)
 {
   if (num_particles == 0 || initial_localization) {
-    init_particles();
+    init_particles(initial_localization);
   } else {
     update_motion();
   }
 
-  // print_particles();
   estimate_position();
   print_estimate_position();
 
@@ -82,13 +77,12 @@ void Robot::localize()
   resample_particles();
 }
 
-void Robot::init_particles()
+void Robot::init_particles(bool initial_localization)
 {
   particles.clear();
   if (initial_localization) {
     std::cout << "INIT PARTICLES BASED ON LAST POSE" << std::endl;
 
-    initial_localization = false;
     num_particles = 1000;
     std::random_device xrd, yrd;
     std::normal_distribution<double> xrg(position.x, xvar), yrg(position.y, yvar);
@@ -192,9 +186,10 @@ void Robot::calculate_weight()
     kidnap_counter = 0;
   } else {
     if (kidnap_counter++ < 1) {
-      initial_localization = true;
+      init_particles(true);
+    } else {
+      init_particles(false);
     }
-    init_particles();
   }
 
   projected_objects.clear();
