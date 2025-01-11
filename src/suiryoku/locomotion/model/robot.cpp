@@ -250,8 +250,10 @@ void Robot::estimate_position() {
   estimated_position.x = (x_mean < 0.0) ? 0.0 : (x_mean > 900.0 ? 900.0 : x_mean);
   estimated_position.y = (y_mean < 0.0) ? 0.0 : (y_mean > 600.0 ? 600.0 : y_mean);
 
-  position = estimated_position;
-  apply_localization = true;
+  if (num_particles < 1000) {
+    position = estimated_position;
+    apply_localization = true;
+  }
 }
 
 void Robot::print_particles() {
