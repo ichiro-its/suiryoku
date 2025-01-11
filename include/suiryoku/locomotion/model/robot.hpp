@@ -49,8 +49,6 @@ public:
 
   keisan::Angle<double> get_pan() const;
   keisan::Angle<double> get_tilt() const;
-  bool get_apply_localization();
-  void set_apply_localization(bool apply_localization);
 
   // localizations
   void localize(bool initial_localization = false);
@@ -67,8 +65,9 @@ public:
 
   Field field;
   std::vector<Particle> particles;
-  int num_particles;
   keisan::Point2 estimated_position;
+  int num_particles;
+  bool apply_localization;
 
   // IPM
   std::vector<ProjectedObject> projected_objects;
@@ -97,7 +96,6 @@ public:
   bool aim_on;
 
 private:
-  bool apply_localization;
   double xvar;
   double yvar;
   int kidnap_counter;

@@ -33,7 +33,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
-#include "tachimawari_interfaces/msg/status.hpp"
 
 namespace suiryoku
 {
@@ -44,10 +43,9 @@ public:
   using Head = atama_interfaces::msg::Head;
   using MeasurementStatus = kansei_interfaces::msg::Status;
   using Point2 = aruku_interfaces::msg::Point2;
+  using ProjectedObjects = gyakuenki_interfaces::msg::ProjectedObjects;
   using SetWalking = aruku_interfaces::msg::SetWalking;
   using WalkingStatus = aruku_interfaces::msg::Status;
-  using ProjectedObjects = gyakuenki_interfaces::msg::ProjectedObjects;
-  using TachimawariStatus = tachimawari_interfaces::msg::Status;
 
   static std::string get_node_prefix();
 
@@ -76,8 +74,6 @@ private:
   rclcpp::Subscription<ProjectedObjects>::SharedPtr projected_objects_subscriber;
 
   rclcpp::Subscription<Point2>::SharedPtr delta_position_subscriber;
-
-  rclcpp::Subscription<TachimawariStatus>::SharedPtr button_status_subscriber;
 
   std::shared_ptr<Locomotion> locomotion;
   std::shared_ptr<Robot> robot;

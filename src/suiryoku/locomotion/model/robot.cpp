@@ -50,14 +50,6 @@ keisan::Angle<double> Robot::get_tilt() const
   return tilt + tilt_center;
 }
 
-bool Robot::get_apply_localization() {
-  return apply_localization;
-}
-
-void Robot::set_apply_localization(bool apply_localization) {
-  this->apply_localization = apply_localization;
-}
-
 void Robot::localize(bool initial_localization)
 {
   if (num_particles == 0 || initial_localization) {
@@ -120,7 +112,7 @@ void Robot::resample_particles()
   std::vector<Particle> new_particles;
   std::random_device xrd, yrd, wrd;
 
-  for (auto & p : particles) {
+  for (const auto & p : particles) {
     if (p.weight >= 1.0 / (particles.size() * 10.0)) {
       new_particles.push_back(p);
       std::normal_distribution<double> xrg(p.position.x, xvar), yrg(p.position.y, yvar);
@@ -155,17 +147,13 @@ void Robot::update_motion()
     p.position.x += delta_position.x + static_noise_x + dynamic_noise_x + x_yterm;
     p.position.y += delta_position.y + static_noise_y + dynamic_noise_y + y_xterm;
     p.orientation = orientation;
-
-    // p.position.x += delta_position.x;
-    // p.position.y += delta_position.y;
-    // p.orientation = orientation;
   }
 }
 
 double Robot::get_sum_weight()
 {
   double sum_weight = 0.0;
-  for (auto & p : particles) {
+  for (const auto & p : particles) {
     sum_weight += p.weight;
   }
   return sum_weight;
@@ -255,7 +243,7 @@ void Robot::estimate_position() {
 
   double x_mean = 0.0;
   double y_mean = 0.0;
-  for (auto p : particles) {
+  for (const auto & p : particles) {
     x_mean += (1.0 / num_particles) * p.position.x;
     y_mean += (1.0 / num_particles) * p.position.y;
   }

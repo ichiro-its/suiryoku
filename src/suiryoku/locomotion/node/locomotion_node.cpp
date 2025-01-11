@@ -105,8 +105,8 @@ LocomotionNode::LocomotionNode(
 void LocomotionNode::update()
 {
   publish_walking();
-  if (set_odometry || this->robot->get_apply_localization()) {
-    this->robot->set_apply_localization(false);
+  if (set_odometry || this->robot->apply_localization) {
+    this->robot->apply_localization = false;
     publish_odometry();
   }
 }
