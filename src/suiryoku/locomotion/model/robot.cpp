@@ -58,15 +58,15 @@ void Robot::localize(bool initial_localization)
     update_motion();
   }
 
-  estimate_position();
-  print_estimate_position();
-
   if (projected_objects.empty()) {
     return;
   }
 
   calculate_weight();
   resample_particles();
+
+  estimate_position();
+  print_estimate_position();
 }
 
 void Robot::init_particles(bool initial_localization)
@@ -162,8 +162,7 @@ double Robot::get_sum_weight()
 void Robot::calculate_weight()
 {
   for (auto & p : particles) {
-    double likelihood = calculate_total_likelihood(p);
-    p.weight = likelihood;
+    p.weight = calculate_total_likelihood(p);
   }
 
   double sum_weight = get_sum_weight();
@@ -215,8 +214,8 @@ double Robot::calculate_object_likelihood(
     dx = measurement.position.x * 100;
     dy = measurement.position.y * 100;
 
-    x_rot = dx * cos(particle.orientation.degree()) - dy * sin(particle.orientation.degree());
-    y_rot = dx * sin(particle.orientation.degree()) + dy * cos(particle.orientation.degree());
+    x_rot = dx * cos(particle.orientation.radian()) - dy * sin(particle.orientation.radian());
+    y_rot = dx * sin(particle.orientation.radian()) + dy * cos(particle.orientation.radian());
 
     relative_position_x = particle.position.x + x_rot;
     relative_position_y = particle.position.y + y_rot;
