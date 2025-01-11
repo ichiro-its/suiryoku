@@ -93,8 +93,8 @@ void Robot::init_particles(bool initial_localization)
     const int x_gap = 10, y_gap = 10;
     num_particles = field.width * field.length / (x_gap * y_gap);
 
-    for (int i = -field.width / 2; i < field.width / 2; i += x_gap) {
-      for (int j = -field.length / 2; j < field.length / 2; j += y_gap) {
+    for (int i = 0; i <= field.width; i += x_gap) {
+      for (int j = 0; j <= field.length; j += y_gap) {
         Particle new_particle;
         new_particle.position = keisan::Point2(i, j);
         new_particle.orientation = orientation;
