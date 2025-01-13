@@ -167,6 +167,8 @@ private:
   keisan::Angle<double> right_kick_target_pan;
   keisan::Angle<double> right_kick_target_tilt;
 
+  bool localization_enable;
+
   std::shared_ptr<Robot> robot;
 };
 

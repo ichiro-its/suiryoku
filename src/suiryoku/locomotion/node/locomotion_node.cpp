@@ -80,7 +80,8 @@ LocomotionNode::LocomotionNode(
       this->robot->delta_position.x = message->x;
       this->robot->delta_position.y = message->y;
 
-      if (message->x != 0.0 || message->y != 0.0 || this->robot->a_speed != 0.0) {
+      if (this->robot->use_localization &&
+        (message->x || message->y || this->robot->a_speed)) {
         this->robot->localize();
       }
     });

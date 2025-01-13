@@ -35,8 +35,8 @@ Robot::Robot()
 : pan(0_deg), tilt(0_deg), pan_center(0_deg), tilt_center(0_deg), x_speed(0.0),
   y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false), orientation(0_deg),
   position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0), a_amplitude(0.0),
-  is_calibrated(false), num_particles(0), apply_localization(false),
-  xvar(10.0), yvar(10.0), kidnap_counter(0)
+  is_calibrated(false), use_localization(false), apply_localization(false),
+  num_particles(0), xvar(10.0), yvar(10.0), kidnap_counter(0)
 {
 }
 

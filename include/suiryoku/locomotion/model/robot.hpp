@@ -67,6 +67,8 @@ public:
   std::vector<Particle> particles;
   keisan::Point2 estimated_position;
   int num_particles;
+
+  bool use_localization;
   bool apply_localization;
 
   // IPM
