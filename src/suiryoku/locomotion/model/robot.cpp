@@ -79,19 +79,22 @@ void Robot::init_particles(bool initial_localization)
     std::random_device xrd, yrd;
     std::normal_distribution<double> xrg(position.x, xvar), yrg(position.y, yvar);
 
+    particles.resize(num_particles);
     for (int i = 0; i < num_particles; ++i) {
       Particle new_particle;
       new_particle.position = keisan::Point2(xrg(xrd), yrg(yrd));
       new_particle.orientation = orientation;
       new_particle.weight = 1.0 / num_particles;
 
-      particles.push_back(new_particle);
+      particles[i] = new_particle;
     }
   } else { // if not initial, generate particles all over the field
     std::cout << "INIT PARTICLES ALL OVER FIELD" << std::endl;
 
     const int x_gap = 10, y_gap = 10;
+    int index = 0;
     num_particles = field.width * field.length / (x_gap * y_gap);
+    particles.resize(num_particles);
 
     for (int i = 0; i <= field.length; i += x_gap) {
       for (int j = 0; j <= field.width; j += y_gap) {
@@ -100,7 +103,7 @@ void Robot::init_particles(bool initial_localization)
         new_particle.orientation = orientation;
         new_particle.weight = 1.0 / num_particles;
 
-        particles.push_back(new_particle);
+        particles[index++] = new_particle;
       }
     }
     kidnap_counter = 0;
@@ -112,6 +115,8 @@ void Robot::resample_particles()
   std::vector<Particle> new_particles;
   std::random_device xrd, yrd, wrd;
 
+  // TODO: Refactor this resample method
+  particles.resize(num_particles);
   for (const auto & p : particles) {
     if (p.weight >= 1.0 / (particles.size() * 10.0)) {
       new_particles.push_back(p);
@@ -214,8 +219,8 @@ double Robot::calculate_object_likelihood(
     dx = measurement.position.x * 100;
     dy = measurement.position.y * 100;
 
-    x_rot = dx * cos(particle.orientation.radian()) - dy * sin(particle.orientation.radian());
-    y_rot = dx * sin(particle.orientation.radian()) + dy * cos(particle.orientation.radian());
+    x_rot = dx * particle.orientation.cos() - dy * particle.orientation.sin();
+    y_rot = dx * particle.orientation.sin() + dy * particle.orientation.cos();
 
     relative_position_x = particle.position.x + x_rot;
     relative_position_y = particle.position.y + y_rot;
