@@ -21,6 +21,7 @@
 #ifndef SUIRYOKU__LOCOMOTION__MODEL__ROBOT_HPP_
 #define SUIRYOKU__LOCOMOTION__MODEL__ROBOT_HPP_
 
+#include <random>
 #include <string>
 
 #include "keisan/keisan.hpp"
@@ -51,14 +52,15 @@ public:
   keisan::Angle<double> get_tilt() const;
 
   // localizations
-  void localize(bool initial_localization = false);
-  void init_particles(bool initial_localization);
+  void localize();
+  void init_particles();
   void resample_particles();
   void update_motion();
   void calculate_weight();
   void estimate_position();
   void print_particles();
   void print_estimate_position();
+  void set_initial_localization(bool initial) { initial_localization = initial; }
   double calculate_total_likelihood(const Particle & particle);
   double calculate_object_likelihood(const ProjectedObject & measurement, const Particle & particle);
   double get_sum_weight();
@@ -101,6 +103,16 @@ private:
   double xvar;
   double yvar;
   int kidnap_counter;
+  Particle best_particle;
+
+  std::mt19937 rand_gen;
+  double weight_avg;
+  double short_term_avg;
+  double long_term_avg;
+  double last_weight_avg;
+
+  bool initial_localization;
+  bool reset_particles;
 };
 
 }  // namespace suiryoku
