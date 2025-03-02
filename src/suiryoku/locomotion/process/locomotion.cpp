@@ -289,6 +289,23 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_config = false;
   }
 
+  nlohmann::json localization_section;
+  if (jitsuyo::assign_val(json, "localization", localization_section)) {
+    bool valid_section = true;
+
+    valid_section &= jitsuyo::assign_val(localization_section, "enable", localization_enable);
+    valid_section &= jitsuyo::assign_val(localization_section, "num_particles", num_particles);
+    robot->use_localization = localization_enable;
+    robot->num_particles = num_particles;
+
+    if (!valid_section) {
+      std::cout << "Error found at section `localization`" << std::endl;
+      valid_config = false;
+    }
+  } else {
+    valid_config = false;
+  }
+
   if (!valid_config) {
     throw std::runtime_error("Failed to load config file `locomotion.json`");
   }

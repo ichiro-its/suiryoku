@@ -74,14 +74,51 @@ LocomotionNode::LocomotionNode(
       this->robot->tilt = keisan::make_degree(message->tilt_angle);
     });
 
+  delta_position_subscriber = node->create_subscription<Point2>(
+    aruku::WalkingNode::delta_position_topic(), 10,
+    [this](const Point2::SharedPtr message) {
+      this->robot->delta_position.x = message->x;
+      this->robot->delta_position.y = message->y;
+
+      bool run_localization = false;
+      run_localization |= message->x != 0.0;
+      run_localization |= message->y != 0.0;
+      run_localization |= this->robot->a_speed != 0.0;
+
+      if (run_localization) {
+        this->robot->localize();
+      }
+    });
+
+  projected_objects_subscriber = node->create_subscription<ProjectedObjects>(
+    "/gyakuenki_cpp/projected_objects", 10,
+    [this](const ProjectedObjects::SharedPtr message) {
+      this->robot->projected_objects.clear();
+      for (const auto & obj : message->projected_objects) {
+        this->robot->projected_objects.push_back(
+          ProjectedObject{
+            obj.label,
+            keisan::Point3{obj.position.x, obj.position.y, obj.position.z}
+          });
+      }
+    });
+
   locomotion->stop = [this]() {this->walking_state = false;};
   locomotion->start = [this]() {this->walking_state = true;};
 }
 
 void LocomotionNode::update()
 {
+  // printf("Starting localization\n");
+  // this->robot->localize();
+  // printf("Localization done\n");
+
   publish_walking();
-  if (set_odometry) {
+  if (set_odometry || this->robot->apply_localization) {
+    if (this->robot->apply_localization) {
+      printf("Localization applied\n");
+    }
+    this->robot->apply_localization = false;
     publish_odometry();
   }
 }
