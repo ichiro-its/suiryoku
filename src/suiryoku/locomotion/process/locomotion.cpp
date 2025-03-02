@@ -550,6 +550,52 @@ bool Locomotion::move_to_left_and_right(const keisan::Point2 & target)
   return false;
 }
 
+void Locomotion::move_left(const keisan::Angle<double> & direction)
+{
+  double delta_direction =
+    (keisan::make_degree(0).normalize() - robot->orientation).normalize().degree();
+  printf("delta direction : %f\n", delta_direction);
+
+  double y_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, left_max_ly, left_min_ly);
+
+  double a_speed = keisan::map(delta_direction, -25.0, 25.0, left_max_a, -left_max_a);
+  if (std::abs(delta_direction) > 15.0) {
+    a_speed = (delta_direction < 0.0) ? left_max_a : -left_max_a;
+    y_speed = keisan::map(std::abs(a_speed), 0.0, left_max_a, left_max_a, 0.0);
+  }
+
+  y_speed = keisan::smooth(robot->y_amplitude, y_speed, 0.8);
+
+  robot->x_speed = 0;
+  robot->y_speed = y_speed;
+  robot->a_speed = a_speed;
+  robot->aim_on = false;
+  start();
+}
+
+void Locomotion::move_right(const keisan::Angle<double> & direction)
+{
+  double delta_direction =
+    (keisan::make_degree(0).normalize() - robot->orientation).normalize().degree();
+  printf("delta direction : %f\n", delta_direction);
+
+  double y_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, right_max_ry, right_min_ry);
+
+  double a_speed = keisan::map(delta_direction, -25.0, 25.0, right_max_a, -right_max_a);
+  if (std::abs(delta_direction) > 15.0) {
+    a_speed = (delta_direction < 0.0) ? right_max_a : -right_max_a;
+    y_speed = keisan::map(std::abs(a_speed), 0.0, right_max_a, right_max_a, 0.0);
+  }
+
+  y_speed = keisan::smooth(robot->y_amplitude, y_speed, 0.8);
+
+  robot->x_speed = 0;
+  robot->y_speed = y_speed;
+  robot->a_speed = a_speed;
+  robot->aim_on = false;
+  start();
+}
+
 bool Locomotion::rotate_to_target(const keisan::Angle<double> & direction)
 {
   auto delta_direction = (direction - robot->orientation).normalize().degree();
