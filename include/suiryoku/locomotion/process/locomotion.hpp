@@ -80,7 +80,7 @@ public:
     const keisan::Angle<double> direction);
   bool position_basket(
     const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
-    const keisan::Angle<double> direction)
+    const keisan::Angle<double> direction);
 
     bool is_time_to_follow();
   bool pivot_fulfilled();
