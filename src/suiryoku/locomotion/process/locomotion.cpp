@@ -1103,8 +1103,8 @@ bool Locomotion::position_basket(
   robot->a_speed = a_speed;
 
   if (
-    std::abs(delta_tilt) < position_min_delta_tilt &&
-    std::abs(delta_pan) < position_min_delta_pan &&
+    std::abs(delta_tilt.degree()) < position_min_delta_tilt.degree() &&
+    std::abs(delta_pan.degree()) < position_min_delta_pan.degree() &&
     std::abs(delta_direction.degree()) < position_min_delta_direction.degree()) {
     return true;
   }
