@@ -27,6 +27,10 @@
 #include <memory>
 #include <string>
 
+#include "suiryoku/locomotion/process/locomotion.hpp"
+
+#include "keisan/angle/angle.impl.hpp"
+#include "keisan/keisan.hpp"
 #include "jitsuyo/config.hpp"
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
@@ -170,6 +174,7 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(follow_section, "max_ly", follow_max_ly);
     valid_section &= jitsuyo::assign_val(follow_section, "min_ly", follow_min_ly);
     valid_section &= jitsuyo::assign_val(follow_section, "min_tilt_", follow_min_tilt_double);
+    valid_section &= jitsuyo::assign_val(follow_section, "time_move_follow_head", time_move_follow_head);
 
     follow_min_tilt = keisan::make_degree(follow_min_tilt_double);
 
@@ -639,6 +644,35 @@ bool Locomotion::move_follow_head(const keisan::Angle<double> & min_tilt)
   start();
 
   return robot->get_tilt() + robot->tilt_center < min_tilt;
+}
+
+bool Locomotion::move_follow_head_with_sec(const keisan::Angle<double> & min_tilt, double delta_sec)
+{
+  if (is_first_follow_tilt) {
+    time_first_follow_tilt = 0.0;
+    is_first_follow_tilt = false;
+  } else {
+    time_first_follow_tilt += delta_sec;
+  }
+
+  std::cout << "duration: " << time_first_follow_tilt + delta_sec << std::endl;
+
+  if (time_first_follow_tilt > time_move_follow_head) {
+    return move_follow_head(min_tilt);
+  }
+
+  double x_speed = keisan::map(0.8, 0.0, follow_max_a, std::max(follow_max_x, robot->x_speed), 0.0);
+  x_speed = keisan::map((robot->tilt - min_tilt).degree(), 10.0, 0.0, x_speed, 0.0);
+
+  #if ITHAARO || UMARU || MIRU
+  double smooth_ratio = 1.0;
+  #else
+  double smooth_ratio = 0.8;
+  #endif
+
+  x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
+
+  return robot->tilt < min_tilt;
 }
 
 bool Locomotion::move_skew(const keisan::Angle<double> & direction)
@@ -1122,6 +1156,14 @@ bool Locomotion::in_tilt_kick_range()
   return tilt > min_target_tilt && tilt < max_target_tilt;
 }
 
-std::shared_ptr<Robot> Locomotion::get_robot() const { return robot; }
+void Locomotion::reset_time_follow_tilt()
+{
+  is_first_follow_tilt = true;
+}
+
+std::shared_ptr<Robot> Locomotion::get_robot() const
+{
+  return robot;
+}
 
 }  // namespace suiryoku
