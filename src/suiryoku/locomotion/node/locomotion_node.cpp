@@ -79,6 +79,15 @@ LocomotionNode::LocomotionNode(
     [this](const Point2::SharedPtr message) {
       this->robot->delta_position.x = message->x;
       this->robot->delta_position.y = message->y;
+
+      bool run_localization = false;
+      run_localization |= message->x != 0.0;
+      run_localization |= message->y != 0.0;
+      run_localization |= this->robot->a_speed != 0.0;
+
+      if (run_localization) {
+        this->robot->localize();
+      }
     });
 
   projected_objects_subscriber = node->create_subscription<ProjectedObjects>(
@@ -101,11 +110,14 @@ LocomotionNode::LocomotionNode(
 void LocomotionNode::update()
 {
   // printf("Starting localization\n");
-  this->robot->localize();
+  // this->robot->localize();
   // printf("Localization done\n");
 
   publish_walking();
   if (set_odometry || this->robot->apply_localization) {
+    if (this->robot->apply_localization) {
+      printf("Localization applied\n");
+    }
     this->robot->apply_localization = false;
     publish_odometry();
   }

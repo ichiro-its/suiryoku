@@ -99,6 +99,9 @@ public:
   double a_speed;
   bool aim_on;
 
+  bool reset_particles; // for debug, change to private later
+  std::vector<Particle> center_particles; // for debug, erase later
+
 private:
   double xvar;
   double yvar;
@@ -112,7 +115,6 @@ private:
   double last_weight_avg;
 
   bool initial_localization;
-  bool reset_particles;
 };
 
 }  // namespace suiryoku

@@ -54,80 +54,41 @@ keisan::Angle<double> Robot::get_tilt() const
 
 void Robot::localize()
 {
-  printf("initialize localization: %d\n", initial_localization);
   if (initial_localization) {
-    printf("init particles start\n");
     init_particles();
-    printf("init particles done\n");
   } else {
-    printf("update motion start\n");
     update_motion();
-    printf("update motion done\n");
   }
 
   if (!projected_objects.empty()) {
     printf("calculate weight start\n");
     calculate_weight();
     printf("calculate weight done\n");
-    if (std::isnan(weight_avg)) {
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
-      printf("weight_avg is nan\n");
+    if (weight_avg <= 0 || std::isnan(weight_avg)) {
       weight_avg = last_weight_avg;
     } else {
       if (initial_localization) {
         short_term_avg = weight_avg;
         long_term_avg = weight_avg;
         initial_localization = false;
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
-        printf("INITIAL LOCALIZATION FALSE\n");
       }
       last_weight_avg = weight_avg;
+
+      short_term_avg = 0.1 * (weight_avg - short_term_avg);
+      long_term_avg = 0.001 * (weight_avg - long_term_avg);
     }
-
-    short_term_avg = 0.1 * (weight_avg - short_term_avg);
-    long_term_avg = 0.001 * (weight_avg - long_term_avg);
-
-    printf("resample particles start\n");
     resample_particles();
-    printf("resample particles done\n");
-
-    printf("estimate position start\n");
     estimate_position();
-    printf("estimate position done\n");
-
-    // print_estimate_position();
-    print_particles();
+    projected_objects.clear();
   }
 }
 
 void Robot::init_particles()
 {
   double uniform_weight = 1.0 / num_particles;
-  num_particles = 500;
   particles.clear();
   particles.resize(num_particles);
-  // std::uniform_int_distribution<int> xrg(position.x - 100, position.x + 100);
+  // std::uniform_int_distribution<int> xrg(position.x - 100, position.x + 100); // use if initial position is known
   // std::uniform_int_distribution<int> yrg(position.y - 100, position.y + 100);
   std::uniform_int_distribution<int> xrg(0, 900);
   std::uniform_int_distribution<int> yrg(0, 600);
@@ -167,24 +128,23 @@ void Robot::resample_particles()
   double interval_x[2] = {0.0, 900.0};
   double interval_y[2] = {0.0, 600.0};
 
-  // if (!projected_objects.empty()) {
+  if (!projected_objects.empty()) {
     interval_x[0] = position.x - 100;
     interval_x[1] = position.x + 100;
     interval_y[0] = position.y - 100;
     interval_y[1] = position.y + 100;
-  // }
-
-  // projected_objects.clear();
+  }
 
   // resample particles
   std::uniform_real_distribution<double> rand_prob(0.0, 1.0);
+  double uniform_weight = 1.0 / num_particles;
   for (int i = 0; i < num_particles; ++i) {
     if (rand_prob(rand_gen) < prob) {
       std::uniform_int_distribution<int> xrg(interval_x[0], interval_x[1]);
       std::uniform_int_distribution<int> yrg(interval_y[0], interval_y[1]);
       new_particles[i].position = keisan::Point2(xrg(rand_gen), yrg(rand_gen));
       new_particles[i].orientation = orientation;
-      new_particles[i].weight = 0.0;
+      new_particles[i].weight = uniform_weight;
     } else {
       std::uniform_real_distribution<double> rand_beta(0.0, 2.0 * max_weight);
       beta += rand_beta(rand_gen);
@@ -204,7 +164,6 @@ void Robot::update_motion()
   static std::random_device xrd, yrd, wrd;
   static std::normal_distribution<> xgen(0.0, xvar), ygen(0.0, yvar);
 
-  printf("start update motion iteration\n");
   for (auto & p : particles) {
     double static_noise_x = xgen(xrd) / 5.0;
     double static_noise_y = ygen(yrd) / 5.0;
@@ -216,7 +175,6 @@ void Robot::update_motion()
     p.position.y += delta_position.y + static_noise_y + dynamic_noise_y + y_xterm;
     p.orientation = orientation;
   }
-  printf("end update motion iteration\n");
 }
 
 double Robot::get_sum_weight()
@@ -234,10 +192,13 @@ void Robot::calculate_weight()
     p.weight = calculate_total_likelihood(p);
   }
 
+  // normalize weights
   double sum_weight = get_sum_weight();
+  for (auto & p : particles) {
+    p.weight /= sum_weight;
+  }
+
   weight_avg = sum_weight / num_particles;
-  printf("sum_weight: %f\n", sum_weight);
-  printf("weight_avg: %f\n", weight_avg);
 }
 
 double Robot::calculate_total_likelihood(const Particle & particle) {
@@ -286,18 +247,12 @@ double Robot::calculate_object_likelihood(
     relative_position_x = particle.position.x + x_rot;
     relative_position_y = particle.position.y + y_rot;
 
-    printf("landmark_x: %f | landmark_y: %f\n", landmarks[i].x, landmarks[i].y);
-    printf("relative_position_x: %f | relative_position_y: %f\n", relative_position_x, relative_position_y);
-
     exponent =
-      -0.5 *
-      (pow((landmarks[i].x - relative_position_x), 2) / pow(sigma_x, 2) +
-       pow((landmarks[i].y - relative_position_y), 2) / pow(sigma_y, 2));
+    -0.5 *
+    (pow((landmarks[i].x - relative_position_x), 2) / pow(sigma_x, 2) +
+    pow((landmarks[i].y - relative_position_y), 2) / pow(sigma_y, 2));
 
-    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y);
-    printf("likelihood: %f | exponent: %f\n", likelihood, exponent);
-    printf("sigma_x: %f | sigma_y: %f\n", sigma_x, sigma_y);
-    printf("exp(exponent): %f\n", exp(exponent));
+    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y) * 100000;
 
     if (likelihood > current_likelihood) {
       current_likelihood = likelihood;
@@ -311,49 +266,35 @@ double Robot::calculate_object_likelihood(
 void Robot::estimate_position() {
   keisan::Point2 sum_position = {0.0, 0.0};
   int centered_particles = 0;
+  center_particles.clear();
 
   // Find numbers of particles closed to the best particle
   for (int i = 0; i < num_particles; ++i) {
     double distance = sqrt(pow(particles[i].position.x - best_particle.position.x, 2) +
                            pow(particles[i].position.y - best_particle.position.y, 2));
 
-    if (distance < 25.0) {
+    if (distance < 50.0) {
       centered_particles++;
       sum_position.x += particles[i].position.x;
       sum_position.y += particles[i].position.y;
+
+      center_particles.push_back(particles[i]);
     }
   }
 
   // Use mean of centered particles position if more than 30% of particles are centered
-  if (reset_particles || centered_particles < 0.3 * num_particles) {
-    if (reset_particles) {
-      printf("RESET PARTICLES\n");
-      printf("RESET PARTICLES\n");
-      printf("RESET PARTICLES\n");
-      printf("RESET PARTICLES\n");
-    } else if (centered_particles < 0.3 * num_particles) {
-      printf("CENTERED PARTICLES NOT SATISFIED\n");
-      printf("CENTERED PARTICLES NOT SATISFIED\n");
-      printf("CENTERED PARTICLES NOT SATISFIED\n");
-      printf("CENTERED PARTICLES NOT SATISFIED\n");
-    }
-    estimated_position = position;
-  } else {
-    printf("CENTERED PARTICLES SATISFIED\n");
-    printf("CENTERED PARTICLES SATISFIED\n");
-    printf("CENTERED PARTICLES SATISFIED\n");
-    printf("CENTERED PARTICLES SATISFIED\n");
-    printf("CENTERED PARTICLES SATISFIED\n");
-    printf("CENTERED PARTICLES SATISFIED\n");
-    printf("CENTERED PARTICLES SATISFIED\n");
-    printf("CENTERED PARTICLES SATISFIED\n");
+  if (reset_particles ||  centered_particles < 3) {
+    estimated_position = position + delta_position;
+  } else{
     estimated_position.x = sum_position.x / centered_particles;
     estimated_position.y = sum_position.y / centered_particles;
+
+    estimated_position.x = std::max(0.0, std::min(900.0, estimated_position.x));
+    estimated_position.y = std::max(0.0, std::min(600.0, estimated_position.y));
+
     position = estimated_position;
     apply_localization = true;
   }
-
-  reset_particles = false;
 }
 
 void Robot::print_particles() {
@@ -374,8 +315,31 @@ void Robot::print_particles() {
     }
   }
 
+  printf("========================================\n");
+
+  printf("Centered particles: %d\n", center_particles.size());
+  for (int i = 0; i < center_particles.size(); ++i) {
+    std::cout << "Centered Particle " << std::setw(5) << i
+              << "  weight: " << std::fixed << std::setprecision(5)
+              << center_particles[i].weight << std::setw(5) << " ["
+              << std::fixed << std::setprecision(2) << center_particles[i].position.x
+              << ", " << std::fixed << std::setprecision(2)
+              << center_particles[i].position.y << ", " << std::fixed
+              << std::setprecision(2) << center_particles[i].orientation.degree() << "]"
+              << std::endl;
+  }
+
+  std::cout << "Best particle: " << std::fixed << std::setprecision(5)
+            << best_particle.weight << std::setw(5) << " ["
+            << std::fixed << std::setprecision(2) << best_particle.position.x
+            << ", " << std::fixed << std::setprecision(2)
+            << best_particle.position.y << ", " << std::fixed
+            << std::setprecision(2) << best_particle.orientation.degree() << "]"
+            << std::endl;
+
   std::cout << "Num particles: " << num_particles << std::endl;
   std::cout << "Sum weights: " << sum_samples << std::endl;
+  std::cout << "Projected objects: " << projected_objects.size() << std::endl;
   print_estimate_position();
 }
 
