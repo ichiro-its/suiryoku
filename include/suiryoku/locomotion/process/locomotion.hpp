@@ -48,6 +48,10 @@ public:
   void move_forward(const keisan::Angle<double> & direction);
   bool move_forward_to(const keisan::Point2 & target);
 
+  bool move_to_left_and_right(const keisan::Point2 & target);
+  void move_left(const keisan::Angle<double> & direction);
+  void move_right(const keisan::Angle<double> & direction);
+
   bool rotate_to_target(const keisan::Angle<double> & direction);
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
@@ -171,6 +175,14 @@ private:
 
   keisan::Angle<double> right_kick_target_pan;
   keisan::Angle<double> right_kick_target_tilt;
+
+  double right_min_ry;
+  double right_max_ry;
+  double right_max_a;
+  double left_min_ly;
+  double left_max_ly;
+  double left_max_a;
+
 
   std::shared_ptr<Robot> robot;
 };
