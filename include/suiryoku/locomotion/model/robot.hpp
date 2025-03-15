@@ -43,6 +43,12 @@ struct Particle
   double weight;
 };
 
+enum ResampleInterval
+{
+  CENTER,
+  FIELD
+};
+
 class Robot
 {
 public:
@@ -69,6 +75,7 @@ public:
   std::vector<Particle> particles;
   keisan::Point2 estimated_position;
   int num_particles;
+  double min_centered_particles_ratio;
 
   bool use_localization;
   bool apply_localization;
@@ -100,7 +107,7 @@ public:
   bool aim_on;
 
   bool reset_particles; // for debug, change to private later
-  std::vector<Particle> center_particles; // for debug, erase later
+  std::vector<Particle*> center_particles; // for debug, erase later
 
 private:
   double xvar;
@@ -115,6 +122,11 @@ private:
   double last_weight_avg;
 
   bool initial_localization;
+
+  int current_resample_interval;
+  int too_low_particles_count;
+
+  double prob; // for debug, remove later
 };
 
 }  // namespace suiryoku

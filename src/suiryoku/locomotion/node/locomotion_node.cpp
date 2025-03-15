@@ -84,6 +84,7 @@ LocomotionNode::LocomotionNode(
       run_localization |= message->x != 0.0;
       run_localization |= message->y != 0.0;
       run_localization |= this->robot->a_speed != 0.0;
+      run_localization &= this->robot->use_localization;
 
       if (run_localization) {
         this->robot->localize();
@@ -95,6 +96,12 @@ LocomotionNode::LocomotionNode(
     [this](const ProjectedObjects::SharedPtr message) {
       this->robot->projected_objects.clear();
       for (const auto & obj : message->projected_objects) {
+        if (obj.label == "ball" || obj.label == "robot" || obj.label == "self" ||
+          obj.position.x < 0.0 || obj.position.x > 400.0 ||
+          obj.position.y < 0.0 || obj.position.y > 300.0) {
+          continue;
+        }
+
         this->robot->projected_objects.push_back(
           ProjectedObject{
             obj.label,

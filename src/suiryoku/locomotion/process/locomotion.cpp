@@ -291,10 +291,9 @@ void Locomotion::set_config(const nlohmann::json & json)
   if (jitsuyo::assign_val(json, "localization", localization_section)) {
     bool valid_section = true;
 
-    valid_section &= jitsuyo::assign_val(localization_section, "enable", localization_enable);
-    valid_section &= jitsuyo::assign_val(localization_section, "num_particles", num_particles);
-    robot->use_localization = localization_enable;
-    robot->num_particles = num_particles;
+    valid_section &= jitsuyo::assign_val(localization_section, "enable", robot->use_localization);
+    valid_section &= jitsuyo::assign_val(localization_section, "num_particles", robot->num_particles);
+    valid_section &= jitsuyo::assign_val(localization_section, "min_centered_particles_ratio", robot->min_centered_particles_ratio);
 
     if (!valid_section) {
       std::cout << "Error found at section `localization`" << std::endl;
