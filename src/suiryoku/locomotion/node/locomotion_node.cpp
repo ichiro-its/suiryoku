@@ -80,15 +80,15 @@ LocomotionNode::LocomotionNode(
       this->robot->delta_position.x = message->x;
       this->robot->delta_position.y = message->y;
 
-      bool run_localization = false;
-      run_localization |= message->x != 0.0;
-      run_localization |= message->y != 0.0;
-      run_localization |= this->robot->a_speed != 0.0;
-      run_localization &= this->robot->use_localization;
+      // bool run_localization = false;
+      // run_localization |= message->x != 0.0;
+      // run_localization |= message->y != 0.0;
+      // run_localization |= this->robot->a_speed != 0.0;
+      // run_localization &= this->robot->use_localization;
 
-      if (run_localization) {
-        this->robot->localize();
-      }
+      // if (run_localization) {
+        // this->robot->localize();
+      // }
     });
 
   projected_objects_subscriber = node->create_subscription<ProjectedObjects>(
@@ -97,8 +97,8 @@ LocomotionNode::LocomotionNode(
       this->robot->projected_objects.clear();
       for (const auto & obj : message->projected_objects) {
         if (obj.label == "ball" || obj.label == "robot" || obj.label == "self" ||
-          obj.position.x < 0.0 || obj.position.x > 400.0 ||
-          obj.position.y < 0.0 || obj.position.y > 300.0) {
+          obj.position.x < 0.0 || obj.position.x > 7.5 ||
+          obj.position.y < -5.0 || obj.position.y > 5.0) {
           continue;
         }
 
@@ -107,6 +107,13 @@ LocomotionNode::LocomotionNode(
             obj.label,
             keisan::Point3{obj.position.x, obj.position.y, obj.position.z}
           });
+      }
+
+      this->robot->num_projected_objects = this->robot->projected_objects.size();
+
+      if (!this->robot->projected_objects.empty() && this->robot->use_localization) {
+        printf("localize\n");
+        this->robot->localize();
       }
     });
 

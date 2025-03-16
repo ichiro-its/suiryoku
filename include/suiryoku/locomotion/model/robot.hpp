@@ -46,7 +46,10 @@ struct Particle
 enum ResampleInterval
 {
   CENTER,
-  FIELD
+  FIELD_INIT,
+  FIELD_RESET,
+  FIELD_EMPTY_PROJECTED_OBJECTS,
+  FIELD_ZERO_WEIGHT
 };
 
 class Robot
@@ -59,6 +62,7 @@ public:
 
   // localizations
   void localize();
+  void reset_localization();
   void init_particles();
   void resample_particles();
   void update_motion();
@@ -76,12 +80,16 @@ public:
   keisan::Point2 estimated_position;
   int num_particles;
   double min_centered_particles_ratio;
+  double short_term_avg_ratio;
+  double long_term_avg_ratio;
+  double reset_particles_threshold;
 
   bool use_localization;
   bool apply_localization;
 
   // IPM
   std::vector<ProjectedObject> projected_objects;
+  int num_projected_objects;
 
   // member for getting
   bool is_calibrated;

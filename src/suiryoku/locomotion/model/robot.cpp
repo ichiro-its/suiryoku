@@ -38,7 +38,7 @@ Robot::Robot()
   num_particles(500), xvar(10.0), yvar(10.0), kidnap_counter(0), weight_avg(0.0),
   rand_gen(std::random_device{}()), short_term_avg(0.0), long_term_avg(0.0),
   last_weight_avg(0.0), estimated_position(0.0, 0.0), initial_localization(true),
-  reset_particles(false), too_low_particles_count(0)
+  reset_particles(false), too_low_particles_count(0), num_projected_objects(0)
 {
 }
 
@@ -74,13 +74,31 @@ void Robot::localize()
       last_weight_avg = weight_avg;
     }
 
-    short_term_avg = 0.2 * (weight_avg - short_term_avg);
-    long_term_avg = 0.005 * (weight_avg - long_term_avg);
+    short_term_avg += short_term_avg_ratio * (weight_avg - short_term_avg);
+    long_term_avg += long_term_avg_ratio * (weight_avg - long_term_avg);
     resample_particles();
   }
 
   estimate_position();
   projected_objects.clear();
+}
+
+void Robot::reset_localization() {
+  apply_localization = false;
+  initial_localization = true;
+  particles.clear();
+  center_particles.clear();
+  projected_objects.clear();
+  estimated_position = keisan::Point2(0.0, 0.0);
+  best_particle = Particle();
+  weight_avg = 0.0;
+  short_term_avg = 0.0;
+  long_term_avg = 0.0;
+  last_weight_avg = 0.0;
+  current_resample_interval = ResampleInterval::FIELD_INIT;
+  too_low_particles_count = 0;
+  reset_particles = false;
+  prob = 0.0;
 }
 
 void Robot::init_particles()
@@ -92,7 +110,7 @@ void Robot::init_particles()
   // std::uniform_int_distribution<int> yrg(position.y - 100, position.y + 100);
   std::uniform_int_distribution<int> xrg(0, 900);
   std::uniform_int_distribution<int> yrg(0, 600);
-  current_resample_interval = ResampleInterval::FIELD;
+  current_resample_interval = ResampleInterval::FIELD_INIT;
 
   for (int i = 0; i < num_particles; ++i) {
     particles[i].position = keisan::Point2(xrg(rand_gen), yrg(rand_gen));
@@ -112,8 +130,8 @@ void Robot::resample_particles()
   double beta = 0.0;
   double max_weight = 0.0;
   double sum_weight = get_sum_weight();
-  prob = std::max(0.0, 1.0 - short_term_avg/long_term_avg);
-  reset_particles = prob > 0.3;
+  prob = std::min(1.0, std::max(0.0, 1 - short_term_avg/long_term_avg));
+  reset_particles = prob > reset_particles_threshold;
 
   // find the best particle
   if (sum_weight > 0) {
@@ -137,7 +155,13 @@ void Robot::resample_particles()
     interval_y[1] = position.y + 75;
     current_resample_interval = ResampleInterval::CENTER;
   } else {
-    current_resample_interval = ResampleInterval::FIELD;
+    if (projected_objects.empty()) {
+      current_resample_interval = ResampleInterval::FIELD_EMPTY_PROJECTED_OBJECTS;
+    } else if (reset_particles) {
+      current_resample_interval = ResampleInterval::FIELD_RESET;
+    } else if (sum_weight <= 0) {
+      current_resample_interval = ResampleInterval::FIELD_ZERO_WEIGHT;
+    }
   }
 
   // resample particles
@@ -236,7 +260,7 @@ double Robot::calculate_total_likelihood(const Particle & particle) {
 double Robot::calculate_object_likelihood(
   const ProjectedObject & measurement, const Particle & particle) {
   std::vector<keisan::Point2> landmarks;
-  double sigma_x = 1.0, sigma_y = 1.0;
+  double sigma_x = 10.0, sigma_y = 10.0;
   double relative_position_x, relative_position_y;
   double dx, dy, x_rot, y_rot, exponent, likelihood;
   double current_likelihood = 0.0;
@@ -264,7 +288,7 @@ double Robot::calculate_object_likelihood(
     // }
 
     dx = measurement.position.x * 100;
-    dy = measurement.position.y * 100;
+    dy = -measurement.position.y * 100;
 
     x_rot = dx * particle.orientation.cos() - dy * particle.orientation.sin();
     y_rot = dx * particle.orientation.sin() + dy * particle.orientation.cos();
@@ -277,7 +301,7 @@ double Robot::calculate_object_likelihood(
     (pow((landmarks[i].x - relative_position_x), 2) / pow(sigma_x, 2) +
     pow((landmarks[i].y - relative_position_y), 2) / pow(sigma_y, 2));
 
-    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y) * 100000;
+    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y) * 100;
 
     if (likelihood > current_likelihood) {
       current_likelihood = likelihood;
@@ -349,8 +373,20 @@ void Robot::print_particles() {
     case ResampleInterval::CENTER:
       resample_interval = "CENTER";
       break;
-    case ResampleInterval::FIELD:
-      resample_interval = "FIELD";
+    case ResampleInterval::FIELD_EMPTY_PROJECTED_OBJECTS:
+      resample_interval = "FIELD_EMPTY_PROJECTED_OBJECTS";
+      break;
+    case ResampleInterval::FIELD_INIT:
+      resample_interval = "FIELD_INIT";
+      break;
+    case ResampleInterval::FIELD_RESET:
+      resample_interval = "FIELD_RESET";
+      break;
+    case ResampleInterval::FIELD_ZERO_WEIGHT:
+      resample_interval = "FIELD_ZERO_WEIGHT";
+      break;
+    default:
+      resample_interval = "UNKNOWN";
       break;
   }
 
@@ -387,7 +423,7 @@ void Robot::print_particles() {
 
   std::cout << "Num particles: " << num_particles << std::endl;
   std::cout << "Sum weights: " << sum_samples << std::endl;
-  std::cout << "Projected objects: " << projected_objects.size() << std::endl;
+  std::cout << "Projected objects: " << num_projected_objects << std::endl;
   print_estimate_position();
 }
 

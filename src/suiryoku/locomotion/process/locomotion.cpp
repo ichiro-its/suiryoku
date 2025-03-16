@@ -73,7 +73,7 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
-  
+
   nlohmann::json rotate_section;
   if (jitsuyo::assign_val(json, "rotate", rotate_section)) {
     bool valid_section = true;
@@ -86,7 +86,7 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
-  
+
   nlohmann::json backward_section;
   if (jitsuyo::assign_val(json, "backward", backward_section)) {
     bool valid_section = true;
@@ -100,7 +100,7 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
-  
+
   nlohmann::json dribble_section;
   if (jitsuyo::assign_val(json, "dribble", dribble_section)) {
     bool valid_section = true;
@@ -119,7 +119,7 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
-  
+
   nlohmann::json follow_section;
   if (jitsuyo::assign_val(json, "follow", follow_section)) {
     bool valid_section = true;
@@ -148,7 +148,7 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
-  
+
   nlohmann::json skew_section;
   if (jitsuyo::assign_val(json, "skew", skew_section)) {
     bool valid_section = true;
@@ -164,7 +164,7 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
-  
+
   nlohmann::json pivot_section;
   if (jitsuyo::assign_val(json, "pivot", pivot_section)) {
     bool valid_section = true;
@@ -181,7 +181,7 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(pivot_section, "pan_range_a_speed", pivot_pan_range_a_speed);
     valid_section &= jitsuyo::assign_val(pivot_section, "target_tilt", pivot_target_tilt_double);
     valid_section &= jitsuyo::assign_val(pivot_section, "pivot_stop_limit", pivot_stop_limit_double);
-    
+
     pivot_target_tilt = keisan::make_degree(pivot_target_tilt_double);
     pivot_stop_limit = keisan::make_degree(pivot_stop_limit_double);
 
@@ -192,7 +192,7 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
-  
+
   nlohmann::json position_section;
   if (jitsuyo::assign_val(json, "position", position_section)) {
     bool valid_section = true;
@@ -265,7 +265,7 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
-  
+
   nlohmann::json right_kick_section;
   if (jitsuyo::assign_val(json, "right_kick", right_kick_section)) {
     bool valid_section = true;
@@ -294,6 +294,9 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(localization_section, "enable", robot->use_localization);
     valid_section &= jitsuyo::assign_val(localization_section, "num_particles", robot->num_particles);
     valid_section &= jitsuyo::assign_val(localization_section, "min_centered_particles_ratio", robot->min_centered_particles_ratio);
+    valid_section &= jitsuyo::assign_val(localization_section, "short_term_avg_ratio", robot->short_term_avg_ratio);
+    valid_section &= jitsuyo::assign_val(localization_section, "long_term_avg_ratio", robot->long_term_avg_ratio);
+    valid_section &= jitsuyo::assign_val(localization_section, "reset_particles_threshold", robot->reset_particles_threshold);
 
     if (!valid_section) {
       std::cout << "Error found at section `localization`" << std::endl;
@@ -431,7 +434,7 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target)
   if (target_distance < 8.0) {
     return true;
   }
-  
+
   auto direction = keisan::signed_arctan(delta_y, delta_x).normalize();
   double delta_direction = (direction - robot->orientation).normalize().degree();
 
@@ -707,7 +710,7 @@ bool Locomotion::pivot(const keisan::Angle<double> & direction)
   if (fabs(pan) > pivot_pan_range_a_speed) {
     a_speed = keisan::map(pan, -pivot_pan_range_a_speed, pivot_pan_range_a_speed, pivot_max_a, -pivot_max_a);
   }
-  
+
   robot->x_speed = x_speed;
   robot->y_speed = y_speed;
   robot->a_speed = a_speed;
@@ -848,8 +851,8 @@ bool Locomotion::position_kick_general(const keisan::Angle<double> & direction)
     (left_kick_target_tilt > right_kick_target_tilt ? left_kick_target_tilt : right_kick_target_tilt) + position_min_delta_tilt);
 }
 
-bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & direction, const keisan::Angle<double> & min_pan, 
-  const keisan::Angle<double> & max_pan, const keisan::Angle<double> & min_tilt, const keisan::Angle<double> & max_tilt) 
+bool Locomotion::position_kick_custom_pan_tilt(const keisan::Angle<double> & direction, const keisan::Angle<double> & min_pan,
+  const keisan::Angle<double> & max_pan, const keisan::Angle<double> & min_tilt, const keisan::Angle<double> & max_tilt)
 {
   double pan = (robot->get_pan() + robot->pan_center).degree();
   double tilt = (robot->get_tilt() + robot->tilt_center).degree();
@@ -932,7 +935,7 @@ bool Locomotion::position_kick_range_pan_tilt(const keisan::Angle<double> & dire
 
   double delta_pan = (target_pan - pan).degree();
   double y_speed = 0.0;
-  
+
   if (!pan_in_range) {
     if (delta_pan < -position_min_delta_pan.degree()) {
       y_speed = keisan::map(delta_pan, -20.0, -position_min_delta_pan.degree(), position_max_ly, position_min_ly);
