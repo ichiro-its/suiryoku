@@ -55,6 +55,9 @@ LocomotionNode::LocomotionNode(
   set_odometry_publisher = node->create_publisher<Point2>(
     aruku::WalkingNode::set_odometry_topic(), 10);
 
+  particles_publisher = node->create_publisher<Particles>(
+    "/localization/particles", 10);
+
   walking_status_subscriber = node->create_subscription<WalkingStatus>(
     aruku::WalkingNode::status_topic(), 10,
     [this](const WalkingStatus::SharedPtr message)
@@ -114,6 +117,7 @@ LocomotionNode::LocomotionNode(
       if (!this->robot->projected_objects.empty() && this->robot->use_localization) {
         printf("localize\n");
         this->robot->localize();
+        publish_particles();
       }
     });
 
@@ -159,6 +163,22 @@ void LocomotionNode::publish_odometry()
 
   set_odometry_publisher->publish(odometry_msg);
   set_odometry = false;
+}
+
+void LocomotionNode::publish_particles()
+{
+  Particles particles_msg;
+  for (const auto & p : robot->particles) {
+    Particle particle_msg;
+    particle_msg.x = p.position.x;
+    particle_msg.y = p.position.y;
+    particle_msg.orientation = p.orientation.degree();
+    particle_msg.weight = p.weight;
+
+    particles_msg.particles.push_back(particle_msg);
+  }
+
+  particles_publisher->publish(particles_msg);
 }
 
 }  // namespace suiryoku
