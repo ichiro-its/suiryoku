@@ -38,7 +38,8 @@ Robot::Robot()
   num_particles(500), xvar(10.0), yvar(10.0), kidnap_counter(0), weight_avg(0.0),
   rand_gen(std::random_device{}()), short_term_avg(0.0), long_term_avg(0.0),
   last_weight_avg(0.0), estimated_position(0.0, 0.0), initial_localization(true),
-  reset_particles(false), too_low_particles_count(0), num_projected_objects(0)
+  reset_particles(false), too_low_particles_count(0), num_projected_objects(0),
+  sigma_x(1.0), sigma_y(1.0), short_term_avg_ratio(0.1), long_term_avg_ratio(0.001)
 {
 }
 
@@ -260,7 +261,6 @@ double Robot::calculate_total_likelihood(const Particle & particle) {
 double Robot::calculate_object_likelihood(
   const ProjectedObject & measurement, const Particle & particle) {
   std::vector<keisan::Point2> landmarks;
-  double sigma_x = 10.0, sigma_y = 10.0;
   double relative_position_x, relative_position_y;
   double dx, dy, x_rot, y_rot, exponent, likelihood;
   double current_likelihood = 0.0;
@@ -288,10 +288,10 @@ double Robot::calculate_object_likelihood(
     // }
 
     dx = measurement.position.x * 100;
-    dy = -measurement.position.y * 100;
+    dy = measurement.position.y * 100;
 
-    x_rot = dx * particle.orientation.cos() - dy * particle.orientation.sin();
-    y_rot = dx * particle.orientation.sin() + dy * particle.orientation.cos();
+    x_rot = dx * particle.orientation.cos() + dy * particle.orientation.sin();
+    y_rot = dx * particle.orientation.sin() - dy * particle.orientation.cos();
 
     relative_position_x = particle.position.x + x_rot;
     relative_position_y = particle.position.y + y_rot;

@@ -83,6 +83,8 @@ public:
   double short_term_avg_ratio;
   double long_term_avg_ratio;
   double reset_particles_threshold;
+  double sigma_x;
+  double sigma_y;
 
   bool use_localization;
   bool apply_localization;
