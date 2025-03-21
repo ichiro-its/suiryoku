@@ -55,6 +55,10 @@ keisan::Angle<double> Robot::get_tilt() const
 
 void Robot::localize()
 {
+  if (!use_localization) {
+    return;
+  }
+
   if (initial_localization) {
     init_particles();
   } else {
@@ -100,6 +104,10 @@ void Robot::reset_localization() {
   too_low_particles_count = 0;
   reset_particles = false;
   prob = 0.0;
+
+  if (use_localization) {
+    localize();
+  }
 }
 
 void Robot::init_particles()
@@ -131,7 +139,8 @@ void Robot::resample_particles()
   double beta = 0.0;
   double max_weight = 0.0;
   double sum_weight = get_sum_weight();
-  prob = std::min(1.0, std::max(0.0, 1 - short_term_avg/long_term_avg));
+  // if (long_term_avg < 1e-6) long_term_avg = 1e-6;
+  prob = std::min(1.0, std::max(0.0, 1.0 - short_term_avg / long_term_avg));
   reset_particles = prob > reset_particles_threshold;
 
   // find the best particle
@@ -146,14 +155,14 @@ void Robot::resample_particles()
   }
 
   // determine resample interval area
-  double interval_x[2] = {0.0, 900.0};
-  double interval_y[2] = {0.0, 600.0};
+  int interval_x[2] = {0, 900};
+  int interval_y[2] = {0, 600};
 
   if (!projected_objects.empty() && !reset_particles && sum_weight > 0) {
-    interval_x[0] = position.x - 75;
-    interval_x[1] = position.x + 75;
-    interval_y[0] = position.y - 75;
-    interval_y[1] = position.y + 75;
+    interval_x[0] = position.x - 125;
+    interval_x[1] = position.x + 125;
+    interval_y[0] = position.y - 125;
+    interval_y[1] = position.y + 125;
     current_resample_interval = ResampleInterval::CENTER;
   } else {
     if (projected_objects.empty()) {
@@ -165,9 +174,19 @@ void Robot::resample_particles()
     }
   }
 
+  // resample particles (debug)
+  // std::uniform_int_distribution<int> xrg(interval_x[0], interval_x[1]);
+  // std::uniform_int_distribution<int> yrg(interval_y[0], interval_y[1]);
+
+  // for (int i = 0; i < num_particles; ++i) {
+  //   particles[i].position = keisan::Point2(xrg(rand_gen), yrg(rand_gen));
+  //   particles[i].orientation = orientation;
+  // }
+
   // resample particles
   std::uniform_real_distribution<double> rand_prob(0.0, 1.0);
   double uniform_weight = 1.0 / num_particles;
+
   for (int i = 0; i < num_particles; ++i) {
     if (rand_prob(rand_gen) < prob) {
       std::uniform_int_distribution<int> xrg(interval_x[0], interval_x[1]);
@@ -186,6 +205,8 @@ void Robot::resample_particles()
       new_particles[i] = old_particles[index];
     }
   }
+
+  particles = new_particles;
 
   reset_particles = false;
 }
@@ -301,7 +322,7 @@ double Robot::calculate_object_likelihood(
     (pow((landmarks[i].x - relative_position_x), 2) / pow(sigma_x, 2) +
     pow((landmarks[i].y - relative_position_y), 2) / pow(sigma_y, 2));
 
-    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y) * 100;
+    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y);
 
     if (likelihood > current_likelihood) {
       current_likelihood = likelihood;
@@ -390,9 +411,14 @@ void Robot::print_particles() {
       break;
   }
 
+  printf("Particles num: %d\n", particles.size());
   printf("Resample interval: %s\n", resample_interval.c_str());
-  printf("Prob: %.2f | is more than 0.1: %s\n", prob, (prob > 0.1) ? "true" : "false");
+  printf("Prob: %.2f | is more than %.2f: %s\n", prob, (prob > reset_particles_threshold) ? "true" : "false", reset_particles_threshold);
   printf("Reset particles: %s\n", reset_particles ? "true" : "false");
+  printf("Short term avg: %.5f\n", short_term_avg);
+  printf("Long term avg: %.5f\n", long_term_avg);
+  printf("Last weight avg: %.5f\n", last_weight_avg);
+  printf("Weight avg: %.5f\n", weight_avg);
 
   printf("========================================\n");
   printf("Minimal Centered Particles: %.0f\n", min_centered_particles_ratio * num_particles);

@@ -100,8 +100,8 @@ LocomotionNode::LocomotionNode(
       this->robot->projected_objects.clear();
       for (const auto & obj : message->projected_objects) {
         if (obj.label == "ball" || obj.label == "robot" || obj.label == "self" ||
-          obj.position.x < 0.0 || obj.position.x > 7.5 ||
-          obj.position.y < -5.0 || obj.position.y > 5.0) {
+          obj.position.x < 0.0 || obj.position.x > 4.0 ||
+          obj.position.y < -4.0 || obj.position.y > 4.0) {
           continue;
         }
 
@@ -117,7 +117,6 @@ LocomotionNode::LocomotionNode(
       if (!this->robot->projected_objects.empty() && this->robot->use_localization) {
         printf("localize\n");
         this->robot->localize();
-        publish_particles();
       }
     });
 
@@ -138,6 +137,7 @@ void LocomotionNode::update()
     }
     this->robot->apply_localization = false;
     publish_odometry();
+    publish_particles();
   }
 }
 
