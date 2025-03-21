@@ -28,10 +28,14 @@
 #include "aruku_interfaces/msg/set_walking.hpp"
 #include "aruku_interfaces/msg/status.hpp"
 #include "atama_interfaces/msg/head.hpp"
+#include "gyakuenki_interfaces/msg/projected_objects.hpp"
 #include "kansei_interfaces/msg/status.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/process/locomotion.hpp"
+#include "suiryoku_interfaces/msg/particle.hpp"
+#include "suiryoku_interfaces/msg/particles.hpp"
+
 
 namespace suiryoku
 {
@@ -41,7 +45,10 @@ class LocomotionNode
 public:
   using Head = atama_interfaces::msg::Head;
   using MeasurementStatus = kansei_interfaces::msg::Status;
+  using Particle = suiryoku_interfaces::msg::Particle;
+  using Particles = suiryoku_interfaces::msg::Particles;
   using Point2 = aruku_interfaces::msg::Point2;
+  using ProjectedObjects = gyakuenki_interfaces::msg::ProjectedObjects;
   using SetWalking = aruku_interfaces::msg::SetWalking;
   using WalkingStatus = aruku_interfaces::msg::Status;
 
@@ -57,17 +64,26 @@ public:
 private:
   void publish_walking();
   void publish_odometry();
+  void publish_particles();
 
   rclcpp::Node::SharedPtr node;
 
   rclcpp::Publisher<SetWalking>::SharedPtr set_walking_publisher;
 
   rclcpp::Publisher<Point2>::SharedPtr set_odometry_publisher;
+
+  rclcpp::Publisher<Particles>::SharedPtr particles_publisher;
+
   rclcpp::Subscription<MeasurementStatus>::SharedPtr
     measurement_status_subscriber;
+
   rclcpp::Subscription<WalkingStatus>::SharedPtr walking_status_subscriber;
 
   rclcpp::Subscription<Head>::SharedPtr head_subscriber;
+
+  rclcpp::Subscription<ProjectedObjects>::SharedPtr projected_objects_subscriber;
+
+  rclcpp::Subscription<Point2>::SharedPtr delta_position_subscriber;
 
   std::shared_ptr<Locomotion> locomotion;
   std::shared_ptr<Robot> robot;
