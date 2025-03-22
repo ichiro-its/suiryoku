@@ -63,18 +63,27 @@ public:
   bool pivot_new(const keisan::Angle<double> & direction);
 
   bool position_until(
-    const keisan::Angle<double> & target_pan,
-    const keisan::Angle<double> & target_tilt,
+    const keisan::Angle<double> & target_pan, const keisan::Angle<double> & target_tilt,
     const keisan::Angle<double> & direction);
   bool position_left_kick(const keisan::Angle<double> & direction);
   bool position_right_kick(const keisan::Angle<double> & direction);
-  bool position_kick_custom_pan_tilt(const keisan::Angle<double> & direction, const keisan::Angle<double> & min_pan, 
-                                     const keisan::Angle<double> & max_pan, const keisan::Angle<double> & min_tilt, 
-                                     const keisan::Angle<double> & max_tilt);
+  bool position_kick_custom_pan_tilt(
+    const keisan::Angle<double> & direction, const keisan::Angle<double> & min_pan,
+    const keisan::Angle<double> & max_pan, const keisan::Angle<double> & min_tilt,
+    const keisan::Angle<double> & max_tilt);
   bool position_kick_general(const keisan::Angle<double> & direction);
-  bool position_kick_range_pan_tilt(const keisan::Angle<double> & direction, bool precise_kick, bool left_kick, bool is_positioning_center);
+  bool position_kick_range_pan_tilt(
+    const keisan::Angle<double> & direction, bool precise_kick, bool left_kick,
+    bool is_positioning_center);
 
-  bool is_time_to_follow();
+  bool position_basketball(
+    const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
+    const keisan::Angle<double> direction);
+  bool position_basket(
+    const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
+    const keisan::Angle<double> direction);
+
+    bool is_time_to_follow();
   bool pivot_fulfilled();
   bool in_pan_kick_range();
   bool in_tilt_kick_range();
@@ -92,7 +101,6 @@ public:
   keisan::Angle<double> pivot_stop_limit;
 
 private:
-
   double move_min_x;
   double move_max_x;
   double move_max_y;
