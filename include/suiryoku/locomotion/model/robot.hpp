@@ -52,6 +52,13 @@ enum ResampleInterval
   FIELD_ZERO_WEIGHT
 };
 
+enum UpdateMotionState
+{
+  NOT_UPDATED,
+  WITH_NOISE,
+  WITHOUT_NOISE
+};
+
 class Robot
 {
 public:
@@ -124,7 +131,7 @@ private:
   double xvar;
   double yvar;
   int kidnap_counter;
-  Particle best_particle;
+  Particle* best_particle;
 
   std::mt19937 rand_gen;
   double weight_avg;
@@ -135,7 +142,7 @@ private:
   bool initial_localization;
 
   int current_resample_interval;
-  int too_low_particles_count;
+  int update_motion_state;
 
   double prob; // for debug, remove later
 };

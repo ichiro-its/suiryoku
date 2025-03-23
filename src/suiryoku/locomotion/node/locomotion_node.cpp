@@ -116,11 +116,6 @@ LocomotionNode::LocomotionNode(
       }
 
       this->robot->num_projected_objects = this->robot->projected_objects.size();
-
-      if (!this->robot->projected_objects.empty() && this->robot->use_localization) {
-        printf("localize\n");
-        this->robot->localize();
-      }
     });
 
   locomotion->stop = [this]() {this->walking_state = false;};
@@ -129,9 +124,9 @@ LocomotionNode::LocomotionNode(
 
 void LocomotionNode::update()
 {
-  // printf("Starting localization\n");
-  // this->robot->localize();
-  // printf("Localization done\n");
+  if (this->robot->use_localization) {
+    this->robot->localize();
+  }
 
   publish_walking();
   if (set_odometry || this->robot->apply_localization) {
@@ -140,6 +135,9 @@ void LocomotionNode::update()
     }
     this->robot->apply_localization = false;
     publish_odometry();
+  }
+
+  if (this->robot->use_localization) {
     publish_particles();
   }
 }
@@ -171,6 +169,8 @@ void LocomotionNode::publish_odometry()
 void LocomotionNode::publish_particles()
 {
   Particles particles_msg;
+  double max_weight = 0.0;
+
   for (const auto & p : robot->particles) {
     Particle particle_msg;
     particle_msg.x = p.position.x;
@@ -179,8 +179,13 @@ void LocomotionNode::publish_particles()
     particle_msg.weight = p.weight;
 
     particles_msg.particles.push_back(particle_msg);
+
+    if (p.weight > max_weight) {
+      max_weight = p.weight;
+    }
   }
 
+  particles_msg.max_weight = max_weight;
   particles_publisher->publish(particles_msg);
 }
 
