@@ -90,7 +90,7 @@ void Robot::localize()
 }
 
 void Robot::reset_localization() {
-  apply_localization = false;
+  apply_localization = true;
   initial_localization = true;
   particles.clear();
   center_particles.clear();
@@ -153,10 +153,10 @@ void Robot::resample_particles()
   int interval_y[2] = {0, 600};
 
   if (!projected_objects.empty() && !reset_particles && sum_weight > 0) {
-    interval_x[0] = position.x - 100;
-    interval_x[1] = position.x + 100;
-    interval_y[0] = position.y - 100;
-    interval_y[1] = position.y + 100;
+    interval_x[0] = position.x - 75;
+    interval_x[1] = position.x + 75;
+    interval_y[0] = position.y - 75;
+    interval_y[1] = position.y + 75;
     prob = std::min(0.05, prob);
     current_resample_interval = ResampleInterval::CENTER;
   } else {
@@ -175,13 +175,13 @@ void Robot::resample_particles()
   std::uniform_real_distribution<double> rand_beta(0.0, 2.0 * max_weight);
   std::uniform_int_distribution<int> xrg(interval_x[0], interval_x[1]);
   std::uniform_int_distribution<int> yrg(interval_y[0], interval_y[1]);
-  std::uniform_int_distribution<int> field_xrg(0, 900);
-  std::uniform_int_distribution<int> field_yrg(0, 600);
+  std::uniform_int_distribution<int> large_xrg(interval_x[0] - 25, interval_x[1] + 25);
+  std::uniform_int_distribution<int> large_yrg(interval_y[0] - 25, interval_y[1] + 25);
   double uniform_weight = 1.0 / num_particles;
 
   // adaptive noise
-  double max_sigma = 35.0;
-  double min_sigma = 5.0;
+  double max_sigma = 30.0;
+  double min_sigma = 1.0;
 
   double sigma_factor = 1.0 - prob;
   double resample_sigma_x = min_sigma + sigma_factor * (max_sigma - min_sigma);
@@ -191,7 +191,7 @@ void Robot::resample_particles()
   std::normal_distribution<double> noise_y(0.0, resample_sigma_y);
 
   for (int i = 0; i < num_particles; ++i) {
-    if (rand_prob2(rand_gen) < 0.7) {
+    if (rand_prob2(rand_gen) < 0.97) {
       if (rand_prob(rand_gen) < prob) {
         new_particles[i].position = keisan::Point2(xrg(rand_gen), yrg(rand_gen));
         new_particles[i].orientation = orientation;
@@ -209,7 +209,7 @@ void Robot::resample_particles()
         new_particles[i].position.y += noise_y(rand_gen);
       }
     } else {
-      new_particles[i].position = keisan::Point2(field_xrg(rand_gen), field_yrg(rand_gen));
+      new_particles[i].position = keisan::Point2(large_xrg(rand_gen), large_yrg(rand_gen));
       new_particles[i].orientation = orientation;
       new_particles[i].weight = 0.0;
     }
@@ -266,18 +266,6 @@ void Robot::calculate_weight()
     sum_weight += p.weight;
   }
 
-  // normalize weights
-  // if (!std::isnan(sum_weight) && sum_weight > 0) {
-  //   for (auto & p : particles) {
-  //     p.weight /= sum_weight;
-  //   }
-
-  //   weight_avg = 1.0 / num_particles;
-  // } else {
-  //   weight_avg = 0.0;
-  // }
-
-  // without normalize
   if (!std::isnan(sum_weight) && sum_weight > 0) {
     weight_avg = sum_weight / num_particles;
   } else {
@@ -286,9 +274,9 @@ void Robot::calculate_weight()
 }
 
 double Robot::calculate_total_likelihood(const Particle & particle) {
-  double total_likelihood = 1.0;
+  double total_likelihood = 0.0;
   for (const auto & object_measurement : projected_objects) {
-    total_likelihood *=
+    total_likelihood +=
       calculate_object_likelihood(object_measurement, particle);
   }
 
@@ -329,9 +317,7 @@ double Robot::calculate_object_likelihood(
 
     likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y) * 100;
 
-    if (likelihood > current_likelihood) {
-      current_likelihood = likelihood;
-    }
+    current_likelihood += likelihood;
   }
 
   return current_likelihood;
@@ -411,7 +397,6 @@ void Robot::print_particles() {
       update_motion = "UNKNOWN";
       break;
   }
-
 
   printf("Particles num: %d\n", particles.size());
   printf("Resample interval: %s\n", resample_interval.c_str());
