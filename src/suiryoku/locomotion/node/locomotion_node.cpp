@@ -99,9 +99,12 @@ LocomotionNode::LocomotionNode(
     [this](const ProjectedObjects::SharedPtr message) {
       this->robot->projected_objects.clear();
       for (const auto & obj : message->projected_objects) {
-        if (obj.label == "ball" || obj.label == "robot" || obj.label == "self" ||
-          obj.position.x < 0.0 || obj.position.x > 4.0 ||
-          obj.position.y < -4.0 || obj.position.y > 4.0) {
+        bool ignore_object = obj.label == "ball" || obj.label == "robot" || obj.label == "self";
+        ignore_object |= obj.position.x < 0.0;
+        ignore_object |= obj.position.x > this->robot->max_object_distance.x;
+        ignore_object |= obj.position.y < -this->robot->max_object_distance.y;
+        ignore_object |= obj.position.y > this->robot->max_object_distance.y;
+        if (ignore_object) {
           continue;
         }
 

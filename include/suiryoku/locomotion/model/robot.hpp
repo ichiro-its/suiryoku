@@ -92,6 +92,7 @@ public:
   // IPM
   std::vector<ProjectedObject> projected_objects;
   int num_projected_objects;
+  keisan::Point2 max_object_distance;
 
   // member for getting
   bool is_calibrated;

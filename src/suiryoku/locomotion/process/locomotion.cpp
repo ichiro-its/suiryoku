@@ -299,6 +299,8 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(localization_section, "reset_particles_threshold", robot->reset_particles_threshold);
     valid_section &= jitsuyo::assign_val(localization_section, "sigma_x", robot->sigma_x);
     valid_section &= jitsuyo::assign_val(localization_section, "sigma_y", robot->sigma_y);
+    valid_section &= jitsuyo::assign_val(localization_section, "max_distance_x", robot->max_object_distance.x);
+    valid_section &= jitsuyo::assign_val(localization_section, "max_distance_y", robot->max_object_distance.y);
 
     if (!valid_section) {
       std::cout << "Error found at section `localization`" << std::endl;
