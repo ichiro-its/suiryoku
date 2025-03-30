@@ -244,6 +244,7 @@ void Robot::update_motion()
       p.position.y += delta_position.y;
       p.orientation = orientation;
     }
+    estimated_position += delta_position;
     update_motion_state = UpdateMotionState::WITHOUT_NOISE;
   }
 }

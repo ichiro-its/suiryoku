@@ -185,7 +185,11 @@ void LocomotionNode::publish_particles()
     }
   }
 
-  particles_msg.max_weight = max_weight;
+  particles_msg.estimated_position.x = robot->estimated_position.x;
+  particles_msg.estimated_position.y = robot->estimated_position.y;
+  particles_msg.estimated_position.orientation = robot->orientation.degree();
+  particles_msg.estimated_position.weight = max_weight;
+
   particles_publisher->publish(particles_msg);
 }
 
