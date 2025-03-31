@@ -82,16 +82,6 @@ LocomotionNode::LocomotionNode(
     [this](const Point2::SharedPtr message) {
       this->robot->delta_position.x = message->x;
       this->robot->delta_position.y = message->y;
-
-      // bool run_localization = false;
-      // run_localization |= message->x != 0.0;
-      // run_localization |= message->y != 0.0;
-      // run_localization |= this->robot->a_speed != 0.0;
-      // run_localization &= this->robot->use_localization;
-
-      // if (run_localization) {
-        // this->robot->localize();
-      // }
     });
 
   projected_objects_subscriber = node->create_subscription<ProjectedObjects>(
