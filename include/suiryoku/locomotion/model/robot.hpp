@@ -104,6 +104,8 @@ public:
   // member for getting
   bool is_calibrated;
   keisan::Angle<double> orientation;
+  keisan::Angle<double> orientation_roll;
+  keisan::Angle<double> orientation_pitch;
   keisan::Point2 position;
   keisan::Point2 delta_position;
 

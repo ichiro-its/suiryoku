@@ -50,6 +50,8 @@ LocomotionNode::LocomotionNode(
     [this](const MeasurementStatus::SharedPtr message) {
       this->robot->is_calibrated = message->is_calibrated;
       this->robot->orientation = keisan::make_degree(message->orientation.yaw);
+      this->robot->orientation_roll = keisan::make_degree(message->orientation.roll);
+      this->robot->orientation_pitch = keisan::make_degree(message->orientation.pitch);
     });
 
   set_odometry_publisher = node->create_publisher<Point2>(

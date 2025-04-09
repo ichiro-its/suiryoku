@@ -32,11 +32,12 @@ namespace suiryoku
 
 Robot::Robot()
 : pan(0_deg), tilt(0_deg), pan_center(0_deg), tilt_center(0_deg), x_speed(0.0),
-  y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false), orientation(0_deg),
-  position(0.0, 0.0), x_amplitude(0.0), y_amplitude(0.0), a_amplitude(0.0),
-  is_calibrated(false), use_localization(false), apply_localization(false),
-  num_particles(500), xvar(10.0), yvar(10.0), kidnap_counter(0), best_particle(nullptr),
-  weight_avg(0.0), rand_gen(std::random_device{}()), short_term_avg(0.0), long_term_avg(0.0),
+  y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false), position(0.0, 0.0),
+  orientation(0_deg), orientation_roll(0_deg), orientation_pitch(0_deg),
+  x_amplitude(0.0), y_amplitude(0.0), a_amplitude(0.0), is_calibrated(false),
+  use_localization(false), apply_localization(false), num_particles(500),
+  xvar(10.0), yvar(10.0), kidnap_counter(0), best_particle(nullptr), weight_avg(0.0),
+  rand_gen(std::random_device{}()), short_term_avg(0.0), long_term_avg(0.0),
   last_weight_avg(0.0), estimated_position(0.0, 0.0), initial_localization(true),
   reset_particles(false), num_projected_objects(0), sigma_x(1.0), sigma_y(1.0),
   short_term_avg_ratio(0.1), long_term_avg_ratio(0.001)
@@ -65,7 +66,13 @@ void Robot::localize()
     update_motion();
   }
 
-  if (!projected_objects.empty()){
+  bool evaluate_particles = !projected_objects.empty();
+  evaluate_particles &= fabs(orientation_roll.degree()) <= 5;
+  evaluate_particles &= fabs(orientation_pitch.degree()) <= 3;
+  evaluate_particles &= fabs(get_pan().degree()) <= 70;
+  evaluate_particles &= get_tilt().degree() > -40;
+
+  if (evaluate_particles) {
     weight_avg = 0.0;
     calculate_weight();
     if (weight_avg <= 0 || std::isnan(weight_avg)) {
@@ -172,15 +179,18 @@ void Robot::resample_particles()
   // resample particles
   std::uniform_real_distribution<double> rand_prob(0.0, 1.0);
   std::uniform_real_distribution<double> rand_prob2(0.0, 1.0);
+  std::uniform_real_distribution<double> rand_prob3(0.0, 1.0);
   std::uniform_real_distribution<double> rand_beta(0.0, 2.0 * max_weight);
   std::uniform_int_distribution<int> xrg(interval_x[0], interval_x[1]);
   std::uniform_int_distribution<int> yrg(interval_y[0], interval_y[1]);
-  std::uniform_int_distribution<int> large_xrg(0, 900);
-  std::uniform_int_distribution<int> large_yrg(0, 600);
+  std::uniform_int_distribution<int> large_xrg(interval_x[0] - 75, interval_x[1] + 75);
+  std::uniform_int_distribution<int> large_yrg(interval_y[0] - 75, interval_y[1] + 75);
+  std::uniform_int_distribution<int> field_xrg(0, 900);
+  std::uniform_int_distribution<int> field_yrg(0, 600);
   double uniform_weight = 1.0 / num_particles;
 
   // adaptive noise
-  double max_sigma = 10.0;
+  double max_sigma = 15.0;
   double min_sigma = 1.0;
 
   double sigma_factor = 1.0 - prob;
@@ -191,7 +201,7 @@ void Robot::resample_particles()
   std::normal_distribution<double> noise_y(0.0, resample_sigma_y);
 
   for (int i = 0; i < num_particles; ++i) {
-    if (rand_prob2(rand_gen) < 0.85) {
+    if (rand_prob2(rand_gen) < 0.90) {
       if (rand_prob(rand_gen) < prob) {
         new_particles[i].position = keisan::Point2(xrg(rand_gen), yrg(rand_gen));
         new_particles[i].orientation = orientation;
@@ -209,9 +219,13 @@ void Robot::resample_particles()
         new_particles[i].position.y += noise_y(rand_gen);
       }
     } else {
-      new_particles[i].position = keisan::Point2(large_xrg(rand_gen), large_yrg(rand_gen));
+      if (rand_prob3 (rand_gen) < 0.5) {
+        new_particles[i].position = keisan::Point2(large_xrg(rand_gen), large_yrg(rand_gen));
+      } else {
+        new_particles[i].position = keisan::Point2(field_xrg(rand_gen), field_yrg(rand_gen));
+      }
       new_particles[i].orientation = orientation;
-      new_particles[i].weight = 1 / num_particles;
+      new_particles[i].weight = 0.1 / num_particles;
     }
   }
 
@@ -310,7 +324,7 @@ double Robot::calculate_object_likelihood(
     (pow((landmarks[i].x - relative_position_x), 2) / pow(sigma_x, 2) +
     pow((landmarks[i].y - relative_position_y), 2) / pow(sigma_y, 2));
 
-    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y);
+    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y) * 100.0;
 
     current_likelihood += likelihood;
   }
