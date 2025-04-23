@@ -70,7 +70,7 @@ public:
   // localizations
   void localize();
   void reset_localization();
-  void init_particles();
+  void init_particles(const keisan::Point2 init_position);
   void resample_particles();
   void update_motion();
   void calculate_weight();

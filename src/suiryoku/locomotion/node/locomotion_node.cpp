@@ -92,10 +92,9 @@ LocomotionNode::LocomotionNode(
       this->robot->projected_objects.clear();
       for (const auto & obj : message->projected_objects) {
         bool ignore_object = obj.label == "ball" || obj.label == "robot" || obj.label == "self";
-        ignore_object |= obj.position.x < 0.0;
-        ignore_object |= obj.position.x > this->robot->max_object_distance.x;
-        ignore_object |= obj.position.y < -this->robot->max_object_distance.y;
-        ignore_object |= obj.position.y > this->robot->max_object_distance.y;
+        ignore_object |= obj.position.x * 100 > this->robot->max_object_distance.x;
+        ignore_object |= obj.position.y * 100 < -this->robot->max_object_distance.y;
+        ignore_object |= obj.position.y * 100 > this->robot->max_object_distance.y;
         if (ignore_object) {
           continue;
         }
@@ -118,19 +117,13 @@ void LocomotionNode::update()
 {
   if (this->robot->use_localization) {
     this->robot->localize();
+    publish_particles();
   }
 
   publish_walking();
   if (set_odometry || this->robot->apply_localization) {
-    if (this->robot->apply_localization) {
-      printf("Localization applied\n");
-    }
     this->robot->apply_localization = false;
     publish_odometry();
-  }
-
-  if (this->robot->use_localization) {
-    publish_particles();
   }
 }
 
