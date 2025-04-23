@@ -89,7 +89,7 @@ LocomotionNode::LocomotionNode(
   projected_objects_subscriber = node->create_subscription<ProjectedObjects>(
     "/gyakuenki_cpp/projected_objects", 10,
     [this](const ProjectedObjects::SharedPtr message) {
-      this->robot->projected_objects.clear();
+      this->robot->clear_projected_objects();
       for (const auto & obj : message->projected_objects) {
         bool ignore_object = obj.label == "ball" || obj.label == "robot" || obj.label == "self";
         ignore_object |= obj.position.x * 100 > this->robot->max_object_distance.x;
@@ -99,14 +99,22 @@ LocomotionNode::LocomotionNode(
           continue;
         }
 
-        this->robot->projected_objects.push_back(
-          ProjectedObject{
-            obj.label,
-            keisan::Point3{obj.position.x, obj.position.y, obj.position.z}
-          });
-      }
+        auto projected_object = ProjectedObject{
+          obj.label,
+          keisan::Point3{obj.position.x, obj.position.y, obj.position.z}
+        };
 
-      this->robot->num_projected_objects = this->robot->projected_objects.size();
+        if (obj.label == "X-Intersection") {
+          this->robot->projected_X.push_back(projected_object);
+        } else if (obj.label == "L-Intersection") {
+          this->robot->projected_L.push_back(projected_object);
+        } else if (obj.label == "T-Intersection") {
+          this->robot->projected_T.push_back(projected_object);
+        } else if (obj.label == "goalpost") {
+          this->robot->projected_goalpost.push_back(projected_object);
+        }
+        this->robot->num_projected_objects++;
+      }
     });
 
   locomotion->stop = [this]() {this->walking_state = false;};

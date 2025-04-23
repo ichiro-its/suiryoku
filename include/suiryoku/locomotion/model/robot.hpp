@@ -43,6 +43,11 @@ struct Particle
   double weight;
 };
 
+struct LandmarkGroup {
+  std::vector<ProjectedObject>* projected;
+  std::vector<keisan::Point2>* landmarks;
+};
+
 enum ResampleInterval
 {
   CENTER,
@@ -70,6 +75,7 @@ public:
   // localizations
   void localize();
   void reset_localization();
+  void clear_projected_objects();
   void init_particles(const keisan::Point2 init_position);
   void resample_particles();
   void update_motion();
@@ -78,9 +84,13 @@ public:
   void print_particles();
   void print_estimate_position();
   void set_initial_localization(bool initial) { initial_localization = initial; }
+  double calculate_landmark_cost(const keisan::Point2 & landmark, const keisan::Point2 & projected_object);
   double calculate_total_likelihood(const Particle & particle);
-  double calculate_object_likelihood(const ProjectedObject & measurement, const Particle & particle);
+  double calculate_object_likelihood(const ProjectedObject & measurement, const keisan::Point2 & landmark, const Particle & particle);
   double get_sum_weight();
+  keisan::Matrix<6, 6> calculate_cost_matrix(const Particle & particle,
+                                             const std::vector<ProjectedObject> & projected_objects,
+                                             const std::vector<keisan::Point2> & landmarks);
 
   Field field;
   std::vector<Particle> particles;
@@ -97,7 +107,10 @@ public:
   bool apply_localization;
 
   // IPM
-  std::vector<ProjectedObject> projected_objects;
+  std::vector<ProjectedObject> projected_X;
+  std::vector<ProjectedObject> projected_L;
+  std::vector<ProjectedObject> projected_T;
+  std::vector<ProjectedObject> projected_goalpost;
   int num_projected_objects;
   keisan::Point2 max_object_distance;
 

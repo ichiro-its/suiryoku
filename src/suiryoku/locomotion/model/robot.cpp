@@ -24,6 +24,7 @@
 #include "suiryoku/locomotion/model/robot.hpp"
 
 #include "keisan/keisan.hpp"
+#include "keisan/hungarian.hpp"
 
 using keisan::literals::operator""_deg;
 
@@ -66,7 +67,7 @@ void Robot::localize()
     update_motion();
   }
 
-  bool evaluate_particles = !projected_objects.empty();
+  bool evaluate_particles = num_projected_objects > 0;
   evaluate_particles &= fabs(orientation_roll.degree()) <= 25;
   evaluate_particles &= fabs(orientation_pitch.degree()) <= 25;
   evaluate_particles &= fabs(get_pan().degree()) <= 80;
@@ -96,7 +97,7 @@ void Robot::localize()
   }
   estimate_position();
 
-  projected_objects.clear();
+  clear_projected_objects();
 }
 
 void Robot::reset_localization() {
@@ -104,7 +105,7 @@ void Robot::reset_localization() {
   initial_localization = true;
   particles.clear();
   center_particles.clear();
-  projected_objects.clear();
+  clear_projected_objects();
   estimated_position = keisan::Point2(0.0, 0.0);
   best_particle = nullptr;
   weight_avg = 0.0;
@@ -118,6 +119,15 @@ void Robot::reset_localization() {
   if (use_localization) {
     localize();
   }
+}
+
+void Robot::clear_projected_objects()
+{
+  projected_X.clear();
+  projected_L.clear();
+  projected_T.clear();
+  projected_goalpost.clear();
+  num_projected_objects = 0;
 }
 
 void Robot::init_particles(const keisan::Point2 init_position)
@@ -282,60 +292,93 @@ void Robot::calculate_weight()
   }
 }
 
+double Robot::calculate_landmark_cost(const keisan::Point2 & landmark, const keisan::Point2 & projected_object) {
+  double dx = landmark.x - projected_object.x;
+  double dy = landmark.y - projected_object.y;
+
+  return sqrt(dx * dx + dy * dy);
+}
+
+keisan::Matrix<6, 6> Robot::calculate_cost_matrix(
+  const Particle & particle, const std::vector<ProjectedObject> & projected_objects,
+  const std::vector<keisan::Point2> & landmarks) {
+  auto cost_matrix = keisan::Matrix<6, 6>::infinite();
+  int num_projected_objects = projected_objects.size();
+  int num_landmarks = landmarks.size();
+
+  for (int i = 0; i < num_projected_objects; ++i) {
+    for (int j = 0; j < num_landmarks; ++j) {
+      double dx = projected_objects[i].position.x * 100;
+      double dy = projected_objects[i].position.y * 100;
+
+      double x_rot = dx * particle.orientation.cos() + dy * particle.orientation.sin();
+      double y_rot = dx * particle.orientation.sin() - dy * particle.orientation.cos();
+
+      double relative_position_x = particle.position.x + x_rot;
+      double relative_position_y = particle.position.y + y_rot;
+
+      keisan::Point2 projected_object(relative_position_x, relative_position_y);
+
+      cost_matrix[i][j] = calculate_landmark_cost(landmarks[j], projected_object);
+    }
+  }
+
+  return cost_matrix;
+}
+
 double Robot::calculate_total_likelihood(const Particle & particle) {
+  keisan::Hungarian<6> hungarian;
   double total_likelihood = 0.0;
-  for (const auto & object_measurement : projected_objects) {
-    total_likelihood +=
-      calculate_object_likelihood(object_measurement, particle);
+
+  std::vector<LandmarkGroup> landmark_groups = {
+    {&projected_X, &field.landmarks_X},
+    {&projected_L, &field.landmarks_L},
+    {&projected_T, &field.landmarks_T},
+    {&projected_goalpost, &field.landmarks_goalpost}
+  };
+
+  for (const auto & group : landmark_groups) {
+    if (group.projected->empty() || group.landmarks->empty()) {
+      continue;
+    }
+
+    auto cost_matrix = calculate_cost_matrix(particle, *group.projected, *group.landmarks);
+    auto result = hungarian.solve(cost_matrix, group.landmarks->size());
+
+    for (int i = 0; i < group.projected->size(); ++i) {
+      for (int j = 0; j < group.landmarks->size(); ++j) {
+        if (result[i][j] == 1) {
+          total_likelihood += calculate_object_likelihood((*group.projected)[i], (*group.landmarks)[j], particle);
+        }
+      }
+    }
   }
 
   return total_likelihood;
 }
 
 double Robot::calculate_object_likelihood(
-  const ProjectedObject & measurement, const Particle & particle) {
-  std::vector<keisan::Point2> landmarks;
-  double relative_position_x, relative_position_y;
-  double dx, dy, x_rot, y_rot, exponent, likelihood;
-  double current_likelihood = 0.0;
+  const ProjectedObject & measurement, const keisan::Point2 & landmark, const Particle & particle) {
 
-  if (measurement.label == "L-Intersection") {
-    landmarks = field.landmarks_L;
-  } else if (measurement.label == "T-Intersection") {
-    landmarks = field.landmarks_T;
-  } else if (measurement.label == "X-Intersection") {
-    landmarks = field.landmarks_X;
-  } else if (measurement.label == "goalpost") {
-    landmarks = field.landmarks_goalpost;
-  }
+  double dx = measurement.position.x * 100;
+  double dy = measurement.position.y * 100;
 
-  for (int i = 0; i < landmarks.size(); i++) {
-    dx = measurement.position.x * 100;
-    dy = measurement.position.y * 100;
+  double x_rot = dx * particle.orientation.cos() + dy * particle.orientation.sin();
+  double y_rot = dx * particle.orientation.sin() - dy * particle.orientation.cos();
 
-    x_rot = dx * particle.orientation.cos() + dy * particle.orientation.sin();
-    y_rot = dx * particle.orientation.sin() - dy * particle.orientation.cos();
+  double relative_position_x = particle.position.x + x_rot;
+  double relative_position_y = particle.position.y + y_rot;
 
-    relative_position_x = particle.position.x + x_rot;
-    relative_position_y = particle.position.y + y_rot;
-
-    exponent =
+  double exponent =
     -0.5 *
-    (pow((landmarks[i].x - relative_position_x), 2) / pow(sigma_x, 2) +
-    pow((landmarks[i].y - relative_position_y), 2) / pow(sigma_y, 2));
+    (pow((landmark.x - relative_position_x), 2) / pow(sigma_x, 2) +
+    pow((landmark.y - relative_position_y), 2) / pow(sigma_y, 2));
 
-    likelihood = exp(exponent) / (2 * M_PI * sigma_x * sigma_y);
-
-    if (current_likelihood < likelihood) {
-      current_likelihood = likelihood;
-    }
-  }
-
-  return current_likelihood;
+  return exp(exponent) / (2 * M_PI * sigma_x * sigma_y);
 }
 
 void Robot::estimate_position() {
-  if (best_particle == nullptr || projected_objects.empty()) {
+  if (best_particle == nullptr || num_projected_objects == 0) {
     return;
   }
 
