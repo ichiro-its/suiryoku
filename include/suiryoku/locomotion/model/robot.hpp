@@ -25,6 +25,7 @@
 #include <string>
 
 #include "keisan/keisan.hpp"
+#include "keisan/hungarian.hpp"
 #include "suiryoku/locomotion/model/field.hpp"
 
 namespace suiryoku
@@ -48,22 +49,6 @@ struct LandmarkGroup {
   std::vector<keisan::Point2>* landmarks;
 };
 
-enum ResampleInterval
-{
-  CENTER,
-  FIELD_INIT,
-  FIELD_RESET,
-  FIELD_EMPTY_PROJECTED_OBJECTS,
-  FIELD_ZERO_WEIGHT
-};
-
-enum UpdateMotionState
-{
-  NOT_UPDATED,
-  WITH_NOISE,
-  WITHOUT_NOISE
-};
-
 class Robot
 {
 public:
@@ -84,35 +69,40 @@ public:
   void print_particles();
   void print_estimate_position();
   void set_initial_localization(bool initial) { initial_localization = initial; }
+
   double calculate_landmark_cost(const keisan::Point2 & landmark, const keisan::Point2 & projected_object);
   double calculate_total_likelihood(const Particle & particle);
-  double calculate_object_likelihood(const ProjectedObject & measurement, const keisan::Point2 & landmark, const Particle & particle);
+  double calculate_object_likelihood(const ProjectedObject & measurement,
+                                     const keisan::Point2 & landmark,
+                                     const Particle & particle);
+
   double get_sum_weight();
   keisan::Matrix<6, 6> calculate_cost_matrix(const Particle & particle,
                                              const std::vector<ProjectedObject> & projected_objects,
                                              const std::vector<keisan::Point2> & landmarks);
 
-  Field field;
   std::vector<Particle> particles;
   keisan::Point2 estimated_position;
+
   int num_particles;
   double min_centered_particles_ratio;
+  double reset_particles_threshold;
   double short_term_avg_ratio;
   double long_term_avg_ratio;
-  double reset_particles_threshold;
   double sigma_x;
   double sigma_y;
 
   bool use_localization;
   bool apply_localization;
+  bool print_debug;
 
   // IPM
   std::vector<ProjectedObject> projected_X;
   std::vector<ProjectedObject> projected_L;
   std::vector<ProjectedObject> projected_T;
   std::vector<ProjectedObject> projected_goalpost;
-  int num_projected_objects;
   keisan::Point2 max_object_distance;
+  int num_projected_objects;
 
   // member for getting
   bool is_calibrated;
@@ -139,27 +129,25 @@ public:
   double a_speed;
   bool aim_on;
 
-  bool reset_particles; // for debug, change to private later
-  std::vector<Particle*> center_particles; // for debug, erase later
-
 private:
+  Field field;
+  Particle* best_particle;
+  std::vector<Particle*> center_particles;
+
   double xvar;
   double yvar;
-  int kidnap_counter;
-  Particle* best_particle;
 
   std::mt19937 rand_gen;
+  keisan::Hungarian<6> hungarian;
+
   double weight_avg;
   double short_term_avg;
   double long_term_avg;
   double last_weight_avg;
+  double prob;
 
   bool initial_localization;
-
-  int current_resample_interval;
-  int update_motion_state;
-
-  double prob; // for debug, remove later
+  bool reset_particles;
 };
 
 }  // namespace suiryoku

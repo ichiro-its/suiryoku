@@ -24,7 +24,6 @@
 #include "suiryoku/locomotion/model/robot.hpp"
 
 #include "keisan/keisan.hpp"
-#include "keisan/hungarian.hpp"
 
 using keisan::literals::operator""_deg;
 
@@ -36,12 +35,13 @@ Robot::Robot()
   y_speed(0.0), a_speed(0.0), aim_on(false), is_walking(false), position(0.0, 0.0),
   orientation(0_deg), orientation_roll(0_deg), orientation_pitch(0_deg),
   x_amplitude(0.0), y_amplitude(0.0), a_amplitude(0.0), is_calibrated(false),
-  use_localization(false), apply_localization(false), num_particles(500),
-  xvar(10.0), yvar(10.0), kidnap_counter(0), best_particle(nullptr), weight_avg(0.0),
-  rand_gen(std::random_device{}()), short_term_avg(0.0), long_term_avg(0.0),
-  last_weight_avg(0.0), estimated_position(0.0, 0.0), initial_localization(true),
-  reset_particles(false), num_projected_objects(0), sigma_x(1.0), sigma_y(1.0),
-  short_term_avg_ratio(0.1), long_term_avg_ratio(0.001)
+  use_localization(false), apply_localization(false), print_debug(false),
+  num_particles(500), min_centered_particles_ratio(0.3), reset_particles_threshold(0.3),
+  short_term_avg_ratio(0.1), long_term_avg_ratio(0.001), sigma_x(5.0), sigma_y(5.0),
+  xvar(10.0), yvar(10.0), best_particle(nullptr), rand_gen(std::random_device{}()),
+  weight_avg(0.0), short_term_avg(0.0), long_term_avg(0.0), last_weight_avg(0.0),
+  estimated_position(0.0, 0.0), initial_localization(true), reset_particles(false),
+  num_projected_objects(0), max_object_distance(300.0, 300.0)
 {
 }
 
@@ -112,7 +112,6 @@ void Robot::reset_localization() {
   short_term_avg = 0.0;
   long_term_avg = 0.0;
   last_weight_avg = 0.0;
-  current_resample_interval = ResampleInterval::FIELD_INIT;
   reset_particles = false;
   prob = 0.0;
 
@@ -139,7 +138,6 @@ void Robot::init_particles(const keisan::Point2 init_position)
   if (init_position.x == -1 && init_position.y == -1) {
     std::uniform_int_distribution<int> xrg(0, 900);
     std::uniform_int_distribution<int> yrg(0, 600);
-    current_resample_interval = ResampleInterval::FIELD_INIT;
 
     for (int i = 0; i < num_particles; ++i) {
       particles[i].position = keisan::Point2(xrg(rand_gen), yrg(rand_gen));
@@ -194,7 +192,6 @@ void Robot::resample_particles()
     interval_y[0] = position.y - 75;
     interval_y[1] = position.y + 75;
     prob = std::min(0.05, prob);
-    current_resample_interval = ResampleInterval::CENTER;
   }
 
   // resample particles
@@ -327,7 +324,6 @@ keisan::Matrix<6, 6> Robot::calculate_cost_matrix(
 }
 
 double Robot::calculate_total_likelihood(const Particle & particle) {
-  keisan::Hungarian<6> hungarian;
   double total_likelihood = 0.0;
 
   std::vector<LandmarkGroup> landmark_groups = {
@@ -414,68 +410,33 @@ void Robot::estimate_position() {
 }
 
 void Robot::print_particles() {
-  std::string resample_interval;
-  switch (current_resample_interval) {
-    case ResampleInterval::CENTER:
-      resample_interval = "CENTER";
-      break;
-    case ResampleInterval::FIELD_EMPTY_PROJECTED_OBJECTS:
-      resample_interval = "FIELD_EMPTY_PROJECTED_OBJECTS";
-      break;
-    case ResampleInterval::FIELD_INIT:
-      resample_interval = "FIELD_INIT";
-      break;
-    case ResampleInterval::FIELD_RESET:
-      resample_interval = "FIELD_RESET";
-      break;
-    case ResampleInterval::FIELD_ZERO_WEIGHT:
-      resample_interval = "FIELD_ZERO_WEIGHT";
-      break;
-    default:
-      resample_interval = "UNKNOWN";
-      break;
-  }
-
-  std::string update_motion;
-  switch (update_motion_state) {
-    case UpdateMotionState::NOT_UPDATED:
-      update_motion = "NOT_UPDATED";
-      break;
-    case UpdateMotionState::WITH_NOISE:
-      update_motion = "WITH_NOISE";
-      break;
-    case UpdateMotionState::WITHOUT_NOISE:
-      update_motion = "WITHOUT_NOISE";
-      break;
-    default:
-      update_motion = "UNKNOWN";
-      break;
+  if (!print_debug) {
+    return;
   }
 
   printf("Particles num: %d\n", particles.size());
-  printf("Resample interval: %s\n", resample_interval.c_str());
-  printf("Update motion: %s\n", update_motion.c_str());
-  printf("Prob: %.2f | is more than %.2f: %s\n", prob, (prob > reset_particles_threshold) ? "true" : "false", reset_particles_threshold);
+  printf("Prob: %.2f | Threshold: %.2f | Above threshold: %s\n",
+          prob,
+          reset_particles_threshold,
+          (prob > reset_particles_threshold) ? "true" : "false");
   printf("Reset particles: %s\n", reset_particles ? "true" : "false");
   printf("Short term avg: %.5f\n", short_term_avg);
   printf("Long term avg: %.5f\n", long_term_avg);
   printf("Last weight avg: %.5f\n", last_weight_avg);
   printf("Weight avg: %.5f\n", weight_avg);
-  printf("Orientation: %.2f\n", orientation.degree());
+  printf("Sum weights: %.5f\n", get_sum_weight());
 
   printf("========================================\n");
   printf("Minimal Centered Particles: %.0f\n", min_centered_particles_ratio * num_particles);
 
   printf("Centered particles: %d\n", center_particles.size());
   for (int i = 0; i < center_particles.size(); ++i) {
-    std::cout << "Centered Particle " << std::setw(5) << i
-              << "  weight: " << std::fixed << std::setprecision(5)
-              << center_particles[i]->weight << std::setw(5) << " ["
-              << std::fixed << std::setprecision(2) << center_particles[i]->position.x
-              << ", " << std::fixed << std::setprecision(2)
-              << center_particles[i]->position.y << ", " << std::fixed
-              << std::setprecision(2) << center_particles[i]->orientation.degree() << "]"
-              << std::endl;
+    printf("Centered Particle %d  weight: %.5f  [%.2f, %.2f, %.2f]\n",
+            i,
+            center_particles[i]->weight,
+            center_particles[i]->position.x,
+            center_particles[i]->position.y,
+            center_particles[i]->orientation.degree());
     if (i >= 10) {
       printf("... and %d more\n", center_particles.size() - 10);
       break;
@@ -483,30 +444,23 @@ void Robot::print_particles() {
   }
 
   if (best_particle == nullptr) {
-    std::cout << "Best particle: NULL" << std::endl;
+    printf("Best particle: NULL\n");
   } else {
-    std::cout << "Best particle: " << std::fixed << std::setprecision(5)
-      << best_particle->weight << std::setw(5) << " ["
-      << std::fixed << std::setprecision(2) << best_particle->position.x
-      << ", " << std::fixed << std::setprecision(2)
-      << best_particle->position.y << ", " << std::fixed
-      << std::setprecision(2) << best_particle->orientation.degree() << "]"
-      << std::endl;
+    printf("Best particle: %.5f  [%.2f, %.2f, %.2f]\n",
+            best_particle->weight,
+            best_particle->position.x,
+            best_particle->position.y,
+            best_particle->orientation.degree());
   }
 
-  std::cout << "Num objects: " << num_projected_objects << std::endl;
-  std::cout << "Num particles: " << num_particles << std::endl;
-  std::cout << "Sum weights: " << get_sum_weight() << std::endl;
-  std::cout << "Projected objects: " << num_projected_objects << std::endl;
+  printf("Num objects: %d\n", num_projected_objects);
+  printf("Num particles: %d\n", num_particles);
+  printf("Projected objects: %d\n", num_projected_objects);
   print_estimate_position();
 }
 
 void Robot::print_estimate_position() {
-  std::cout << "Pose estimation: "
-            << " [" << std::fixed << std::setprecision(2)
-            << estimated_position.x << ", " << std::fixed
-            << std::setprecision(2) << estimated_position.y
-            << "])" << std::endl;
+  printf("Pose estimation: [%.2f, %.2f])\n", estimated_position.x, estimated_position.y);
 }
 
 }  // namespace suiryoku

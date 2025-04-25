@@ -292,6 +292,7 @@ void Locomotion::set_config(const nlohmann::json & json)
     bool valid_section = true;
 
     valid_section &= jitsuyo::assign_val(localization_section, "enable", robot->use_localization);
+    valid_section &= jitsuyo::assign_val(localization_section, "debug", robot->print_debug);
     valid_section &= jitsuyo::assign_val(localization_section, "num_particles", robot->num_particles);
     valid_section &= jitsuyo::assign_val(localization_section, "min_centered_particles_ratio", robot->min_centered_particles_ratio);
     valid_section &= jitsuyo::assign_val(localization_section, "short_term_avg_ratio", robot->short_term_avg_ratio);
