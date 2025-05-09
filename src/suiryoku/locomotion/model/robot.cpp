@@ -68,10 +68,10 @@ void Robot::localize()
   }
 
   bool evaluate_particles = num_projected_objects > 0;
-  evaluate_particles &= fabs(orientation_roll.degree()) <= 25;
-  evaluate_particles &= fabs(orientation_pitch.degree()) <= 25;
-  evaluate_particles &= fabs(get_pan().degree()) <= 80;
-  evaluate_particles &= get_tilt().degree() > -45;
+  evaluate_particles &= fabs(orientation_roll.degree()) <= 30;
+  evaluate_particles &= fabs(orientation_pitch.degree()) <= 30;
+  evaluate_particles &= fabs(get_pan().degree()) <= 90;
+  evaluate_particles &= get_tilt().degree() > -50;
 
   if (evaluate_particles) {
     weight_avg = 0.0;
@@ -183,14 +183,14 @@ void Robot::resample_particles()
   int interval_y[2] = {10, 590};
 
   bool resample_nearby = num_projected_objects == 1;
-  resample_nearby |= fabs(get_pan().degree()) > 50;
+  resample_nearby |= fabs(get_pan().degree()) > 80;
   resample_nearby |= get_tilt().degree() < -30;
 
   if (resample_nearby) {
-    interval_x[0] = position.x - 75;
-    interval_x[1] = position.x + 75;
-    interval_y[0] = position.y - 75;
-    interval_y[1] = position.y + 75;
+    interval_x[0] = position.x - 50;
+    interval_x[1] = position.x + 50;
+    interval_y[0] = position.y - 50;
+    interval_y[1] = position.y + 50;
     prob = std::min(0.05, prob);
   }
 
@@ -244,18 +244,31 @@ void Robot::resample_particles()
 void Robot::update_motion()
 {
   static std::normal_distribution<double> xgen(0.0, xvar), ygen(0.0, yvar);
+  bool update_with_noise = num_projected_objects > 0;
+  update_with_noise &= fabs(orientation_roll.degree()) <= 30;
+  update_with_noise &= fabs(orientation_pitch.degree()) <= 30;
+  update_with_noise &= fabs(get_pan().degree()) <= 90;
+  update_with_noise &= get_tilt().degree() > -50;
 
-  for (auto & p : particles) {
-    double static_noise_x = xgen(rand_gen) / 5.0;
-    double static_noise_y = ygen(rand_gen) / 5.0;
-    double dynamic_noise_x = fabs(delta_position.x) * xgen(rand_gen) / 5.0;
-    double dynamic_noise_y = fabs(delta_position.y) * ygen(rand_gen) / 5.0;
-    double x_yterm = fabs(delta_position.y) * xgen(rand_gen) / 30.0;
-    double y_xterm = fabs(delta_position.x) * ygen(rand_gen) / 30.0;
+  if (update_with_noise) {
+    for (auto & p : particles) {
+      double static_noise_x = xgen(rand_gen) / 5.0;
+      double static_noise_y = ygen(rand_gen) / 5.0;
+      double dynamic_noise_x = fabs(delta_position.x) * xgen(rand_gen) / 5.0;
+      double dynamic_noise_y = fabs(delta_position.y) * ygen(rand_gen) / 5.0;
+      double x_yterm = fabs(delta_position.y) * xgen(rand_gen) / 30.0;
+      double y_xterm = fabs(delta_position.x) * ygen(rand_gen) / 30.0;
 
-    p.position.x += delta_position.x + static_noise_x + dynamic_noise_x + x_yterm;
-    p.position.y += delta_position.y + static_noise_y + dynamic_noise_y + y_xterm;
-    p.orientation = orientation;
+      p.position.x += delta_position.x + static_noise_x + dynamic_noise_x + x_yterm;
+      p.position.y += delta_position.y + static_noise_y + dynamic_noise_y + y_xterm;
+      p.orientation = orientation;
+    }
+  } else {
+    for (auto & p : particles) {
+      p.position.x += delta_position.x;
+      p.position.y += delta_position.y;
+      p.orientation = orientation;
+    }
   }
 
   estimated_position += delta_position;
@@ -324,7 +337,7 @@ keisan::Matrix<6, 6> Robot::calculate_cost_matrix(
 }
 
 double Robot::calculate_total_likelihood(const Particle & particle) {
-  double total_likelihood = 0.0;
+  double total_likelihood = 1.0;
 
   std::vector<LandmarkGroup> landmark_groups = {
     {&projected_X, &field.landmarks_X},
@@ -344,7 +357,7 @@ double Robot::calculate_total_likelihood(const Particle & particle) {
     for (int i = 0; i < group.projected->size(); ++i) {
       for (int j = 0; j < group.landmarks->size(); ++j) {
         if (result[i][j] == 1) {
-          total_likelihood += calculate_object_likelihood((*group.projected)[i], (*group.landmarks)[j], particle);
+          total_likelihood *= calculate_object_likelihood((*group.projected)[i], (*group.landmarks)[j], particle);
         }
       }
     }
@@ -365,12 +378,15 @@ double Robot::calculate_object_likelihood(
   double relative_position_x = particle.position.x + x_rot;
   double relative_position_y = particle.position.y + y_rot;
 
+  double dist = sqrt(dx * dx + dy * dy);
+  double dist_factor = keisan::map(dist, 150.0, 500.0, 1.0, 0.9);
+
   double exponent =
     -0.5 *
     (pow((landmark.x - relative_position_x), 2) / pow(sigma_x, 2) +
     pow((landmark.y - relative_position_y), 2) / pow(sigma_y, 2));
 
-  return exp(exponent) / (2 * M_PI * sigma_x * sigma_y);
+  return exp(exponent) / (2 * M_PI * sigma_x * sigma_y) * dist_factor;
 }
 
 void Robot::estimate_position() {
