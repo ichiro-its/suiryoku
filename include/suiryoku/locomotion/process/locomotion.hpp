@@ -47,12 +47,15 @@ public:
 
   void move_forward(const keisan::Angle<double> & direction);
   bool move_forward_to(const keisan::Point2 & target);
+  bool move_forward_by_distance(keisan::Point2 & delta_target);
 
   bool rotate_to_target(const keisan::Angle<double> & direction);
   bool rotate_to(const keisan::Angle<double> & direction, bool a_move_only);
 
   bool move_follow_head();
   bool move_follow_head(const keisan::Angle<double> & min_tilt);
+  bool move_follow_head(const keisan::Angle<double> & pan, const keisan::Angle<double> & tilt);
+  bool move_follow_head(const keisan::Angle<double> & pan, const keisan::Angle<double> & tilt, const keisan::Angle<double> & min_tilt);
 
   bool move_skew(const keisan::Angle<double> & direction);
   bool move_skew(const keisan::Angle<double> & direction, bool skew_left);
