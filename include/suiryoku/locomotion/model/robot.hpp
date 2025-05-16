@@ -70,7 +70,7 @@ public:
   void print_estimate_position();
   void set_initial_localization(bool initial) { initial_localization = initial; }
 
-  double calculate_landmark_cost(const keisan::Point2 & landmark, const keisan::Point2 & projected_object);
+  double calculate_distance(const keisan::Point2 & point_1, const keisan::Point2 & point_2);
   double calculate_total_likelihood(const Particle & particle);
   double calculate_object_likelihood(const ProjectedObject & measurement,
                                      const keisan::Point2 & landmark,
@@ -148,6 +148,9 @@ private:
 
   bool initial_localization;
   bool reset_particles;
+
+  int pending_accept_count;
+  keisan::Point2 pending_estimated_position;
 };
 
 }  // namespace suiryoku
