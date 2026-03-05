@@ -105,6 +105,34 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_config = false;
   }
 
+  nlohmann::json left_section;
+  if (jitsuyo::assign_val(json, "left", left_section)) {
+    bool valid_section = true;
+    valid_section &= jitsuyo::assign_val(left_section, "min_ly", left_min_ly);
+    valid_section &= jitsuyo::assign_val(left_section, "max_ly", left_max_ly);
+    valid_section &= jitsuyo::assign_val(left_section, "max_a", left_max_a);
+    if (!valid_section) {
+      std::cout << "Error found at section `left`" << std::endl;
+      valid_config = false;
+    }
+  } else {
+    valid_config = false;
+  }
+
+  nlohmann::json right_section;
+  if (jitsuyo::assign_val(json, "right", right_section)) {
+    bool valid_section = true;
+    valid_section &= jitsuyo::assign_val(right_section, "min_ry", right_min_ry);
+    valid_section &= jitsuyo::assign_val(right_section, "max_ry", right_max_ry);
+    valid_section &= jitsuyo::assign_val(right_section, "max_a", right_max_a);
+    if (!valid_section) {
+      std::cout << "Error found at section `right`" << std::endl;
+      valid_config = false;
+    }
+  } else {
+    valid_config = false;
+  }
+
   nlohmann::json dribble_section;
   if (jitsuyo::assign_val(json, "dribble", dribble_section)) {
     bool valid_section = true;
@@ -461,6 +489,63 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target)
   start();
 
   return false;
+}
+
+bool Locomotion::move_to_left_and_right(const keisan::Point2 & target)
+{
+  double delta_x = target.x - robot->position.x;
+  double delta_y = std::abs(target.y) - robot->position.y;
+
+  double target_distance = std::hypot(delta_x, delta_y);
+
+  if (target_distance < 5.0) {
+    return true;
+  }
+
+  double delta_direction = (0.0_deg - robot->orientation).normalize().degree();
+  double a_speed = keisan::map(delta_direction, -10.0, 10.0, left_max_a, right_max_a);
+  double y_speed = 0.0;
+
+  if (target.y < 0) {
+    printf("move left");
+    y_speed = keisan::map(std::abs(a_speed), 0.0, left_max_a, left_max_ly, left_min_ly);
+  } else {
+    printf("move right");
+    y_speed = keisan::map(std::abs(a_speed), 0.0, right_max_a, right_max_ry, right_min_ry);
+  }
+
+  robot->x_speed = 0.0;
+  robot->y_speed = keisan::smooth(robot->y_speed, y_speed, 0.4);
+  robot->a_speed = keisan::smooth(robot->a_speed, a_speed, 0.4);
+  start();
+
+  return false;
+}
+
+void Locomotion::move_left(const keisan::Angle<double> & direction)
+{
+  auto delta_direction = (direction - robot->orientation).normalize().degree();
+
+  double a_speed = keisan::map(delta_direction, -10.0, 10.0, left_max_a, right_max_a);
+  double y_speed = keisan::map(std::abs(a_speed), 0.0, left_max_a, left_max_ly, left_min_ly);
+
+  robot->x_speed = 0.0;
+  robot->y_speed = keisan::smooth(robot->y_speed, y_speed, 0.4);
+  robot->a_speed = keisan::smooth(robot->a_speed, a_speed, 0.4);
+  start();
+}
+
+void Locomotion::move_right(const keisan::Angle<double> & direction)
+{
+  auto delta_direction = (direction - robot->orientation).normalize().degree();
+
+  double a_speed = keisan::map(delta_direction, -10.0, 10.0, left_max_a, right_max_a);
+  double y_speed = keisan::map(std::abs(a_speed), 0.0, right_max_a, right_max_ry, right_min_ry);
+
+  robot->x_speed = 0.0;
+  robot->y_speed = keisan::smooth(robot->y_speed, y_speed, 0.4);
+  robot->a_speed = keisan::smooth(robot->a_speed, a_speed, 0.4);
+  start();
 }
 
 bool Locomotion::rotate_to_target(const keisan::Angle<double> & direction)
