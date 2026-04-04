@@ -68,7 +68,7 @@ LocomotionNode::LocomotionNode(
     });
 
   fused_position_subscriber = node->create_subscription<Point2>(
-    "/localization/fused_position", 10,
+    "/localization/fused_pose", 10,
     [this](const Point2::SharedPtr message) {
       this->robot->fused_position.x = message->x;
       this->robot->fused_position.y = message->y;
