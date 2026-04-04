@@ -40,6 +40,7 @@ public:
   bool is_calibrated;
   keisan::Angle<double> orientation;
   keisan::Point2 position;
+  keisan::Point2 fused_position;
 
   bool is_walking;
 

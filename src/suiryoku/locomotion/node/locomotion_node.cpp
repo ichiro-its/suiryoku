@@ -67,6 +67,13 @@ LocomotionNode::LocomotionNode(
       this->robot->position.y = message->odometry.y;
     });
 
+  fused_position_subscriber = node->create_subscription<Point2>(
+    "/localization/fused_position", 10,
+    [this](const Point2::SharedPtr message) {
+      this->robot->fused_position.x = message->x;
+      this->robot->fused_position.y = message->y;
+    });
+
   head_subscriber = node->create_subscription<Head>(
     "/head/set_head_data", 10,
     [this](const Head::SharedPtr message) {
