@@ -188,9 +188,11 @@ private:
 
   keisan::Angle<double> left_kick_target_pan;
   keisan::Angle<double> left_kick_target_tilt;
+  keisan::Angle<double> left_center_kick_target_pan;
 
   keisan::Angle<double> right_kick_target_pan;
   keisan::Angle<double> right_kick_target_tilt;
+  keisan::Angle<double> right_center_kick_target_pan;
 
   std::shared_ptr<Robot> robot;
 };
