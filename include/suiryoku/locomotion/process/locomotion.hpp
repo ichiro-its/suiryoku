@@ -43,12 +43,12 @@ public:
   bool walk_in_position_until_stop();
 
   void move_backward(const keisan::Angle<double> & direction);
-  bool move_backward_to(const keisan::Point2 & target);
+  bool move_backward_to(const keisan::Point2 & target, double stop_distance = 8.0);
 
   void move_forward(const keisan::Angle<double> & direction);
-  bool move_forward_to(const keisan::Point2 & target);
+  bool move_forward_to(const keisan::Point2 & target, double stop_distance = 8.0);
 
-  bool move_to_left_and_right(const keisan::Point2 & target);
+  bool move_to_left_and_right(const keisan::Point2 & target, double stop_distance = 5.0);
   void move_left(const keisan::Angle<double> & direction);
   void move_right(const keisan::Angle<double> & direction);
 
