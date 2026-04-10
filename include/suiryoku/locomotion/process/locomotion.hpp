@@ -79,6 +79,8 @@ public:
   bool position_kick_range_pan_tilt(
     const keisan::Angle<double> & direction, bool precise_kick, bool left_kick,
     bool is_positioning_center);
+  bool position_kick_center(
+    const keisan::Angle<double> & direction, bool precise_kick, bool left_kick);
 
   bool position_basketball(
     const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
