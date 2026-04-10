@@ -99,6 +99,8 @@ public:
   std::function<void()> stop;
   std::function<void()> start;
 
+  std::function<keisan::Point2()> get_robot_position;
+
   std::string config_name;
 
   bool initial_pivot;
