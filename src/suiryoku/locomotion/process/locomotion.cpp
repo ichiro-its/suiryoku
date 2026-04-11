@@ -1156,26 +1156,24 @@ bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
   }
 
   if (!precise_kick) left_kick = distance.y > 0.0;
+  keisan::Point2 target = left_kick ? left_kick_distance : right_kick_distance;
   double height = left_kick ? left_kick_range_height : right_kick_range_height;
   double width = left_kick ? left_kick_range_width : right_kick_range_width;
 
   double x_speed = 0.0;
-  if (std::fabs(distance.x) > height) {
-    // NOTE: distance.x should never be negative, may delete in the future
-    if (distance.x > 0.0) {
-      x_speed = keisan::map(distance.x, height, 80.0, position_min_x * 0.5, position_max_x);
-    } else {
-      x_speed = keisan::map(distance.x, -40.0, height, position_min_x, position_min_x * 0.5);
-    }
+  if (distance.x > target.x + height) {
+    x_speed =
+      keisan::map(distance.x, target.x + 50.0, target.x, position_max_x, position_max_x * 0.5);
+  } else if (distance.x < target.x - height) {
+    x_speed =
+      keisan::map(distance.x, target.x - 50.0, target.x, position_min_x, position_min_x * 0.5);
   }
 
   double y_speed = 0.0;
-  if (std::fabs(distance.y) > height) {
-    if (distance.y > 0.0) {
-      y_speed = keisan::map(distance.y, width, 100.0, position_min_ly, position_max_ly);
-    } else {
-      y_speed = keisan::map(distance.y, -100.0, width, position_max_ry, position_min_ry);
-    }
+  if (distance.y > target.y + width) {
+    y_speed = keisan::map(distance.y, target.y + 50.0, target.y, position_max_ly, position_max_ly);
+  } else if (distance.y < target.y - width) {
+    y_speed = keisan::map(distance.y, target.y - 50.0, target.y, position_max_ry, position_max_ry);
   }
 
   double a_speed = 0;
