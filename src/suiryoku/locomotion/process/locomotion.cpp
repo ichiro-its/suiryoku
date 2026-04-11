@@ -1135,7 +1135,7 @@ bool Locomotion::position_kick_range_pan_tilt(
   return false;
 }
 
-bool Locomotion::position_with_distance(const keisan::Angle<double> & direction,
+bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
   keisan::Point2 distance, bool precise_kick, bool left_kick)
 {
   auto delta_direction = (direction - robot->orientation).normalize().degree();
