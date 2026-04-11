@@ -80,6 +80,9 @@ public:
     const keisan::Angle<double> & direction, bool precise_kick, bool left_kick,
     bool is_positioning_center);
 
+  bool position_with_distance(const keisan::Angle<double> & direction, keisan::Point2 distance,
+    bool precise_kick, bool left_kick);
+
   bool position_basketball(
     const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
     const keisan::Angle<double> direction);
@@ -193,6 +196,14 @@ private:
 
   keisan::Angle<double> right_kick_target_pan;
   keisan::Angle<double> right_kick_target_tilt;
+
+  keisan::Point2 right_kick_distance;
+  double right_kick_range_height;
+  double right_kick_range_width;
+
+  keisan::Point2 left_kick_distance;
+  double left_kick_range_height;
+  double left_kick_range_width;
 
   std::shared_ptr<Robot> robot;
 };

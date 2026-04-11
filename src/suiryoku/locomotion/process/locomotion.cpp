@@ -304,6 +304,10 @@ void Locomotion::set_config(const nlohmann::json & json)
       jitsuyo::assign_val(left_kick_section, "target_pan", left_kick_target_pan_double);
     valid_section &=
       jitsuyo::assign_val(left_kick_section, "target_tilt", left_kick_target_tilt_double);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "distance_x", left_kick_distance.x);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "distance_y", left_kick_distance.y);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "range_height", left_kick_range_height);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "range_width", left_kick_range_width);
 
     left_kick_target_pan = keisan::make_degree(left_kick_target_pan_double);
     left_kick_target_tilt = keisan::make_degree(left_kick_target_tilt_double);
@@ -316,6 +320,10 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_config = false;
   }
 
+  // Distance is center-anchored, halved to properly represent the rectangle.
+  left_kick_range_height /= 2.0;
+  left_kick_range_width /= 2.0;
+
   nlohmann::json right_kick_section;
   if (jitsuyo::assign_val(json, "right_kick", right_kick_section)) {
     bool valid_section = true;
@@ -327,6 +335,11 @@ void Locomotion::set_config(const nlohmann::json & json)
       jitsuyo::assign_val(right_kick_section, "target_pan", right_kick_target_pan_double);
     valid_section &=
       jitsuyo::assign_val(right_kick_section, "target_tilt", right_kick_target_tilt_double);
+    valid_section &= jitsuyo::assign_val(right_kick_section, "distance_x", right_kick_distance.x);
+    valid_section &= jitsuyo::assign_val(right_kick_section, "distance_y", right_kick_distance.y);
+    valid_section &=
+      jitsuyo::assign_val(right_kick_section, "range_height", right_kick_range_height);
+    valid_section &= jitsuyo::assign_val(right_kick_section, "range_width", right_kick_range_width);
 
     right_kick_target_pan = keisan::make_degree(right_kick_target_pan_double);
     right_kick_target_tilt = keisan::make_degree(right_kick_target_tilt_double);
@@ -338,6 +351,10 @@ void Locomotion::set_config(const nlohmann::json & json)
   } else {
     valid_config = false;
   }
+
+  // Distance is center-anchored, halved to properly represent the rectangle.
+  right_kick_range_height /= 2.0;
+  right_kick_range_width /= 2.0;
 
   if (!valid_config) {
     throw std::runtime_error("Failed to load config file `locomotion.json`");
@@ -1114,6 +1131,66 @@ bool Locomotion::position_kick_range_pan_tilt(
   printf(
     "delta pan %.1f, delta tilt %.1f, delta direction %.1f\n", delta_pan, delta_tilt,
     delta_direction);
+
+  return false;
+}
+
+bool Locomotion::position_with_distance(const keisan::Angle<double> & direction,
+  keisan::Point2 distance, bool precise_kick, bool left_kick)
+{
+  auto delta_direction = (direction - robot->orientation).normalize().degree();
+
+  bool right_kick_in_range = right_kick_distance.x - distance.x < right_kick_range_height &&
+                             right_kick_distance.y - distance.y < right_kick_range_width;
+  bool left_kick_in_range = left_kick_distance.x - distance.x < left_kick_range_height &&
+                            left_kick_distance.y - distance.y < left_kick_range_width;
+  bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction.degree();
+
+  if (direction_in_range) {
+    if (precise_kick && (left_kick ? left_kick_in_range : right_kick_in_range)) {
+      return true;
+    }
+    if (!precise_kick && (right_kick_in_range || left_kick_in_range)) {
+      return true;
+    }
+  }
+
+  if (!precise_kick) left_kick = distance.y > 0.0;
+  double height = left_kick ? left_kick_range_height : right_kick_range_height;
+  double width = left_kick ? left_kick_range_width : right_kick_range_width;
+
+  double x_speed = 0.0;
+  if (std::fabs(distance.x) > height) {
+    // NOTE: distance.x should never be negative, may delete in the future
+    if (distance.x > 0.0) {
+      x_speed = keisan::map(distance.x, height, 80.0, position_min_x * 0.5, position_max_x);
+    } else {
+      x_speed = keisan::map(distance.x, -40.0, height, position_min_x, position_min_x * 0.5);
+    }
+  }
+
+  double y_speed = 0.0;
+  if (std::fabs(distance.y) > height) {
+    if (distance.y > 0.0) {
+      y_speed = keisan::map(distance.y, width, 100.0, position_min_ly, position_max_ly);
+    } else {
+      y_speed = keisan::map(distance.y, -100.0, width, position_max_ry, position_min_ry);
+    }
+  }
+
+  double a_speed = 0;
+  if (!direction_in_range) {
+    a_speed = keisan::map(delta_direction, -30.0, 30.0, position_max_a, -position_max_a);
+  }
+
+  printf("distance: %lf %lf\n", distance.x, distance.y);
+
+  double smooth_ratio = 0.8;
+
+  robot->x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
+  robot->y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
+  robot->a_speed = keisan::smooth(robot->a_speed, a_speed, smooth_ratio);
+  robot->aim_on = false;
 
   return false;
 }
