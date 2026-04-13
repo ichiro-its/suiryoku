@@ -198,12 +198,10 @@ private:
   keisan::Angle<double> right_kick_target_tilt;
 
   keisan::Point2 right_kick_distance;
-  double right_kick_range_height;
-  double right_kick_range_width;
+  keisan::Point2 right_kick_distance_range;
 
   keisan::Point2 left_kick_distance;
-  double left_kick_range_height;
-  double left_kick_range_width;
+  keisan::Point2 left_kick_distance_range;
 
   std::shared_ptr<Robot> robot;
 };
