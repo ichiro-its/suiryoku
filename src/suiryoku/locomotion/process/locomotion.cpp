@@ -1138,11 +1138,14 @@ bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
 
   bool right_kick_in_range = std::fabs(right_diff.x) < right_kick_distance_range.x &&
                              std::fabs(right_diff.y) < right_kick_distance_range.y;
-  bool left_kick_in_range = std::fabs(left_diff.x - distance.x) < left_kick_distance_range.x &&
-                            std::fabs(left_diff.y - distance.y) < left_kick_distance_range.y;
+  bool left_kick_in_range = std::fabs(left_diff.x) < left_kick_distance_range.x &&
+                            std::fabs(left_diff.y) < left_kick_distance_range.y;
   bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction.degree();
   bool kick_in_range = precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range)
                                     : (left_kick_in_range || right_kick_in_range);
+
+  printf("direction in range: %d\n", direction_in_range);
+  printf("kick in range: %d\n", kick_in_range);
 
   if (direction_in_range && kick_in_range) {
     return true;
@@ -1150,30 +1153,31 @@ bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
 
   if (!precise_kick) left_kick = distance.y > 0.0;
   keisan::Point2 target = left_kick ? left_kick_distance : right_kick_distance;
-  auto diff = left_kick ? left_kick_distance_range : right_kick_distance_range;
+  auto range = left_kick ? left_kick_distance_range : right_kick_distance_range;
+
+  auto delta_distance = left_kick ? left_diff : right_diff;
+  printf("delta distance: %lf %lf\n", delta_distance.x, delta_distance.y);
 
   double x_speed = 0.0;
-  if (distance.x > target.x + diff.x) {
+  if (distance.x > target.x + range.x) {
     x_speed =
-      keisan::map(distance.x, 40.0, target.x, position_max_x, position_max_x * 0.5);
-  } else if (distance.x < target.x - diff.x) {
+      keisan::map(distance.x, target.x + 40.0, target.x, position_max_x, position_max_x * 0.5);
+  } else if (distance.x < target.x - range.x) {
     x_speed =
-      keisan::map(distance.x, -40.0, target.x, position_min_x, position_min_x * 0.5);
+      keisan::map(distance.x, target.x - 40.0, target.x, position_min_x, position_min_x * 0.5);
   }
 
   double y_speed = 0.0;
-  if (distance.y > target.y + diff.y) {
-    y_speed = keisan::map(distance.y, 40.0, target.y, position_max_ry, position_min_ry);
-  } else if (distance.y < target.y - diff.y) {
-    y_speed = keisan::map(distance.y, -40.0, target.y, position_max_ly, position_min_ly);
+  if (distance.y > target.y + range.y) {
+    y_speed = keisan::map(distance.y, target.y + 40.0, target.y, position_max_ry, position_min_ry);
+  } else if (distance.y < target.y - range.y) {
+    y_speed = keisan::map(distance.y, target.y - 40.0, target.y, position_max_ly, position_min_ly);
   }
 
   double a_speed = 0;
   if (!direction_in_range) {
     a_speed = keisan::map(delta_direction, -30.0, 30.0, position_max_a, -position_max_a);
   }
-
-  printf("distance: %lf %lf\n", distance.x, distance.y);
 
   double smooth_ratio = 0.8;
 
