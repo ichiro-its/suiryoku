@@ -1229,19 +1229,19 @@ bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
   printf("delta distance: %lf %lf\n", delta_distance.x, delta_distance.y);
 
   double x_speed = 0.0;
-  if (distance.x > target.x + range.x) {
+  if (delta_distance.x > range.x) {
     x_speed =
-      keisan::map(distance.x, target.x + 40.0, target.x, position_max_x, position_max_x * 0.5);
-  } else if (distance.x < target.x - range.x) {
+      keisan::map(delta_distance.x, 15.0, range.x, position_min_x, position_min_x * 0.5);
+  } else if (delta_distance.x < -range.x) {
     x_speed =
-      keisan::map(distance.x, target.x - 40.0, target.x, position_min_x, position_min_x * 0.5);
+      keisan::map(delta_distance.x, -10.0, range.x, position_max_x, position_max_x * 0.5);
   }
 
   double y_speed = 0.0;
-  if (distance.y > target.y + range.y) {
-    y_speed = keisan::map(distance.y, target.y + 40.0, target.y, position_max_ry, position_min_ry);
-  } else if (distance.y < target.y - range.y) {
-    y_speed = keisan::map(distance.y, target.y - 40.0, target.y, position_max_ly, position_min_ly);
+  if (delta_distance.y > range.y) {
+    y_speed = keisan::map(delta_distance.y, 10.0, range.y, position_min_ly, position_max_ly);
+  } else if (delta_distance.y < -range.y) {
+    y_speed = keisan::map(delta_distance.y, -10.0, range.y, position_min_ry, position_max_ry);
   }
 
   double a_speed = 0;
