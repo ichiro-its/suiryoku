@@ -69,6 +69,8 @@ private:
 
   rclcpp::Subscription<Head>::SharedPtr head_subscriber;
 
+  rclcpp::Subscription<Point2>::SharedPtr fused_position_subscriber;
+
   std::shared_ptr<Locomotion> locomotion;
   std::shared_ptr<Robot> robot;
 
