@@ -81,7 +81,7 @@ public:
     bool is_positioning_center);
 
   bool position_kick_distance(const keisan::Angle<double> & direction, keisan::Point2 distance,
-    bool precise_kick, bool left_kick, bool center_kick);
+    bool left_kick, bool center_kick);
 
   bool position_basketball(
     const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,

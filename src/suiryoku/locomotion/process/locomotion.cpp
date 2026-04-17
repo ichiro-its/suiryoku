@@ -1191,7 +1191,7 @@ bool Locomotion::position_kick_range_pan_tilt(
 }
 
 bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
-  keisan::Point2 distance, bool precise_kick, bool left_kick, bool center_kick)
+  keisan::Point2 distance, bool left_kick, bool center_kick)
 {
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
@@ -1211,8 +1211,7 @@ bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
   bool left_kick_in_range = std::fabs(left_diff.x) < left_distance_range.x &&
                             std::fabs(left_diff.y) < left_distance_range.y;
   bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction.degree();
-  bool kick_in_range = precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range)
-                                    : (left_kick_in_range || right_kick_in_range);
+  bool kick_in_range = left_kick ? left_kick_in_range : right_kick_in_range;
 
   printf("direction in range: %d\n", direction_in_range);
   printf("kick in range: %d\n", kick_in_range);
@@ -1221,7 +1220,6 @@ bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
     return true;
   }
 
-  if (!precise_kick) left_kick = distance.y > 0.0;
   keisan::Point2 target = left_kick ? left_distance : right_distance;
   auto range = left_kick ? left_distance_range : right_distance_range;
 
@@ -1239,9 +1237,9 @@ bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
 
   double y_speed = 0.0;
   if (delta_distance.y > range.y) {
-    y_speed = keisan::map(delta_distance.y, 10.0, range.y, position_min_ly, position_max_ly);
+    y_speed = keisan::map(delta_distance.y, 10.0, range.y, position_max_ly, position_min_ly);
   } else if (delta_distance.y < -range.y) {
-    y_speed = keisan::map(delta_distance.y, -10.0, range.y, position_min_ry, position_max_ry);
+    y_speed = keisan::map(delta_distance.y, -10.0, -range.y, position_min_ry, position_max_ry);
   }
 
   double a_speed = 0;
