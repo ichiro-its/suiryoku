@@ -90,10 +90,11 @@ public:
     const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
     const keisan::Angle<double> direction);
 
-    bool is_time_to_follow();
+  bool is_time_to_follow();
   bool pivot_fulfilled();
   bool in_pan_kick_range();
   bool in_tilt_kick_range();
+  bool closer_to_center_distance(keisan::Point2 ball_distance);
   void reset_time_follow_tilt();
 
   std::shared_ptr<Robot> get_robot() const;

@@ -1228,18 +1228,18 @@ bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
 
   double x_speed = 0.0;
   if (delta_distance.x > range.x) {
-    x_speed =
-      keisan::map(delta_distance.x, 15.0, range.x, position_min_x, position_min_x * 0.5);
+    x_speed = keisan::map(delta_distance.x, range.x + 15.0, range.x, position_min_x, position_min_x * 0.5);
   } else if (delta_distance.x < -range.x) {
-    x_speed =
-      keisan::map(delta_distance.x, -10.0, range.x, position_max_x, position_max_x * 0.5);
+    x_speed = keisan::map(delta_distance.x, range.x - 15.0, range.x, position_max_x, position_max_x * 0.5);
   }
 
   double y_speed = 0.0;
   if (delta_distance.y > range.y) {
-    y_speed = keisan::map(delta_distance.y, 10.0, range.y, position_max_ly, position_min_ly);
+    y_speed =
+      keisan::map(delta_distance.y, range.y + 30.0, range.y, position_max_ly, position_min_ly);
   } else if (delta_distance.y < -range.y) {
-    y_speed = keisan::map(delta_distance.y, -10.0, -range.y, position_min_ry, position_max_ry);
+    y_speed =
+      keisan::map(delta_distance.y, range.y - 30.0, -range.y, position_min_ry, position_max_ry);
   }
 
   double a_speed = 0;
@@ -1385,6 +1385,15 @@ bool Locomotion::in_tilt_kick_range()
   double max_target_tilt =
     std::max(left_kick_target_tilt.degree(), right_kick_target_tilt.degree());
   return tilt > min_target_tilt && tilt < max_target_tilt;
+}
+
+bool Locomotion::closer_to_center_distance(keisan::Point2 ball_distance)
+{
+  bool closer_left_center = (ball_distance - left_kick_distance).magnitude() >
+                            (ball_distance - left_kick_center_distance).magnitude();
+  bool closer_right_center = (ball_distance - right_kick_distance).magnitude() >
+                             (ball_distance - right_kick_center_distance).magnitude();
+  return closer_left_center || closer_right_center;
 }
 
 void Locomotion::reset_time_follow_tilt() { is_first_follow_tilt = true; }
