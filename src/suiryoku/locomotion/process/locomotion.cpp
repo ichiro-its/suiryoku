@@ -24,6 +24,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -1387,13 +1388,30 @@ bool Locomotion::in_tilt_kick_range()
   return tilt > min_target_tilt && tilt < max_target_tilt;
 }
 
-bool Locomotion::closer_to_center_distance(keisan::Point2 ball_distance)
+int Locomotion::closer_to_which_kick_distance(keisan::Point2 ball_distance, bool include_center)
 {
-  bool closer_left_center = (ball_distance - left_kick_distance).magnitude() >
-                            (ball_distance - left_kick_center_distance).magnitude();
-  bool closer_right_center = (ball_distance - right_kick_distance).magnitude() >
-                             (ball_distance - right_kick_center_distance).magnitude();
-  return closer_left_center || closer_right_center;
+  double delta_left = (ball_distance - left_kick_distance).magnitude();
+  double delta_right = (ball_distance - right_kick_distance).magnitude();
+  double delta_left_center = std::numeric_limits<double>::infinity();
+  double delta_right_center = std::numeric_limits<double>::infinity();
+  
+  if (include_center) {
+    delta_left_center = (ball_distance - left_kick_center_distance).magnitude();
+    delta_right_center = (ball_distance - right_kick_center_distance).magnitude();
+  }
+
+  double closest_distance = std::min({delta_left, delta_right, delta_left_center, delta_right_center});
+  if (closest_distance == delta_left) {
+    return CLOSER_TO_LEFT_KICK;
+  } else if (closest_distance == delta_right) {
+    return CLOSER_TO_RIGHT_KICK;
+  } else if (closest_distance == delta_left_center) {
+    return CLOSER_TO_LEFT_KICK_CENTER;
+  } else if (closest_distance == delta_right_center) {
+    return CLOSER_TO_RIGHT_KICK_CENTER;
+  }
+
+  return CLOSER_TO_RIGHT_KICK;
 }
 
 void Locomotion::reset_time_follow_tilt() { is_first_follow_tilt = true; }

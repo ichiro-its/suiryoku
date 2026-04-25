@@ -34,6 +34,15 @@ namespace suiryoku
 class Locomotion
 {
 public:
+  enum {
+    CLOSER_TO_RIGHT_KICK = 0b1001,
+    CLOSER_TO_LEFT_KICK = 0b1000,
+    CLOSER_TO_RIGHT_KICK_CENTER = 0b1011,
+    CLOSER_TO_LEFT_KICK_CENTER = 0b1010,
+
+    IS_CLOSER_TO_CENTER_KICK = 0b0010,
+  };
+
   explicit Locomotion(std::shared_ptr<Robot> robot);
 
   void load_config(const std::string & path);
@@ -94,7 +103,7 @@ public:
   bool pivot_fulfilled();
   bool in_pan_kick_range();
   bool in_tilt_kick_range();
-  bool closer_to_center_distance(keisan::Point2 ball_distance);
+  int closer_to_which_kick_distance(keisan::Point2 ball_distance, bool include_center = true);
   void reset_time_follow_tilt();
 
   std::shared_ptr<Robot> get_robot() const;
