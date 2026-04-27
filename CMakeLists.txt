@@ -37,7 +37,8 @@ add_library(${PROJECT_NAME} SHARED
   "src/${PROJECT_NAME}/locomotion/model/robot.cpp"
   "src/${PROJECT_NAME}/locomotion/node/locomotion_node.cpp"
   "src/${PROJECT_NAME}/locomotion/process/locomotion.cpp"
-  "src/${PROJECT_NAME}/node/suiryoku_node.cpp")
+  "src/${PROJECT_NAME}/node/suiryoku_node.cpp"
+  "src/${PROJECT_NAME}/locomotion/planner/davg_planner.cpp")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
