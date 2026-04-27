@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ichiro ITS
+// Copyright (c) 2021-2026 Ichiro ITS
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,16 @@
 #ifndef SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 #define SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
+#include "suiryoku/locomotion/planner/davg_planner.hpp"
 
 namespace suiryoku
 {
@@ -47,6 +51,7 @@ public:
 
   void move_forward(const keisan::Angle<double> & direction);
   bool move_forward_to(const keisan::Point2 & target, double stop_distance = 8.0);
+  bool move_to_avoid_obstacles(const keisan::Point2 & robot_pos, double robot_theta, const keisan::Point2 & target_pos, const std::vector<Obstacle> & active_obstacles);
 
   bool move_to_left_and_right(const keisan::Point2 & target, double stop_distance = 5.0);
   void move_left(const keisan::Angle<double> & direction);
@@ -195,6 +200,8 @@ private:
   keisan::Angle<double> right_kick_target_tilt;
 
   std::shared_ptr<Robot> robot;
+  DAVGPlanner planner;
+  std::optional<keisan::Point2> locked_target;
 };
 
 }  // namespace suiryoku

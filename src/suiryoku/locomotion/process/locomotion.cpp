@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include "suiryoku/locomotion/process/locomotion.hpp"
+#include "suiryoku/locomotion/planner/davg_planner.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -26,6 +27,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <optional>
 
 #include "jitsuyo/config.hpp"
 #include "keisan/keisan.hpp"
@@ -489,6 +491,112 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target, double stop_dist
   start();
 
   return false;
+}
+
+bool Locomotion::move_to_avoid_obstacles(
+  const keisan::Point2 & robot_pos, 
+  double robot_theta, 
+  const keisan::Point2 & target_pos, 
+  const std::vector<Obstacle> & active_obstacles)
+{
+  // get route from planner
+  std::vector<keisan::Point2> route = planner.calculate_path(
+    robot_pos, robot_theta, target_pos, active_obstacles);
+
+  // worst case occur when robot/ target position inside obstacle
+  bool is_worst_case = false;
+  for (const auto & obs : active_obstacles) {
+    double dist_robot = std::hypot(obs.position.x - robot_pos.x, obs.position.y - robot_pos.y);
+    double dist_goal = std::hypot(obs.position.x - target_pos.x, obs.position.y - target_pos.y);
+    
+    if (dist_robot <= obs.radius || dist_goal <= obs.radius) {
+      is_worst_case = true;
+      break;
+    }
+  }
+
+  if (is_worst_case) {
+    std::cout << "force move forward to target\n";
+    locked_target = std::nullopt;
+    return move_forward_to(target_pos, 5.0); // force move forward to target
+  }
+
+  // fallback logic when route is broken or empty
+  if (route.size() < 2) {
+    if (locked_target.has_value()) {
+      // keep moving to the last known target
+      bool is_arrived = move_forward_to(locked_target.value(), 5.0);
+      if (is_arrived) locked_target = std::nullopt;
+
+      return is_arrived;
+    } else {
+      // stop moving if there is no route and no memory
+      move_forward_to(robot_pos, 5.0);
+      locked_target = std::nullopt;
+
+      return true;
+    }
+  }
+
+  keisan::Point2 best_suggested_node = route[1];
+
+  if (!locked_target.has_value()) {
+    // lock to the first suggestion if memory is empty
+    locked_target = best_suggested_node;
+    std::cout << "lock to new target\n";
+  } else {
+    keisan::Point2 locked_pos = locked_target.value();
+    double dist_to_locked = std::hypot(locked_pos.x - robot_pos.x, locked_pos.y - robot_pos.y);
+
+    // check if robot has arrived at the current target
+    if (dist_to_locked < 15.0) {
+      keisan::Point2 next_target = (route.size() > 2) ? route[2] : route[1];
+
+      double dist_to_goal_next = std::hypot(next_target.x - target_pos.x, next_target.y - target_pos.y);
+      bool is_heading_to_goal_next = (dist_to_goal_next < 1.0);
+
+      double relaxed_inf_next = is_heading_to_goal_next ? 0.0 : planner.get_inflation_radius() * 0.75;
+
+      // check if it is safe to move to the next target before switching
+      bool is_shortcut_blocked = planner.is_line_colliding(
+        robot_pos, next_target, active_obstacles, relaxed_inf_next);
+
+      if (!is_shortcut_blocked) {
+        locked_target = next_target;
+        std::cout << "arrived at target, shift to the next target\n";
+      }
+
+    } else {
+      // check if the current path is blocked by obstacles
+      double dist_to_goal = std::hypot(locked_pos.x - target_pos.x, locked_pos.y - target_pos.y);
+      bool is_heading_to_goal = (dist_to_goal < 1.0);
+
+      double relaxed_inflation = is_heading_to_goal ? 0.0 : planner.get_inflation_radius() * 0.75;
+
+      bool is_path_blocked = planner.is_line_colliding(
+        robot_pos, locked_pos, active_obstacles, relaxed_inflation);
+
+      if (is_path_blocked) {
+        locked_target = best_suggested_node;
+        std::cout << "path blocked, change target\n";
+      } else {
+        // check if the global route has changed drastically
+        double dist_to_r1 = std::hypot(locked_pos.x - route[1].x, locked_pos.y - route[1].y);
+
+        double dist_to_r2 = std::numeric_limits<double>::infinity();
+        if (route.size() > 2) {
+            dist_to_r2 = std::hypot(locked_pos.x - route[2].x, locked_pos.y - route[2].y);
+        }
+
+        if (std::min(dist_to_r1, dist_to_r2) > 40.0) {
+          locked_target = best_suggested_node;
+          std::cout << "extreme route deviation, change target\n";
+        }
+      }
+    }
+  }
+
+  return move_forward_to(locked_target.value(), 5.0);
 }
 
 bool Locomotion::move_to_left_and_right(const keisan::Point2 & target, double stop_distance)
