@@ -28,6 +28,7 @@
 #include <memory>
 #include <string>
 #include <optional>
+#include <chrono>
 
 #include "jitsuyo/config.hpp"
 #include "keisan/keisan.hpp"
@@ -499,9 +500,15 @@ bool Locomotion::move_to_avoid_obstacles(
   const keisan::Point2 & target_pos, 
   const std::vector<Obstacle> & active_obstacles)
 {
+  auto start_time = std::chrono::high_resolution_clock::now();
+
   // get route from planner
   std::vector<keisan::Point2> route = planner.calculate_path(
     robot_pos, robot_theta, target_pos, active_obstacles);
+  
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> exec_time = end_time - start_time;
+  std::cout << "planner computation time: " << exec_time.count() << " ms\n";
 
   // worst case occur when robot/ target position inside obstacle
   bool is_worst_case = false;
@@ -510,6 +517,9 @@ bool Locomotion::move_to_avoid_obstacles(
     double dist_goal = std::hypot(obs.position.x - target_pos.x, obs.position.y - target_pos.y);
     
     if (dist_robot <= obs.radius || dist_goal <= obs.radius) {
+      if (dist_robot <= obs.radius) std::cout << "robot inside obstacle\n";
+      if (dist_robot <= obs.radius) std::cout << "goal inside obstacle\n";
+
       is_worst_case = true;
       break;
     }
@@ -517,6 +527,8 @@ bool Locomotion::move_to_avoid_obstacles(
 
   if (is_worst_case) {
     std::cout << "force move forward to target\n";
+    std::cout << "move to x: " << target_pos.x << " y: " << target_pos.y << "\n";
+
     locked_target = std::nullopt;
     return move_forward_to(target_pos, 5.0); // force move forward to target
   }
@@ -525,12 +537,18 @@ bool Locomotion::move_to_avoid_obstacles(
   if (route.size() < 2) {
     if (locked_target.has_value()) {
       // keep moving to the last known target
+      std::cout << "no route, use memory\n";
+      std::cout << "move to x: " << locked_target.value().x << " y: " << locked_target.value().y << "\n";
+
       bool is_arrived = move_forward_to(locked_target.value(), 5.0);
       if (is_arrived) locked_target = std::nullopt;
 
       return is_arrived;
     } else {
       // stop moving if there is no route and no memory
+      std::cout << "no route, stop\n";
+      std::cout << "move to x: " << robot_pos.x << " y: " << robot_pos.y << "\n";
+
       move_forward_to(robot_pos, 5.0);
       locked_target = std::nullopt;
 
@@ -542,8 +560,8 @@ bool Locomotion::move_to_avoid_obstacles(
 
   if (!locked_target.has_value()) {
     // lock to the first suggestion if memory is empty
-    locked_target = best_suggested_node;
     std::cout << "lock to new target\n";
+    locked_target = best_suggested_node;
   } else {
     keisan::Point2 locked_pos = locked_target.value();
     double dist_to_locked = std::hypot(locked_pos.x - robot_pos.x, locked_pos.y - robot_pos.y);
@@ -564,6 +582,8 @@ bool Locomotion::move_to_avoid_obstacles(
       if (!is_shortcut_blocked) {
         locked_target = next_target;
         std::cout << "arrived at target, shift to the next target\n";
+      } else {
+        std::cout << "arrived at target, next target blocked\n";
       }
 
     } else {
@@ -591,11 +611,14 @@ bool Locomotion::move_to_avoid_obstacles(
         if (std::min(dist_to_r1, dist_to_r2) > 40.0) {
           locked_target = best_suggested_node;
           std::cout << "extreme route deviation, change target\n";
+        } else {
+          std::cout << "path clear, keep target\n";
         }
       }
     }
   }
 
+  std::cout << "move to x: " << locked_target.value().x << " y: " << locked_target.value().y << "\n";
   return move_forward_to(locked_target.value(), 5.0);
 }
 
