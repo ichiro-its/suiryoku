@@ -34,6 +34,19 @@ namespace suiryoku
 class Locomotion
 {
 public:
+  enum {
+    CLOSER_TO_RIGHT_KICK = 0x1011,
+    CLOSER_TO_LEFT_KICK = 0x1012,
+    CLOSER_TO_RIGHT_KICK_CENTER = 0x1021,
+    CLOSER_TO_LEFT_KICK_CENTER = 0x1022,
+
+    // use & operator to confirm kick enum type
+    IS_CLOSER_TO_RIGHT_SIDE = 0x0001,
+    IS_CLOSER_TO_LEFT_SIDE = 0x0002,
+    IS_CLOSER_TO_NORMAL_KICK = 0x0010,
+    IS_CLOSER_TO_CENTER_KICK = 0x0020,
+  };
+
   explicit Locomotion(std::shared_ptr<Robot> robot);
 
   void load_config(const std::string & path);
@@ -80,6 +93,9 @@ public:
     const keisan::Angle<double> & direction, bool precise_kick, bool left_kick,
     bool is_positioning_center);
 
+  bool position_kick_distance(const keisan::Angle<double> & direction, keisan::Point2 distance,
+    bool left_kick, bool center_kick);
+
   bool position_basketball(
     const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
     const keisan::Angle<double> direction);
@@ -87,10 +103,11 @@ public:
     const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
     const keisan::Angle<double> direction);
 
-    bool is_time_to_follow();
+  bool is_time_to_follow();
   bool pivot_fulfilled();
   bool in_pan_kick_range();
   bool in_tilt_kick_range();
+  int closer_to_which_kick_distance(keisan::Point2 ball_distance, bool include_center = true);
   void reset_time_follow_tilt();
 
   std::shared_ptr<Robot> get_robot() const;
@@ -190,9 +207,23 @@ private:
 
   keisan::Angle<double> left_kick_target_pan;
   keisan::Angle<double> left_kick_target_tilt;
+  keisan::Point2 left_kick_distance;
+  keisan::Point2 left_kick_distance_range;
 
   keisan::Angle<double> right_kick_target_pan;
   keisan::Angle<double> right_kick_target_tilt;
+  keisan::Point2 right_kick_distance;
+  keisan::Point2 right_kick_distance_range;
+
+  keisan::Angle<double> right_kick_center_target_pan;
+  keisan::Angle<double> right_kick_center_target_tilt;
+  keisan::Point2 right_kick_center_distance;
+  keisan::Point2 right_kick_center_distance_range;
+
+  keisan::Angle<double> left_kick_center_target_pan;
+  keisan::Angle<double> left_kick_center_target_tilt;
+  keisan::Point2 left_kick_center_distance;
+  keisan::Point2 left_kick_center_distance_range;
 
   std::shared_ptr<Robot> robot;
 };

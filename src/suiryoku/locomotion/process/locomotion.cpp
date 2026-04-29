@@ -24,6 +24,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -304,6 +305,10 @@ void Locomotion::set_config(const nlohmann::json & json)
       jitsuyo::assign_val(left_kick_section, "target_pan", left_kick_target_pan_double);
     valid_section &=
       jitsuyo::assign_val(left_kick_section, "target_tilt", left_kick_target_tilt_double);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "distance_x", left_kick_distance.x);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "distance_y", left_kick_distance.y);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "range_x", left_kick_distance_range.x);
+    valid_section &= jitsuyo::assign_val(left_kick_section, "range_y", left_kick_distance_range.y);
 
     left_kick_target_pan = keisan::make_degree(left_kick_target_pan_double);
     left_kick_target_tilt = keisan::make_degree(left_kick_target_tilt_double);
@@ -327,12 +332,80 @@ void Locomotion::set_config(const nlohmann::json & json)
       jitsuyo::assign_val(right_kick_section, "target_pan", right_kick_target_pan_double);
     valid_section &=
       jitsuyo::assign_val(right_kick_section, "target_tilt", right_kick_target_tilt_double);
+    valid_section &= jitsuyo::assign_val(right_kick_section, "distance_x", right_kick_distance.x);
+    valid_section &= jitsuyo::assign_val(right_kick_section, "distance_y", right_kick_distance.y);
+    valid_section &=
+      jitsuyo::assign_val(right_kick_section, "range_x", right_kick_distance_range.x);
+    valid_section &=
+      jitsuyo::assign_val(right_kick_section, "range_y", right_kick_distance_range.y);
 
     right_kick_target_pan = keisan::make_degree(right_kick_target_pan_double);
     right_kick_target_tilt = keisan::make_degree(right_kick_target_tilt_double);
 
     if (!valid_section) {
       std::cout << "Error found at section `right_kick`" << std::endl;
+      valid_config = false;
+    }
+  } else {
+    valid_config = false;
+  }
+
+  nlohmann::json left_kick_center_section;
+  if (jitsuyo::assign_val(json, "left_kick_center", left_kick_center_section)) {
+    bool valid_section = true;
+
+    double left_kick_center_target_pan_double;
+    double left_kick_center_target_tilt_double;
+
+    valid_section &= jitsuyo::assign_val(
+      left_kick_center_section, "target_pan", left_kick_center_target_pan_double);
+    valid_section &= jitsuyo::assign_val(
+      left_kick_center_section, "target_tilt", left_kick_center_target_tilt_double);
+    valid_section &=
+      jitsuyo::assign_val(left_kick_center_section, "distance_x", left_kick_center_distance.x);
+    valid_section &=
+      jitsuyo::assign_val(left_kick_center_section, "distance_y", left_kick_center_distance.y);
+    valid_section &=
+      jitsuyo::assign_val(left_kick_center_section, "range_x", left_kick_center_distance_range.x);
+    valid_section &=
+      jitsuyo::assign_val(left_kick_center_section, "range_y", left_kick_center_distance_range.y);
+
+    left_kick_center_target_pan = keisan::make_degree(left_kick_center_target_pan_double);
+    left_kick_center_target_tilt = keisan::make_degree(left_kick_center_target_tilt_double);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `left_kick_center`" << std::endl;
+      valid_config = false;
+    }
+  } else {
+    valid_config = false;
+  }
+
+  nlohmann::json right_kick_center_section;
+  if (jitsuyo::assign_val(json, "right_kick_center", right_kick_center_section)) {
+    bool valid_section = true;
+
+    double right_kick_center_target_pan_double;
+    double right_kick_center_target_tilt_double;
+
+    valid_section &= jitsuyo::assign_val(
+      right_kick_center_section, "target_pan", right_kick_center_target_pan_double);
+    valid_section &= jitsuyo::assign_val(
+      right_kick_center_section, "target_tilt", right_kick_center_target_tilt_double);
+    valid_section &=
+      jitsuyo::assign_val(right_kick_center_section, "distance_x", right_kick_center_distance.x);
+    valid_section &=
+      jitsuyo::assign_val(right_kick_center_section, "distance_y", right_kick_center_distance.y);
+    valid_section &=
+      jitsuyo::assign_val(right_kick_center_section, "range_x", right_kick_center_distance_range.x);
+    valid_section &=
+      jitsuyo::assign_val(right_kick_center_section, "range_y", right_kick_center_distance_range.y);
+
+    right_kick_center_target_pan = keisan::make_degree(right_kick_center_target_pan_double);
+    right_kick_center_target_tilt = keisan::make_degree(right_kick_center_target_tilt_double);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `right_kick_center`" << std::endl;
       valid_config = false;
     }
   } else {
@@ -1118,6 +1191,73 @@ bool Locomotion::position_kick_range_pan_tilt(
   return false;
 }
 
+bool Locomotion::position_kick_distance(const keisan::Angle<double> & direction,
+  keisan::Point2 distance, bool left_kick, bool center_kick)
+{
+  auto delta_direction = (direction - robot->orientation).normalize().degree();
+
+  auto right_distance = center_kick ? right_kick_center_distance : right_kick_distance;
+  auto left_distance = center_kick ? left_kick_center_distance : left_kick_distance;
+
+  auto right_distance_range =
+    center_kick ? right_kick_center_distance_range : right_kick_distance_range;
+  auto left_distance_range =
+    center_kick ? left_kick_center_distance_range : left_kick_distance_range;
+
+  auto right_diff = right_distance - distance;
+  auto left_diff = left_distance - distance;
+
+  bool right_kick_in_range = std::fabs(right_diff.x) < right_distance_range.x &&
+                             std::fabs(right_diff.y) < right_distance_range.y;
+  bool left_kick_in_range = std::fabs(left_diff.x) < left_distance_range.x &&
+                            std::fabs(left_diff.y) < left_distance_range.y;
+  bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction.degree();
+  bool kick_in_range = left_kick ? left_kick_in_range : right_kick_in_range;
+
+  printf("direction in range: %d\n", direction_in_range);
+  printf("kick in range: %d\n", kick_in_range);
+
+  if (direction_in_range && kick_in_range) {
+    return true;
+  }
+
+  keisan::Point2 target = left_kick ? left_distance : right_distance;
+  auto range = left_kick ? left_distance_range : right_distance_range;
+
+  auto delta_distance = left_kick ? left_diff : right_diff;
+  printf("delta distance: %lf %lf\n", delta_distance.x, delta_distance.y);
+
+  double x_speed = 0.0;
+  if (delta_distance.x > range.x) {
+    x_speed = keisan::map(delta_distance.x, range.x + 15.0, range.x, position_min_x, position_min_x * 0.5);
+  } else if (delta_distance.x < -range.x) {
+    x_speed = keisan::map(delta_distance.x, range.x - 15.0, range.x, position_max_x, position_max_x * 0.5);
+  }
+
+  double y_speed = 0.0;
+  if (delta_distance.y > range.y) {
+    y_speed =
+      keisan::map(delta_distance.y, range.y + 30.0, range.y, position_max_ly, position_min_ly);
+  } else if (delta_distance.y < -range.y) {
+    y_speed =
+      keisan::map(delta_distance.y, range.y - 30.0, -range.y, position_min_ry, position_max_ry);
+  }
+
+  double a_speed = 0;
+  if (!direction_in_range) {
+    a_speed = keisan::map(delta_direction, -30.0, 30.0, position_max_a, -position_max_a);
+  }
+
+  double smooth_ratio = 0.8;
+
+  robot->x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
+  robot->y_speed = keisan::smooth(robot->y_speed, y_speed, smooth_ratio);
+  robot->a_speed = keisan::smooth(robot->a_speed, a_speed, smooth_ratio);
+  robot->aim_on = false;
+
+  return false;
+}
+
 bool Locomotion::position_basketball(
   const keisan::Angle<double> target_pan, const keisan::Angle<double> target_tilt,
   const keisan::Angle<double> direction)
@@ -1246,6 +1386,32 @@ bool Locomotion::in_tilt_kick_range()
   double max_target_tilt =
     std::max(left_kick_target_tilt.degree(), right_kick_target_tilt.degree());
   return tilt > min_target_tilt && tilt < max_target_tilt;
+}
+
+int Locomotion::closer_to_which_kick_distance(keisan::Point2 ball_distance, bool include_center)
+{
+  double delta_left = (ball_distance - left_kick_distance).magnitude();
+  double delta_right = (ball_distance - right_kick_distance).magnitude();
+  double delta_left_center = std::numeric_limits<double>::infinity();
+  double delta_right_center = std::numeric_limits<double>::infinity();
+  
+  if (include_center) {
+    delta_left_center = (ball_distance - left_kick_center_distance).magnitude();
+    delta_right_center = (ball_distance - right_kick_center_distance).magnitude();
+  }
+
+  double closest_distance = std::min({delta_left, delta_right, delta_left_center, delta_right_center});
+  if (closest_distance == delta_left) {
+    return CLOSER_TO_LEFT_KICK;
+  } else if (closest_distance == delta_right) {
+    return CLOSER_TO_RIGHT_KICK;
+  } else if (closest_distance == delta_left_center) {
+    return CLOSER_TO_LEFT_KICK_CENTER;
+  } else if (closest_distance == delta_right_center) {
+    return CLOSER_TO_RIGHT_KICK_CENTER;
+  }
+
+  return CLOSER_TO_RIGHT_KICK;
 }
 
 void Locomotion::reset_time_follow_tilt() { is_first_follow_tilt = true; }
