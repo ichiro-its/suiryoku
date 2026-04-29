@@ -35,12 +35,16 @@ class Locomotion
 {
 public:
   enum {
-    CLOSER_TO_RIGHT_KICK = 0b1001,
-    CLOSER_TO_LEFT_KICK = 0b1000,
-    CLOSER_TO_RIGHT_KICK_CENTER = 0b1011,
-    CLOSER_TO_LEFT_KICK_CENTER = 0b1010,
+    CLOSER_TO_RIGHT_KICK = 0x1011,
+    CLOSER_TO_LEFT_KICK = 0x1012,
+    CLOSER_TO_RIGHT_KICK_CENTER = 0x1021,
+    CLOSER_TO_LEFT_KICK_CENTER = 0x1022,
 
-    IS_CLOSER_TO_CENTER_KICK = 0b0010,
+    // use & operator to confirm kick enum type
+    IS_CLOSER_TO_RIGHT_SIDE = 0x0001,
+    IS_CLOSER_TO_LEFT_SIDE = 0x0002,
+    IS_CLOSER_TO_NORMAL_KICK = 0x0010,
+    IS_CLOSER_TO_CENTER_KICK = 0x0020,
   };
 
   explicit Locomotion(std::shared_ptr<Robot> robot);
