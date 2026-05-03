@@ -179,6 +179,11 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
 {
   auto total_start = std::chrono::high_resolution_clock::now();
 
+  std::cout << "[DAVGPlanner] calculate_path called with " << obstacles.size() << " total obstacles\n";
+  for (size_t i = 0; i < obstacles.size(); ++i) {
+    std::cout << "[DAVGPlanner] -- Obstacle " << i << ": x=" << obstacles[i].position.x << ", y=" << obstacles[i].position.y << ", r=" << obstacles[i].radius << "\n";
+  }
+
   // search for active obstacles
   auto active_search_start = std::chrono::high_resolution_clock::now();
   std::vector<Obstacle> active_obstacles;
