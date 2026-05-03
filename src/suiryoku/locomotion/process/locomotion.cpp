@@ -518,25 +518,11 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target, double stop_dist
 }
 
 bool Locomotion::move_to_avoid_obstacles(
-  const keisan::Point2 & robot_pos, 
-  double robot_theta, 
-  const keisan::Point2 & target_pos, 
+  const keisan::Point2 & target_pos,
+  const std::vector<keisan::Point2> & route,
   const std::vector<Obstacle> & active_obstacles)
 {
-  static auto last_plan_time = std::chrono::high_resolution_clock::now();
-  static std::vector<keisan::Point2> cached_route;
-
-  auto current_time = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed = current_time - last_plan_time;
-
-  // run planner every 0.2 sec
-  if (elapsed.count() >= 0.2 || cached_route.empty()) {
-    cached_route = planner.calculate_path(robot_pos, robot_theta, target_pos, active_obstacles);
-
-    // reset timer
-    last_plan_time = current_time;
-  }
-
+  keisan::Point2 robot_pos = get_robot_position();
   // worst case occur when robot/ target position inside obstacle
   bool is_worst_case = false;
   for (const auto & obs : active_obstacles) {
@@ -557,12 +543,12 @@ bool Locomotion::move_to_avoid_obstacles(
     std::cout << "move to x: " << target_pos.x << " y: " << target_pos.y << "\n";
 
     locked_target = std::nullopt;
-    cached_route.clear();
+    // route.clear()
     return move_forward_to(target_pos, 5.0); // force move forward to target
   }
 
   // fallback logic when route is broken or empty
-  if (cached_route.size() < 2) {
+  if (route.size() < 2) {
     if (locked_target.has_value()) {
       // keep moving to the last known target
       std::cout << "no route, use memory\n";
@@ -584,7 +570,7 @@ bool Locomotion::move_to_avoid_obstacles(
     }
   }
 
-  keisan::Point2 best_suggested_node = cached_route[1];
+  keisan::Point2 best_suggested_node = route[1];
 
   if (!locked_target.has_value()) {
     // lock to the first suggestion if memory is empty
@@ -596,7 +582,7 @@ bool Locomotion::move_to_avoid_obstacles(
 
     // check if robot has arrived at the current target
     if (dist_to_locked < 15.0) {
-      keisan::Point2 next_target = (cached_route.size() > 2) ? cached_route[2] : cached_route[1];
+      keisan::Point2 next_target = (route.size() > 2) ? route[2] : route[1];
 
       double dist_to_goal_next = std::hypot(next_target.x - target_pos.x, next_target.y - target_pos.y);
       bool is_heading_to_goal_next = (dist_to_goal_next < 1.0);
@@ -624,21 +610,27 @@ bool Locomotion::move_to_avoid_obstacles(
       bool is_path_blocked = planner.is_segment_colliding(
         robot_pos, locked_pos, active_obstacles, relaxed_inflation);
 
-      if (is_path_blocked) {
-        locked_target = best_suggested_node;
-        std::cout << "path blocked, change target\n";
+      // check if the final goal is clear
+      bool is_goal_clear = !planner.is_segment_colliding(robot_pos, target_pos, active_obstacles, planner.get_inflation_radius() * 0.25);
+
+      if (is_path_blocked || (is_goal_clear && !is_heading_to_goal)) {
+        locked_target = is_goal_clear ? target_pos : best_suggested_node;
+        if (is_path_blocked) std::cout << "path blocked, change target\n";
+        else std::cout << "goal clear, switch to final goal\n";
       } else {
-        double dist_to_r1 = std::hypot(locked_pos.x - cached_route[1].x, locked_pos.y - cached_route[1].y);
+        double dist_to_r1 = std::hypot(locked_pos.x - route[1].x, locked_pos.y - route[1].y);
 
         double dist_to_r2 = std::numeric_limits<double>::infinity();
-        if (cached_route.size() > 2) {
-            dist_to_r2 = std::hypot(locked_pos.x - cached_route[2].x, locked_pos.y - cached_route[2].y);
+        if (route.size() > 2) {
+          dist_to_r2 = std::hypot(locked_pos.x - route[2].x, locked_pos.y - route[2].y);
         }
 
+        bool is_suggestion_goal = (std::hypot(best_suggested_node.x - target_pos.x, best_suggested_node.y - target_pos.y) < 1.0);
+
         // check if the global route has changed drastically
-        if (std::min(dist_to_r1, dist_to_r2) > 40.0) {
+        if (is_suggestion_goal || std::min(dist_to_r1, dist_to_r2) > 40.0) {
           locked_target = best_suggested_node;
-          std::cout << "extreme route deviation, change target\n";
+          std::cout << "route updated, change target\n";
         } else {
           std::cout << "path clear, keep target\n";
         }
