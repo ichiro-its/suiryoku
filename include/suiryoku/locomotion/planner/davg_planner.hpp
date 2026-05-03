@@ -21,14 +21,14 @@
 #ifndef SUIRYOKU__LOCOMOTION__PLANNER__DAVG_PLANNER_HPP_
 #define SUIRYOKU__LOCOMOTION__PLANNER__DAVG_PLANNER_HPP_
 
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "keisan/keisan.hpp"
 
 namespace suiryoku
 {
-    
+
 struct Obstacle
 {
   keisan::Point2 position;
@@ -44,49 +44,45 @@ public:
         double inflation_radius = 10.0
     );
 
-    // calculate shortest path using augmented a*
+    // calculate shortest path using augmented A*
     std::vector<keisan::Point2> calculate_path(
-        const keisan::Point2 &start_pos,
+        const keisan::Point2 & start_pos,
         double start_theta,
-        const keisan::Point2 &goal_pos,
-        const std::vector<Obstacle> &obstacles
+        const keisan::Point2 & goal_pos,
+        const std::vector<Obstacle> & obstacles
     );
 
-    // check if line segment intersect with obstacle / inflation zone
-    bool is_line_colliding(
-        const keisan::Point2 &p_a,
-        const keisan::Point2 &p_b,
-        const std::vector<Obstacle> &active_obstacles,
-        double inflation_radius
-    ) const;
+    // returns true if the segment [p_a, p_b] intersects any obstacle inflation zone
+    bool is_segment_colliding(
+      const keisan::Point2 & p_a,
+      const keisan::Point2 & p_b,
+      const std::vector<Obstacle> & active_obstacles,
+      double inflation_radius) const;
 
-    double get_inflation_radius();
-
+    double get_inflation_radius() const;
     void set_inflation_radius(double new_radius);
-    void set_polygon_edges(double new_edges);
+    void set_polygon_edges(int new_edges);
     void set_turning_penalty(double new_value);
 
 private:
     using Graph = std::vector<std::vector<std::pair<int, double>>>;
 
-    // check if obstacle in active area
-    bool calculate_distance_to_line(
-        const keisan::Point2 &start,
-        const keisan::Point2 &goal,
-        const Obstacle &obstacle,
+    // returns true if the obstacle overlaps the active corridor
+    bool is_obstacle_in_corridor(
+        const keisan::Point2 & start,
+        const keisan::Point2 & goal,
+        const Obstacle & obstacle,
         double left_width,
         double right_width,
-        double &signed_dist
-    ) const;
+        double & signed_dist) const;
 
-    // escape from inflation zone
-    void force_escape(
+  // adds edges from a trapped node to all reachable polygon vertices.
+    void connect_trapped_node(
         int node_idx,
-        const std::vector<keisan::Point2> &all_nodes,
+        const std::vector<keisan::Point2> & all_nodes,
         int total_nodes,
-        const std::vector<Obstacle> &active_obstacles,
-        Graph &graph
-    ) const;
+        const std::vector<Obstacle> & active_obstacles,
+        Graph & graph) const;
 
     double turning_penalty_;
     int polygon_edges_;
