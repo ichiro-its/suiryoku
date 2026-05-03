@@ -51,7 +51,7 @@ public:
 
   void move_forward(const keisan::Angle<double> & direction);
   bool move_forward_to(const keisan::Point2 & target, double stop_distance = 8.0);
-  bool move_to_avoid_obstacles(const keisan::Point2 & robot_pos, double robot_theta, const keisan::Point2 & target_pos, const std::vector<Obstacle> & active_obstacles);
+  bool move_to_avoid_obstacles(const keisan::Point2 & target_pos, const std::vector<keisan::Point2> & route, const std::vector<Obstacle> & active_obstacles);
 
   bool move_to_left_and_right(const keisan::Point2 & target, double stop_distance = 5.0);
   void move_left(const keisan::Angle<double> & direction);
