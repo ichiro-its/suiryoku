@@ -242,6 +242,7 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
         obs.position.y + safe_r * std::sin(angle)});
     }
   }
+  auto vertex_gen_end = std::chrono::high_resolution_clock::now();
 
   // create edges for each node that is not collide with each other
   std::vector<keisan::Point2> all_nodes;
@@ -260,6 +261,7 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
     graph[i].reserve(total_nodes / 2);
   }
 
+  auto vis_loop_start = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < total_nodes; ++i) {
     for (int j = i + 1; j < total_nodes; ++j) {
       if (is_segment_colliding(all_nodes[i], all_nodes[j], active_obstacles, inflation_radius_)) {
@@ -272,12 +274,25 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
       graph[j].push_back({i, dist});
     }
   }
+  auto vis_loop_end = std::chrono::high_resolution_clock::now();
 
   // handle start/goal nodes that are inside an inflation zone.
+  auto trap_start = std::chrono::high_resolution_clock::now();
   connect_trapped_node(start_id, all_nodes, total_nodes, active_obstacles, graph);
   connect_trapped_node(goal_id, all_nodes, total_nodes, active_obstacles, graph);
+  auto trap_end = std::chrono::high_resolution_clock::now();
+
   auto graph_const_end = std::chrono::high_resolution_clock::now();
+
+  auto vertex_gen_duration = std::chrono::duration_cast<std::chrono::milliseconds>(vertex_gen_end - graph_const_start);
+  auto vis_loop_duration = std::chrono::duration_cast<std::chrono::milliseconds>(vis_loop_end - vis_loop_start);
+  auto trap_duration = std::chrono::duration_cast<std::chrono::milliseconds>(trap_end - trap_start);
   auto graph_const_duration = std::chrono::duration_cast<std::chrono::milliseconds>(graph_const_end - graph_const_start);
+
+  std::cout << "[DAVGPlanner] Visibility nodes: " << total_nodes << " (obstacles: " << num_active << ")\n";
+  std::cout << "[DAVGPlanner] -- Vertex generation: " << vertex_gen_duration.count() << "ms\n";
+  std::cout << "[DAVGPlanner] -- All-to-all visibility loop: " << vis_loop_duration.count() << "ms\n";
+  std::cout << "[DAVGPlanner] -- Trapped node connection: " << trap_duration.count() << "ms\n";
   std::cout << "[DAVGPlanner] Visibility graph construction: " << graph_const_duration.count() << "ms\n";
 
   // augmented A* with turning penalty
