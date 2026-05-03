@@ -530,8 +530,12 @@ bool Locomotion::move_to_avoid_obstacles(
     double dist_goal = std::hypot(obs.position.x - target_pos.x, obs.position.y - target_pos.y);
     
     if (dist_robot <= obs.radius || dist_goal <= obs.radius) {
-      if (dist_robot <= obs.radius) std::cout << "robot inside obstacle\n";
-      if (dist_goal <= obs.radius) std::cout << "goal inside obstacle\n";
+      if (dist_robot <= obs.radius) {
+        std::cout << "robot inside obstacle at " << obs.position.x << ", " << obs.position.y << "\n";
+      }
+      if (dist_goal <= obs.radius) {
+        std::cout << "goal inside obstacle at " << obs.position.x << ", " << obs.position.y << "\n";
+      }
 
       is_worst_case = true;
       break;
