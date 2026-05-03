@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ichiro ITS
+// Copyright (c) 2021-2026 Ichiro ITS
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -342,6 +342,29 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_config = false;
   }
 
+  nlohmann::json planner_section;
+  if (jitsuyo::assign_val(json, "davg_planner", planner_section)) {
+    bool valid_section = true;
+    double turning_penalty;
+    int polygon_edges;
+    double inflation_radius;
+
+    valid_section &= jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
+    valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
+    valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
+
+    if (!valid_section) {
+      std::cout << "Error found at section `davg_planner`" << std::endl;
+      valid_config = false;
+    } else {
+      planner.set_turning_penalty(turning_penalty);
+      planner.set_polygon_edges(polygon_edges);
+      planner.set_inflation_radius(inflation_radius);
+    }
+  } else {
+    valid_config = false; 
+  }
+
   if (!valid_config) {
     throw std::runtime_error("Failed to load config file `locomotion.json`");
   }
@@ -508,13 +531,7 @@ bool Locomotion::move_to_avoid_obstacles(
 
   // run planner every 0.2 sec
   if (elapsed.count() >= 0.2 || cached_route.empty()) {
-    auto start_time = std::chrono::high_resolution_clock::now();
-
     cached_route = planner.calculate_path(robot_pos, robot_theta, target_pos, active_obstacles);
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> exec_time = end_time - start_time;
-    std::cout << "planner computation time: " << exec_time.count() << " ms\n";
 
     // reset timer
     last_plan_time = current_time;
@@ -587,7 +604,7 @@ bool Locomotion::move_to_avoid_obstacles(
       double relaxed_inf_next = is_heading_to_goal_next ? 0.0 : planner.get_inflation_radius() * 0.75;
 
       // check if it is safe to move to the next target before switching
-      bool is_shortcut_blocked = planner.is_line_colliding(
+      bool is_shortcut_blocked = planner.is_segment_colliding(
         robot_pos, next_target, active_obstacles, relaxed_inf_next);
 
       if (!is_shortcut_blocked) {
@@ -604,7 +621,7 @@ bool Locomotion::move_to_avoid_obstacles(
 
       double relaxed_inflation = is_heading_to_goal ? 0.0 : planner.get_inflation_radius() * 0.75;
 
-      bool is_path_blocked = planner.is_line_colliding(
+      bool is_path_blocked = planner.is_segment_colliding(
         robot_pos, locked_pos, active_obstacles, relaxed_inflation);
 
       if (is_path_blocked) {
