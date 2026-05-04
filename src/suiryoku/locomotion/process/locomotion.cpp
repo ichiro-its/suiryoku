@@ -522,10 +522,45 @@ bool Locomotion::move_to_avoid_obstacles(
   const std::vector<keisan::Point2> & route,
   const std::vector<Obstacle> & active_obstacles)
 {
+  auto now = std::chrono::steady_clock::now();
+
+  // update memory with currently seen obstacles
+  for (const auto & obs : active_obstacles) {
+    bool found = false;
+    for (auto & mem : obstacle_memories) {
+      // consider it the same obstacle if it's within 100.0 cm
+      if (std::hypot(obs.position.x - mem.obstacle.position.x, obs.position.y - mem.obstacle.position.y) < 100.0) {
+        mem.obstacle = obs;
+        mem.last_seen = now;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      obstacle_memories.push_back({obs, now});
+    }
+  }
+
+  // remove obstacles that haven't been seen for 5 seconds
+  obstacle_memories.erase(
+    std::remove_if(
+      obstacle_memories.begin(), obstacle_memories.end(),
+      [&](const ObstacleMemory & mem) {
+        return std::chrono::duration_cast<std::chrono::seconds>(now - mem.last_seen).count() >= 5;
+      }),
+    obstacle_memories.end());
+
+  // collect all obstacles from memory
+  std::vector<Obstacle> all_obstacles;
+  for (const auto & mem : obstacle_memories) {
+    all_obstacles.push_back(mem.obstacle);
+  }
+
   keisan::Point2 robot_pos = get_robot_position();
   // worst case occur when robot/ target position inside obstacle
   bool is_worst_case = false;
-  for (const auto & obs : active_obstacles) {
+  for (const auto & obs : all_obstacles) {
     double dist_robot = std::hypot(obs.position.x - robot_pos.x, obs.position.y - robot_pos.y);
     double dist_goal = std::hypot(obs.position.x - target_pos.x, obs.position.y - target_pos.y);
     
@@ -594,12 +629,13 @@ bool Locomotion::move_to_avoid_obstacles(
       double relaxed_inf_next = is_heading_to_goal_next ? 0.0 : planner.get_inflation_radius() * 0.75;
 
       // check if it is safe to move to the next target before switching
-      bool is_shortcut_blocked = planner.is_segment_colliding(
-        robot_pos, next_target, active_obstacles, relaxed_inf_next);
+      bool is_shortcut_blocked = planner.is_segment_colliding(robot_pos, next_target, all_obstacles, relaxed_inf_next);
 
       if (!is_shortcut_blocked) {
-        locked_target = next_target;
-        std::cout << "arrived at target, shift to the next target\n";
+        if (std::hypot(next_target.x - locked_pos.x, next_target.y - locked_pos.y) > 5.0) {
+          locked_target = next_target;
+          std::cout << "arrived at target, shift to the next target\n";
+        }
       } else {
         std::cout << "arrived at target, next target blocked\n";
       }
@@ -607,20 +643,25 @@ bool Locomotion::move_to_avoid_obstacles(
     } else {
       // check if the current path is blocked by obstacles
       double dist_to_goal = std::hypot(locked_pos.x - target_pos.x, locked_pos.y - target_pos.y);
-      bool is_heading_to_goal = (dist_to_goal < 1.0);
+      bool is_heading_to_goal = (dist_to_goal < 20.0);
 
-      double relaxed_inflation = is_heading_to_goal ? 0.0 : planner.get_inflation_radius() * 0.75;
+      double path_inflation = -5.0; 
 
-      bool is_path_blocked = planner.is_segment_colliding(
-        robot_pos, locked_pos, active_obstacles, relaxed_inflation);
+      bool is_path_blocked = planner.is_segment_colliding(robot_pos, locked_pos, all_obstacles, path_inflation);
 
       // check if the final goal is clear
-      bool is_goal_clear = !planner.is_segment_colliding(robot_pos, target_pos, active_obstacles, planner.get_inflation_radius() * 0.25);
+      double goal_clear_inf = planner.get_inflation_radius() * 1.25;
+      bool is_goal_clear = !planner.is_segment_colliding(robot_pos, target_pos, all_obstacles, goal_clear_inf);
 
       if (is_path_blocked || (is_goal_clear && !is_heading_to_goal)) {
-        locked_target = is_goal_clear ? target_pos : best_suggested_node;
-        if (is_path_blocked) std::cout << "path blocked, change target\n";
-        else std::cout << "goal clear, switch to final goal\n";
+        keisan::Point2 new_target = is_goal_clear ? target_pos : best_suggested_node;
+        
+        // only update if the new target is significantly different
+        if (std::hypot(new_target.x - locked_pos.x, new_target.y - locked_pos.y) > 25.0) {
+            locked_target = new_target;
+            if (is_path_blocked) std::cout << "path blocked! switching to " << (is_goal_clear ? "GOAL" : "PLANNER NODE") << "\n";
+            else std::cout << "goal clear, switch to final goal\n";
+        }
       } else {
         double dist_to_r1 = std::hypot(locked_pos.x - route[1].x, locked_pos.y - route[1].y);
 
@@ -630,13 +671,12 @@ bool Locomotion::move_to_avoid_obstacles(
         }
 
         bool is_suggestion_goal = (std::hypot(best_suggested_node.x - target_pos.x, best_suggested_node.y - target_pos.y) < 1.0);
+        double min_dist_route = std::min(dist_to_r1, dist_to_r2);
 
-        // check if the global route has changed drastically
-        if (is_suggestion_goal || std::min(dist_to_r1, dist_to_r2) > 40.0) {
+        // check if the global route has changed drastically and not already heading to goal
+        if (!is_heading_to_goal && min_dist_route > 60.0) {
           locked_target = best_suggested_node;
-          std::cout << "route updated, change target\n";
-        } else {
-          std::cout << "path clear, keep target\n";
+          std::cout << "route updated! min_dist: " << min_dist_route << ", switching target\n";
         }
       }
     }
