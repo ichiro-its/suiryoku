@@ -299,6 +299,7 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
   std::cout << "[DAVGPlanner] -- All-to-all visibility loop: " << vis_loop_duration.count() << "ms\n";
   std::cout << "[DAVGPlanner] -- Trapped node connection: " << trap_duration.count() << "ms\n";
   std::cout << "[DAVGPlanner] Visibility graph construction: " << graph_const_duration.count() << "ms\n";
+  std::cout << "====================================================\n";
 
   // augmented A* with turning penalty
   auto astar_start = std::chrono::high_resolution_clock::now();
