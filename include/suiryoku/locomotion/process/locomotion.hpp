@@ -21,6 +21,7 @@
 #ifndef SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 #define SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -34,6 +35,11 @@
 
 namespace suiryoku
 {
+struct ObstacleMemory
+{
+  Obstacle obstacle;
+  std::chrono::steady_clock::time_point last_seen;
+};
 
 class Locomotion
 {
@@ -202,6 +208,7 @@ private:
   std::shared_ptr<Robot> robot;
   DAVGPlanner planner;
   std::optional<keisan::Point2> locked_target;
+  std::vector<ObstacleMemory> obstacle_memories;
 };
 
 }  // namespace suiryoku
