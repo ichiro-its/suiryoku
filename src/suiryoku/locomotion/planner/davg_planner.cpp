@@ -197,8 +197,8 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
     for (const auto &obs : obstacles) {
       bool already_active = false;
       for (const auto &a_obs : active_obstacles) {
-        if (std::abs(obs.position.x - a_obs.position.x) < 0.1 &&
-          std::abs(obs.position.y - a_obs.position.y) < 0.1)
+        if (std::abs(obs.position.x - a_obs.position.x) < 100.0 &&
+          std::abs(obs.position.y - a_obs.position.y) < 100.0)
         {
           already_active = true;
           break;
