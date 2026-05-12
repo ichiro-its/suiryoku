@@ -41,9 +41,7 @@ DAVGPlannerNode::DAVGPlannerNode(const rclcpp::NodeOptions &options)
   planner(
     declare_parameter<double>("turning_penalty", 1.0),
     declare_parameter<int>("polygon_edges", 8),
-    declare_parameter<double>("inflation_radius", 10.0)),
-  config_path(""),
-  last_config_modified_time(0)
+    declare_parameter<double>("inflation_radius", 10.0))
 {
     start_pose_subscriber = create_subscription<aruku_interfaces::msg::Status>(
       "walking/status", 10, std::bind(&DAVGPlannerNode::on_start_pose, this, std::placeholders::_1));
@@ -61,40 +59,11 @@ DAVGPlannerNode::DAVGPlannerNode(const rclcpp::NodeOptions &options)
 
 void DAVGPlannerNode::load_config(const std::string &path)
 {
-  this->config_path = path;
-
-  struct stat st;
-  if (stat((path + "locomotion.json").c_str(), &st) == 0) {
-    this->last_config_modified_time = st.st_mtime;
-  }
-
-  nlohmann::json json;
-  
-  if (!jitsuyo::load_config(path, "locomotion.json", json)) {
-    throw std::runtime_error("Failed to load config file `" + path + "locomotion.json`");
-  }
-
-  nlohmann::json planner_section;
-  if (jitsuyo::assign_val(json, "davg_planner", planner_section)) {
-    double turning_penalty;
-    int polygon_edges;
-    double inflation_radius;
-
-    bool valid_section = jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
-    valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
-    valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
-
-    if (valid_section) {
-      planner.set_turning_penalty(turning_penalty);
-      planner.set_polygon_edges(polygon_edges);
-      planner.set_inflation_radius(inflation_radius);
-    } else {
-      RCLCPP_WARN(this->get_logger(), "Error parsing `davg_planner` section in locomotion.json");
-    }
+  if (!planner.load_config(path)) {
+    RCLCPP_WARN(this->get_logger(), "Failed to load config from %s", path.c_str());
   }
 }
 
-// callbacks
 void DAVGPlannerNode::on_start_pose(const aruku_interfaces::msg::Status::SharedPtr msg)
 { 
   latest_start_pose = std::make_shared<Point2>();
@@ -119,19 +88,6 @@ void DAVGPlannerNode::on_obstacle(const Obstacles::SharedPtr msg)
 
 void DAVGPlannerNode::timer_callback()
 {
-  if (!config_path.empty()) {
-    struct stat st;
-    if (stat((config_path + "locomotion.json").c_str(), &st) == 0) {
-      if (st.st_mtime > last_config_modified_time) {
-        try {
-          load_config(config_path);
-        } catch (const std::exception &e) {
-          RCLCPP_ERROR(this->get_logger(), "Failed to reload config: %s", e.what());
-        }
-      }
-    }
-  }
-
   if (!latest_start_pose || !latest_goal_pose) return;
   run_planner();
 }

@@ -23,8 +23,10 @@
 
 #include <utility>
 #include <vector>
+#include <string>
 
 #include "keisan/keisan.hpp"
+#include "nlohmann/json.hpp"
 
 namespace suiryoku
 {
@@ -44,6 +46,9 @@ public:
         double inflation_radius = 10.0
     );
 
+    bool load_config(const std::string & path);
+    bool set_config(const nlohmann::json & json);
+
     // calculate shortest path using augmented A*
     std::vector<keisan::Point2> calculate_path(
         const keisan::Point2 & start_pos,
@@ -60,9 +65,9 @@ public:
       double inflation_radius) const;
 
     double get_inflation_radius() const;
-    void set_inflation_radius(double new_radius);
-    void set_polygon_edges(int new_edges);
-    void set_turning_penalty(double new_value);
+    bool set_inflation_radius(double new_radius);
+    bool set_polygon_edges(int new_edges);
+    bool set_turning_penalty(double new_value);
 
 private:
     using Graph = std::vector<std::vector<std::pair<int, double>>>;

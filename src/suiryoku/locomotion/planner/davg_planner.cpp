@@ -28,6 +28,10 @@
 #include <queue>
 #include <vector>
 
+#include "jitsuyo/config.hpp"
+
+using namespace std::chrono;
+
 namespace suiryoku
 {
 DAVGPlanner::DAVGPlanner(double turning_penalty, int polygon_edges, double inflation_radius)
@@ -37,27 +41,68 @@ DAVGPlanner::DAVGPlanner(double turning_penalty, int polygon_edges, double infla
   inflation_radius_ = inflation_radius;
 }
 
+bool DAVGPlanner::load_config(const std::string & path)
+{
+  nlohmann::json json;
+  if (!jitsuyo::load_config(path, "locomotion.json", json)) {
+    return false;
+  }
+
+  return set_config(json);
+}
+
+bool DAVGPlanner::set_config(const nlohmann::json & json)
+{
+  nlohmann::json planner_section;
+  if (jitsuyo::assign_val(json, "davg_planner", planner_section)) {
+    bool valid_section = true;
+    double turning_penalty;
+    int polygon_edges;
+    double inflation_radius;
+
+    valid_section &= jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
+    valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
+    valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
+
+    if (valid_section) {
+      valid_section &= set_turning_penalty(turning_penalty);
+      valid_section &= set_polygon_edges(polygon_edges);
+      valid_section &= set_inflation_radius(inflation_radius);
+    }
+
+    if (!valid_section) {
+      std::cout << "Error found at section `davg_planner`" << std::endl;
+    }
+  }
+}
+
 double DAVGPlanner::get_inflation_radius() const { return inflation_radius_; }
 
-void DAVGPlanner::set_inflation_radius(double new_radius)
+bool DAVGPlanner::set_inflation_radius(double new_radius)
 {
   if (new_radius < 0.0) {
     std::cerr << "inflation radius must be >= 0\n";
-    return;
+    return false;
   }
   inflation_radius_ = new_radius;
+  return true;
 }
 
-void DAVGPlanner::set_polygon_edges(int new_edges)
+bool DAVGPlanner::set_polygon_edges(int new_edges)
 {
   if (new_edges < 3) {
     std::cerr << "polygon edges must be >= 3\n";
-    return;
+    return false;
   }
   polygon_edges_ = new_edges;
+  return true;
 }
 
-void DAVGPlanner::set_turning_penalty(double new_value) { turning_penalty_ = new_value; }
+bool DAVGPlanner::set_turning_penalty(double new_value)
+{
+  turning_penalty_ = new_value;
+  return true;
+}
 
 bool DAVGPlanner::is_obstacle_in_corridor(
   const keisan::Point2 & start,
@@ -113,7 +158,7 @@ bool DAVGPlanner::is_segment_colliding(
     const double ao_y = obs.position.y - p_a.y;
 
     // clamp parameter to get the closest point on the segment.
-    const double t = std::max(0.0, std::min(1.0, (ao_x * ab_x + ao_y * ab_y) / dist_sq));
+    const double t = keisan::clamp((ao_x * ab_x + ao_y * ab_y) / dist_sq, 0.0, 1.0);
     const double px = p_a.x + t * ab_x;
     const double py = p_a.y + t * ab_y;
 
@@ -177,7 +222,7 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
   const keisan::Point2 & goal_pos,
   const std::vector<Obstacle> &obstacles)
 {
-  auto total_start = std::chrono::high_resolution_clock::now();
+  auto total_start = high_resolution_clock::now();
 
   std::cout << "[DAVGPlanner] calculate_path called with " << obstacles.size() << " total obstacles\n";
   for (size_t i = 0; i < obstacles.size(); ++i) {
@@ -185,7 +230,7 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
   }
 
   // search for active obstacles
-  auto active_search_start = std::chrono::high_resolution_clock::now();
+  auto active_search_start = high_resolution_clock::now();
   std::vector<Obstacle> active_obstacles;
   active_obstacles.reserve(obstacles.size());
 
@@ -226,12 +271,12 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
     }
     if (!found_new) break;
   }
-  auto active_search_end = std::chrono::high_resolution_clock::now();
-  auto active_search_duration = std::chrono::duration_cast<std::chrono::milliseconds>(active_search_end - active_search_start);
+  auto active_search_end = high_resolution_clock::now();
+  auto active_search_duration = duration_cast<milliseconds>(active_search_end - active_search_start);
   std::cout << "[DAVGPlanner] Active obstacle search: " << active_search_duration.count() << "ms\n";
 
   // generate vertices for each active obstacle
-  auto graph_const_start = std::chrono::high_resolution_clock::now();
+  auto graph_const_start = high_resolution_clock::now();
   const int num_active = static_cast<int>(active_obstacles.size());
   std::vector<keisan::Point2> vertices;
   vertices.reserve(num_active * polygon_edges_);
@@ -247,7 +292,7 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
         obs.position.y + safe_r * std::sin(angle)});
     }
   }
-  auto vertex_gen_end = std::chrono::high_resolution_clock::now();
+  auto vertex_gen_end = high_resolution_clock::now();
 
   // create edges for each node that is not collide with each other
   std::vector<keisan::Point2> all_nodes;
@@ -266,7 +311,7 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
     graph[i].reserve(total_nodes / 2);
   }
 
-  auto vis_loop_start = std::chrono::high_resolution_clock::now();
+  auto vis_loop_start = high_resolution_clock::now();
   for (int i = 0; i < total_nodes; ++i) {
     for (int j = i + 1; j < total_nodes; ++j) {
       if (is_segment_colliding(all_nodes[i], all_nodes[j], active_obstacles, inflation_radius_)) {
@@ -279,20 +324,20 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
       graph[j].push_back({i, dist});
     }
   }
-  auto vis_loop_end = std::chrono::high_resolution_clock::now();
+  auto vis_loop_end = high_resolution_clock::now();
 
   // handle start/goal nodes that are inside an inflation zone.
-  auto trap_start = std::chrono::high_resolution_clock::now();
+  auto trap_start = high_resolution_clock::now();
   connect_trapped_node(start_id, all_nodes, total_nodes, active_obstacles, graph);
   connect_trapped_node(goal_id, all_nodes, total_nodes, active_obstacles, graph);
-  auto trap_end = std::chrono::high_resolution_clock::now();
+  auto trap_end = high_resolution_clock::now();
 
-  auto graph_const_end = std::chrono::high_resolution_clock::now();
+  auto graph_const_end = high_resolution_clock::now();
 
-  auto vertex_gen_duration = std::chrono::duration_cast<std::chrono::milliseconds>(vertex_gen_end - graph_const_start);
-  auto vis_loop_duration = std::chrono::duration_cast<std::chrono::milliseconds>(vis_loop_end - vis_loop_start);
-  auto trap_duration = std::chrono::duration_cast<std::chrono::milliseconds>(trap_end - trap_start);
-  auto graph_const_duration = std::chrono::duration_cast<std::chrono::milliseconds>(graph_const_end - graph_const_start);
+  auto vertex_gen_duration = duration_cast<milliseconds>(vertex_gen_end - graph_const_start);
+  auto vis_loop_duration = duration_cast<milliseconds>(vis_loop_end - vis_loop_start);
+  auto trap_duration = duration_cast<milliseconds>(trap_end - trap_start);
+  auto graph_const_duration = duration_cast<milliseconds>(graph_const_end - graph_const_start);
 
   std::cout << "[DAVGPlanner] Visibility nodes: " << total_nodes << " (obstacles: " << num_active << ")\n";
   std::cout << "[DAVGPlanner] -- Vertex generation: " << vertex_gen_duration.count() << "ms\n";
@@ -302,7 +347,7 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
   std::cout << "====================================================\n";
 
   // augmented A* with turning penalty
-  auto astar_start = std::chrono::high_resolution_clock::now();
+  auto astar_start = high_resolution_clock::now();
   struct AStarNode
   {
     double approx_cost;
@@ -377,8 +422,8 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
       open_set.push(std::move(next));
     }
   }
-  auto astar_end = std::chrono::high_resolution_clock::now();
-  auto astar_duration = std::chrono::duration_cast<std::chrono::milliseconds>(astar_end - astar_start);
+  auto astar_end = high_resolution_clock::now();
+  auto astar_duration = duration_cast<milliseconds>(astar_end - astar_start);
   std::cout << "[DAVGPlanner] A* search loop: " << astar_duration.count() << "ms\n";
 
   // output route
@@ -388,8 +433,8 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
     route.push_back(all_nodes[id]);
   }
 
-  auto total_end = std::chrono::high_resolution_clock::now();
-  auto total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(total_end - total_start);
+  auto total_end = high_resolution_clock::now();
+  auto total_duration = duration_cast<milliseconds>(total_end - total_start);
   std::cout << "[DAVGPlanner] Total execution time: " << total_duration.count() << "ms\n";
 
   return route;
