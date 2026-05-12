@@ -683,9 +683,9 @@ bool Locomotion::move_follow_head(const keisan::Angle<double> & min_tilt)
 
   double x_speed = 0.0;
   if (follow_max_a != 0) {
-    x_speed = keisan::map(std::abs(a_speed), 0.0, follow_max_a, follow_max_x, 0.0);
+    x_speed = keisan::map(std::abs(a_speed), 0.0, follow_max_a, follow_max_x, follow_min_x);
     x_speed = keisan::map(
-      (robot->get_tilt() + robot->tilt_center - min_tilt).degree(), 10.0, 0.0, x_speed,
+      (robot->get_tilt() + robot->tilt_center - min_tilt).degree(), 25.0, 0.0, x_speed,
       follow_min_x);
   } else {
     x_speed = keisan::map(
@@ -1173,7 +1173,7 @@ bool Locomotion::position_kick_range_pan_tilt(
   // a movement
   double a_speed = 0;
   if (!direction_in_range) {
-    a_speed = keisan::map(delta_direction, -30.0, 30.0, position_max_a, -position_max_a);
+    a_speed = keisan::map(delta_direction, -10.0, 10.0, position_max_a, -position_max_a);
   }
 
   double smooth_ratio = 0.8;
