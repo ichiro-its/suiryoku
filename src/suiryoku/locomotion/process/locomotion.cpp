@@ -353,13 +353,15 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
     valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
 
+    if (valid_section) {
+      valid_section &= planner.set_turning_penalty(turning_penalty);
+      valid_section &= planner.set_polygon_edges(polygon_edges);
+      valid_section &= planner.set_inflation_radius(inflation_radius);
+    }
+
     if (!valid_section) {
       std::cout << "Error found at section `davg_planner`" << std::endl;
       valid_config = false;
-    } else {
-      planner.set_turning_penalty(turning_penalty);
-      planner.set_polygon_edges(polygon_edges);
-      planner.set_inflation_radius(inflation_radius);
     }
   } else {
     valid_config = false; 
@@ -522,7 +524,7 @@ bool Locomotion::move_to_avoid_obstacles(
   const std::vector<keisan::Point2> & route,
   const std::vector<Obstacle> & active_obstacles)
 {
-  auto now = std::chrono::steady_clock::now();
+  auto now = steady_clock::now();
 
   // update memory with currently seen obstacles
   for (const auto & obs : active_obstacles) {
@@ -547,7 +549,7 @@ bool Locomotion::move_to_avoid_obstacles(
     std::remove_if(
       obstacle_memories.begin(), obstacle_memories.end(),
       [&](const ObstacleMemory & mem) {
-        return std::chrono::duration_cast<std::chrono::seconds>(now - mem.last_seen).count() >= 5;
+        return duration_cast<seconds>(now - mem.last_seen).count() >= 5;
       }),
     obstacle_memories.end());
 
