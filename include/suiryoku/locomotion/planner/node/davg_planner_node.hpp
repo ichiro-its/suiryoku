@@ -50,7 +50,6 @@ private:
     using Obstacles = suiryoku_interfaces::msg::Obstacles;
     using Route = suiryoku_interfaces::msg::Route;
 
-    // callbacks
     void on_start_pose(const aruku_interfaces::msg::Status::SharedPtr msg);
     void on_goal_pose(const aruku_interfaces::msg::Point2::SharedPtr msg);
     void on_obstacle(const Obstacles::SharedPtr msg);
@@ -58,26 +57,20 @@ private:
 
     void run_planner();
 
-    // subscribers
     rclcpp::Subscription<aruku_interfaces::msg::Status>::SharedPtr start_pose_subscriber;
     rclcpp::Subscription<Point2>::SharedPtr goal_pose_subscriber;
     rclcpp::Subscription<Obstacles>::SharedPtr obstacles_subscriber;
 
-    // publishers
     rclcpp::Publisher<Route>::SharedPtr route_publisher;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr visual_route_publisher; // for rviz visualization
 
     rclcpp::TimerBase::SharedPtr timer;
     
-    // cached state
     Point2::SharedPtr latest_start_pose;
     Point2::SharedPtr latest_goal_pose;
     std::vector<suiryoku::Obstacle> latest_obstacles;
     
     suiryoku::DAVGPlanner planner;
-
-    std::string config_path;
-    long last_config_modified_time;
 };
 
 } // namespace suiryoku
