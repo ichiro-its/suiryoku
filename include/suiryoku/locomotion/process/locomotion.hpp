@@ -33,12 +33,13 @@
 #include "suiryoku/locomotion/model/robot.hpp"
 #include "suiryoku/locomotion/planner/davg_planner.hpp"
 
+using namespace std::chrono;
 namespace suiryoku
 {
 struct ObstacleMemory
 {
   Obstacle obstacle;
-  std::chrono::steady_clock::time_point last_seen;
+  steady_clock::time_point last_seen;
 };
 
 class Locomotion
