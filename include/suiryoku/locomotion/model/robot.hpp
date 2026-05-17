@@ -36,9 +36,17 @@ public:
   keisan::Angle<double> get_pan() const;
   keisan::Angle<double> get_tilt() const;
 
+  void set_orientation(const keisan::Point3 & orientation);
+
   // member for getting
   bool is_calibrated;
   keisan::Angle<double> orientation;
+  keisan::Angle<double> imu_roll;
+  keisan::Angle<double> imu_pitch;
+
+  keisan::Angle<double> prev_imu_roll;
+  keisan::Angle<double> prev_imu_pitch;
+
   keisan::Point2 position;
   keisan::Point2 fused_position;
 

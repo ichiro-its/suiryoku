@@ -37,6 +37,16 @@ Robot::Robot()
 {
 }
 
+void Robot::set_orientation(const keisan::Point3 & orientation)
+{
+  this->prev_imu_roll = this->imu_roll;
+  this->prev_imu_pitch = this->imu_pitch;
+
+  this->imu_roll = keisan::make_degree(orientation.x);
+  this->imu_pitch = keisan::make_degree(orientation.y);
+  this->orientation = keisan::make_degree(orientation.z);
+}
+
 keisan::Angle<double> Robot::get_pan() const
 {
   return pan + pan_center;
