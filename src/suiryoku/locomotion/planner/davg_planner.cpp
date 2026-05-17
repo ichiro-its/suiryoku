@@ -73,7 +73,11 @@ bool DAVGPlanner::set_config(const nlohmann::json & json)
     if (!valid_section) {
       std::cout << "Error found at section `davg_planner`" << std::endl;
     }
+    
+    return valid_section;
   }
+
+  return false;
 }
 
 double DAVGPlanner::get_inflation_radius() const { return inflation_radius_; }
