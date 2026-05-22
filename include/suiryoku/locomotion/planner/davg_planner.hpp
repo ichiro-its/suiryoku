@@ -65,6 +65,7 @@ public:
       double inflation_radius) const;
 
     double get_inflation_radius() const;
+    bool is_localization_enabled() const;
     bool set_inflation_radius(double new_radius);
     bool set_polygon_edges(int new_edges);
     bool set_turning_penalty(double new_value);
@@ -92,6 +93,7 @@ private:
     double turning_penalty_;
     int polygon_edges_;
     double inflation_radius_;
+    bool enable_localization_;
 };
 
 } // namespace suiryoku

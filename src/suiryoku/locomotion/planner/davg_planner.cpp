@@ -63,6 +63,7 @@ bool DAVGPlanner::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
     valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
     valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
+    valid_section &= jitsuyo::assign_val(planner_section, "enable_localization", enable_localization_);
 
     if (valid_section) {
       valid_section &= set_turning_penalty(turning_penalty);
@@ -81,6 +82,8 @@ bool DAVGPlanner::set_config(const nlohmann::json & json)
 }
 
 double DAVGPlanner::get_inflation_radius() const { return inflation_radius_; }
+
+bool DAVGPlanner::is_localization_enabled() const { return enable_localization_; }
 
 bool DAVGPlanner::set_inflation_radius(double new_radius)
 {
