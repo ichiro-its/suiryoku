@@ -49,15 +49,18 @@ private:
     using Point2 = aruku_interfaces::msg::Point2;
     using Obstacles = suiryoku_interfaces::msg::Obstacles;
     using Route = suiryoku_interfaces::msg::Route;
+    using WalkingStatus = aruku_interfaces::msg::Status;
 
-    void on_start_pose(const aruku_interfaces::msg::Status::SharedPtr msg);
+    void on_odometry_pose(const WalkingStatus::SharedPtr msg);
+    void on_fused_pose(const Point2::SharedPtr msg);
     void on_goal_pose(const aruku_interfaces::msg::Point2::SharedPtr msg);
     void on_obstacle(const Obstacles::SharedPtr msg);
     void timer_callback();
 
-    void run_planner();
+    void run_planner(const Point2::SharedPtr current_pose);
 
-    rclcpp::Subscription<aruku_interfaces::msg::Status>::SharedPtr start_pose_subscriber;
+    rclcpp::Subscription<WalkingStatus>::SharedPtr walking_status_subscriber;
+    rclcpp::Subscription<Point2>::SharedPtr fused_position_subscriber;
     rclcpp::Subscription<Point2>::SharedPtr goal_pose_subscriber;
     rclcpp::Subscription<Obstacles>::SharedPtr obstacles_subscriber;
 
@@ -66,7 +69,8 @@ private:
 
     rclcpp::TimerBase::SharedPtr timer;
     
-    Point2::SharedPtr latest_start_pose;
+    Point2::SharedPtr latest_fused_pose;
+    Point2::SharedPtr latest_odometry_pose;
     Point2::SharedPtr latest_goal_pose;
     std::vector<suiryoku::Obstacle> latest_obstacles;
     

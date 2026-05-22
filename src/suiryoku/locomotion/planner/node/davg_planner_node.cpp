@@ -43,8 +43,10 @@ DAVGPlannerNode::DAVGPlannerNode(const rclcpp::NodeOptions &options)
     declare_parameter<int>("polygon_edges", 8),
     declare_parameter<double>("inflation_radius", 10.0))
 {
-    start_pose_subscriber = create_subscription<aruku_interfaces::msg::Status>(
-      "walking/status", 10, std::bind(&DAVGPlannerNode::on_start_pose, this, std::placeholders::_1));
+    walking_status_subscriber = create_subscription<WalkingStatus>(
+      "walking/status", 10, std::bind(&DAVGPlannerNode::on_odometry_pose, this, std::placeholders::_1));
+    fused_position_subscriber = create_subscription<Point2>(
+      "/localization/fused_pose", 10, std::bind(&DAVGPlannerNode::on_fused_pose, this, std::placeholders::_1));
     goal_pose_subscriber = create_subscription<aruku_interfaces::msg::Point2>(
       "planner/goal_pose", 10, std::bind(&DAVGPlannerNode::on_goal_pose, this, std::placeholders::_1));
     obstacles_subscriber = create_subscription<suiryoku_interfaces::msg::Obstacles>(
@@ -53,8 +55,8 @@ DAVGPlannerNode::DAVGPlannerNode(const rclcpp::NodeOptions &options)
     route_publisher = create_publisher<suiryoku_interfaces::msg::Route>("planner/route", 10);
     visual_route_publisher = create_publisher<nav_msgs::msg::Path>("planner/path_visualization", 10);
 
-    // run planner every 1500 ms (1.5 s)
-    timer = create_wall_timer(1500ms, std::bind(&DAVGPlannerNode::timer_callback, this));
+    // run planner every 150 ms
+    timer = create_wall_timer(150ms, std::bind(&DAVGPlannerNode::timer_callback, this));
 }
 
 void DAVGPlannerNode::load_config(const std::string &path)
@@ -64,14 +66,25 @@ void DAVGPlannerNode::load_config(const std::string &path)
   }
 }
 
-void DAVGPlannerNode::on_start_pose(const aruku_interfaces::msg::Status::SharedPtr msg)
+void DAVGPlannerNode::on_fused_pose(const Point2::SharedPtr msg)
 { 
-  latest_start_pose = std::make_shared<Point2>();
-  latest_start_pose->x = msg->odometry.x;
-  latest_start_pose->y = msg->odometry.y;
+  latest_fused_pose = std::make_shared<Point2>();
+  latest_fused_pose->x = msg->x;
+  latest_fused_pose->y = msg->y;
 }
 
-void DAVGPlannerNode::on_goal_pose(const Point2::SharedPtr msg) { latest_goal_pose = msg; }
+void DAVGPlannerNode::on_odometry_pose(const WalkingStatus::SharedPtr msg)
+{ 
+  latest_odometry_pose = std::make_shared<Point2>();
+  latest_odometry_pose->x = msg->odometry.x;
+  latest_odometry_pose->y = msg->odometry.y;
+}
+
+void DAVGPlannerNode::on_goal_pose(const Point2::SharedPtr msg) 
+{ 
+  RCLCPP_INFO(this->get_logger(), "received goal pose: x=%.2f, y=%.2f", msg->x, msg->y);
+  latest_goal_pose = msg; 
+}
 
 void DAVGPlannerNode::on_obstacle(const Obstacles::SharedPtr msg)
 {
@@ -88,13 +101,23 @@ void DAVGPlannerNode::on_obstacle(const Obstacles::SharedPtr msg)
 
 void DAVGPlannerNode::timer_callback()
 {
-  if (!latest_start_pose || !latest_goal_pose) return;
-  run_planner();
+  bool enable_localization = planner.is_localization_enabled();
+
+  auto current_pose = enable_localization ? latest_fused_pose : latest_odometry_pose;
+  if (!current_pose || !latest_goal_pose) {
+    if (!current_pose && !latest_goal_pose) {
+      RCLCPP_DEBUG(this->get_logger(), "waiting for start pose and goal pose");
+    } else {
+      RCLCPP_DEBUG(this->get_logger(), "waiting for %s", !current_pose ? "start pose" : "goal pose");
+    }
+    return;
+  }
+  run_planner(current_pose);
 }
 
-void DAVGPlannerNode::run_planner()
+void DAVGPlannerNode::run_planner(const Point2::SharedPtr current_pose)
 {
-    const keisan::Point2 start_pos(latest_start_pose->x, latest_start_pose->y);
+    const keisan::Point2 start_pos(current_pose->x, current_pose->y);
     const keisan::Point2 goal_pos(latest_goal_pose->x, latest_goal_pose->y);
 
     const double start_theta = std::atan2(goal_pos.y - start_pos.y, goal_pos.x - start_pos.x);
@@ -104,6 +127,8 @@ void DAVGPlannerNode::run_planner()
         RCLCPP_WARN(this->get_logger(), "planner returned an empty path");
         return;
     }
+
+    RCLCPP_INFO(this->get_logger(), "planner found a route with %zu points", route.size());
 
     suiryoku_interfaces::msg::Route route_msg;
     route_msg.points.reserve(route.size());
