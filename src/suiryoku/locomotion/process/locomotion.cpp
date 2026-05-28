@@ -817,7 +817,7 @@ bool Locomotion::move_skew(const keisan::Angle<double> & direction, bool skew_le
   }
 }
 
-bool Locomotion::dribble(const keisan::Angle<double> & direction)
+bool Locomotion::dribble(const keisan::Angle<double> & direction, bool in_dribble_range)
 {
   double min_kick_tilt = std::min(left_kick_target_tilt.degree(), right_kick_target_tilt.degree());
   bool is_dribble = (robot->get_tilt() + robot->tilt_center).degree() <= min_kick_tilt;
@@ -834,7 +834,7 @@ bool Locomotion::dribble(const keisan::Angle<double> & direction)
   double pan_range_ratio = keisan::map(tilt, max_tilt + 10.0, max_tilt, 0.0, 0.4);
 
   double x_speed = 0;
-  if (std::abs(pan) < pan_range) {
+  if (std::abs(pan) < pan_range || in_dribble_range) {
     x_speed =
       keisan::map(std::abs(pan), pan_range_ratio * pan_range, pan_range, dribble_max_x, 0.0);
   } else {
@@ -844,10 +844,10 @@ bool Locomotion::dribble(const keisan::Angle<double> & direction)
 
   // y movement
   double y_speed = 0.0;
-  if (pan < -(pan_range) + (pan_range_ratio * pan_range)) {
-    y_speed = keisan::map(pan, -(pan_range), -6.0, dribble_max_ry, dribble_min_ry);
-  } else if (pan > pan_range - (pan_range_ratio * pan_range)) {
-    y_speed = keisan::map(pan, 6.0, pan_range, dribble_min_ly, dribble_max_ly);
+  if (pan < -3.0) {
+    y_speed = keisan::map(pan, -15.0, 0.0, dribble_max_ry, dribble_min_ry);
+  } else if (pan > 3.0) {
+    y_speed = keisan::map(pan, 0.0, 15.0, dribble_min_ly, dribble_max_ly);
   }
 
   // a movement
@@ -1113,7 +1113,7 @@ bool Locomotion::position_kick_custom_pan_tilt(
 
 bool Locomotion::position_kick_range_pan_tilt(
   const keisan::Angle<double> & direction, bool precise_kick, bool left_kick,
-  bool is_positioning_center)
+  bool is_positioning_center, bool in_goal_range, bool in_kick_range)
 {
   auto tilt = robot->get_tilt();
   auto pan = robot->get_pan();
@@ -1126,7 +1126,7 @@ bool Locomotion::position_kick_range_pan_tilt(
                                    : (right_kick_in_range || left_kick_in_range);
   bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction.degree();
 
-  if (tilt_in_range && pan_in_range && direction_in_range) {
+  if ((tilt_in_range && pan_in_range || in_kick_range) && (direction_in_range || in_goal_range)) {
     return true;
   }
 
@@ -1394,7 +1394,7 @@ int Locomotion::closer_to_which_kick_distance(keisan::Point2 ball_distance, bool
   double delta_right = (ball_distance - right_kick_distance).magnitude();
   double delta_left_center = std::numeric_limits<double>::infinity();
   double delta_right_center = std::numeric_limits<double>::infinity();
-  
+
   if (include_center) {
     delta_left_center = (ball_distance - left_kick_center_distance).magnitude();
     delta_right_center = (ball_distance - right_kick_center_distance).magnitude();
