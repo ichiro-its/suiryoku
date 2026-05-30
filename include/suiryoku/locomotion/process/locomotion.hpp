@@ -87,7 +87,7 @@ public:
   bool move_skew(const keisan::Angle<double> & direction);
   bool move_skew(const keisan::Angle<double> & direction, bool skew_left);
 
-  bool dribble(const keisan::Angle<double> & direction);
+  bool dribble(const keisan::Angle<double> & direction, bool in_dribble_range = false);
   bool pivot(const keisan::Angle<double> & direction);
   bool pivot_new(const keisan::Angle<double> & direction);
 
@@ -103,7 +103,7 @@ public:
   bool position_kick_general(const keisan::Angle<double> & direction);
   bool position_kick_range_pan_tilt(
     const keisan::Angle<double> & direction, bool precise_kick, bool left_kick,
-    bool is_positioning_center);
+    bool is_positioning_center, bool in_goal_range = false, bool in_kick_range = false);
 
   bool position_kick_distance(const keisan::Angle<double> & direction, keisan::Point2 distance,
     bool left_kick, bool center_kick);
