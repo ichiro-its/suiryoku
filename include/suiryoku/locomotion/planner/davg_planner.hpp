@@ -73,15 +73,6 @@ public:
 private:
     using Graph = std::vector<std::vector<std::pair<int, double>>>;
 
-    // returns true if the obstacle overlaps the active corridor
-    bool is_obstacle_in_corridor(
-        const keisan::Point2 & start,
-        const keisan::Point2 & goal,
-        const Obstacle & obstacle,
-        double left_width,
-        double right_width,
-        double & signed_dist) const;
-
   // adds edges from a trapped node to all reachable polygon vertices.
     void connect_trapped_node(
         int node_idx,

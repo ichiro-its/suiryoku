@@ -111,44 +111,6 @@ bool DAVGPlanner::set_turning_penalty(double new_value)
   return true;
 }
 
-bool DAVGPlanner::is_obstacle_in_corridor(
-  const keisan::Point2 & start,
-  const keisan::Point2 & goal,
-  const Obstacle & obstacle,
-  double left_width,
-  double right_width,
-  double & signed_dist) const
-{
-  // sg = start-goal vector
-  const double sg_x = goal.x - start.x;
-  const double sg_y = goal.y - start.y;
-  const double sg_sq = (sg_x * sg_x) + (sg_y * sg_y);
-  if (sg_sq == 0.0) {return false;}
-  const double sg_len = std::sqrt(sg_sq);
-
-  // so = start-obstacle vector
-  const double so_x = obstacle.position.x - start.x;
-  const double so_y = obstacle.position.y - start.y;
-
-  const double t = (so_x * sg_x + so_y * sg_y) / sg_sq;
-  const double radius_border = obstacle.radius + inflation_radius_;
-  const double proj_length = t * sg_len;
-
-  // reject if the obstacle projection outside the segment
-  if (proj_length < -radius_border || proj_length > sg_len + radius_border) {
-    return false;
-  }
-
-  // signed lateral distance (positive = left of sg direction)
-  const double cross = (sg_x * so_y) - (sg_y * so_x);
-  signed_dist = cross / sg_len;
-
-  const double obs_min = signed_dist - radius_border;
-  const double obs_max = signed_dist + radius_border;
-
-  return (obs_min <= left_width && obs_max >= -right_width);
-}
-
 bool DAVGPlanner::is_segment_colliding(
   const keisan::Point2 & p_a,
   const keisan::Point2 & p_b,
@@ -169,9 +131,12 @@ bool DAVGPlanner::is_segment_colliding(
     const double px = p_a.x + t * ab_x;
     const double py = p_a.y + t * ab_y;
 
-    const double closest = std::hypot(obs.position.x - px, obs.position.y - py);
-    if (closest < obs.radius + inflation_radius - 0.1) {
+    const double threshold = obs.radius + inflation_radius - 0.1;
+    if (closest < threshold) {
+      std::cout << "path to goal is blocked, distance obstacle to safe line: " << closest << " < " << threshold << "\n";
       return true;
+    } else {
+      std::cout << "path to goal is safe, distance obstacle to safe line: " << closest << " >= " << threshold << "\n";
     }
   }
   return false;
@@ -236,51 +201,10 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
     std::cout << "[DAVGPlanner] -- Obstacle " << i << ": x=" << obstacles[i].position.x << ", y=" << obstacles[i].position.y << ", r=" << obstacles[i].radius << "\n";
   }
 
-  // search for active obstacles
-  auto active_search_start = high_resolution_clock::now();
-  std::vector<Obstacle> active_obstacles;
-  active_obstacles.reserve(obstacles.size());
+  // search for active obstacles  
+  std::vector<Obstacle> active_obstacles = obstacles;
 
-  double active_region_left = 0.0;
-  double active_region_right = 0.0;
-
-  while (true) {
-    bool found_new = false;
-    for (const auto &obs : obstacles) {
-      bool already_active = false;
-      for (const auto &a_obs : active_obstacles) {
-        if (std::abs(obs.position.x - a_obs.position.x) < 100.0 &&
-          std::abs(obs.position.y - a_obs.position.y) < 100.0)
-        {
-          already_active = true;
-          break;
-        }
-      }
-      if (already_active) continue;
-
-      double signed_dist = 0.0;
-      if (!is_obstacle_in_corridor(
-          start_pos, goal_pos, obs,
-          active_region_left, active_region_right, signed_dist))
-      {
-        continue;
-      }
-
-      active_obstacles.push_back(obs);
-      found_new = true;
-
-      // expand corridor
-      const double border = obs.radius + inflation_radius_;
-      const double obs_max = signed_dist + border;
-      const double obs_min = signed_dist - border;
-      if (obs_max > active_region_left) {active_region_left = obs_max;}
-      if (-obs_min > active_region_right) {active_region_right = -obs_min;}
-    }
-    if (!found_new) break;
-  }
   auto active_search_end = high_resolution_clock::now();
-  auto active_search_duration = duration_cast<milliseconds>(active_search_end - active_search_start);
-  std::cout << "[DAVGPlanner] Active obstacle search: " << active_search_duration.count() << "ms\n";
 
   // generate vertices for each active obstacle
   auto graph_const_start = high_resolution_clock::now();
@@ -340,18 +264,6 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
   auto trap_end = high_resolution_clock::now();
 
   auto graph_const_end = high_resolution_clock::now();
-
-  auto vertex_gen_duration = duration_cast<milliseconds>(vertex_gen_end - graph_const_start);
-  auto vis_loop_duration = duration_cast<milliseconds>(vis_loop_end - vis_loop_start);
-  auto trap_duration = duration_cast<milliseconds>(trap_end - trap_start);
-  auto graph_const_duration = duration_cast<milliseconds>(graph_const_end - graph_const_start);
-
-  std::cout << "[DAVGPlanner] Visibility nodes: " << total_nodes << " (obstacles: " << num_active << ")\n";
-  std::cout << "[DAVGPlanner] -- Vertex generation: " << vertex_gen_duration.count() << "ms\n";
-  std::cout << "[DAVGPlanner] -- All-to-all visibility loop: " << vis_loop_duration.count() << "ms\n";
-  std::cout << "[DAVGPlanner] -- Trapped node connection: " << trap_duration.count() << "ms\n";
-  std::cout << "[DAVGPlanner] Visibility graph construction: " << graph_const_duration.count() << "ms\n";
-  std::cout << "====================================================\n";
 
   // augmented A* with turning penalty
   auto astar_start = high_resolution_clock::now();
@@ -430,8 +342,10 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
     }
   }
   auto astar_end = high_resolution_clock::now();
-  auto astar_duration = duration_cast<milliseconds>(astar_end - astar_start);
-  std::cout << "[DAVGPlanner] A* search loop: " << astar_duration.count() << "ms\n";
+
+  if (path_ids.empty()) {
+    std::cout << "A* failed to find a path\n";
+  }
 
   // output route
   std::vector<keisan::Point2> route;
@@ -442,6 +356,9 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
 
   auto total_end = high_resolution_clock::now();
   auto total_duration = duration_cast<milliseconds>(total_end - total_start);
+  if (!route.empty()) {
+    std::cout << "path found with " << route.size() << " points.\n";
+  }
   std::cout << "[DAVGPlanner] Total execution time: " << total_duration.count() << "ms\n";
 
   return route;
