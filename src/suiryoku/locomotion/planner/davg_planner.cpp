@@ -39,6 +39,8 @@ DAVGPlanner::DAVGPlanner(double turning_penalty, int polygon_edges, double infla
   turning_penalty_ = turning_penalty;
   polygon_edges_ = polygon_edges;
   inflation_radius_ = inflation_radius;
+  path_blocked_multiplier_ = 1.5;
+  goal_clear_multiplier_ = 1.5;
 }
 
 bool DAVGPlanner::load_config(const std::string & path)
@@ -59,20 +61,40 @@ bool DAVGPlanner::set_config(const nlohmann::json & json)
     double turning_penalty;
     int polygon_edges;
     double inflation_radius;
+    double path_blocked_multiplier;
+    double goal_clear_multiplier;
 
-    valid_section &= jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
-    valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
-    valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
-    valid_section &= jitsuyo::assign_val(planner_section, "enable_localization", enable_localization_);
-
-    if (valid_section) {
-      valid_section &= set_turning_penalty(turning_penalty);
-      valid_section &= set_polygon_edges(polygon_edges);
-      valid_section &= set_inflation_radius(inflation_radius);
+    if (!jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty)) {
+      std::cout << "Error at section `davg_planner`: variable `turning_penalty` not found!" << std::endl;
+      valid_section = false;
+    }
+    if (!jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges)) {
+      std::cout << "Error at section `davg_planner`: variable `polygon_edges` not found!" << std::endl;
+      valid_section = false;
+    }
+    if (!jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius)) {
+      std::cout << "Error at section `davg_planner`: variable `inflation_radius` not found!" << std::endl;
+      valid_section = false;
+    }
+    if (!jitsuyo::assign_val(planner_section, "path_blocked_multiplier", path_blocked_multiplier)) {
+      std::cout << "Error at section `davg_planner`: variable `path_blocked_multiplier` not found!" << std::endl;
+      valid_section = false;
+    }
+    if (!jitsuyo::assign_val(planner_section, "goal_clear_multiplier", goal_clear_multiplier)) {
+      std::cout << "Error at section `davg_planner`: variable `goal_clear_multiplier` not found!" << std::endl;
+      valid_section = false;
+    }
+    if (!jitsuyo::assign_val(planner_section, "enable_localization", enable_localization_)) {
+      std::cout << "Error at section `davg_planner`: variable `enable_localization` not found!" << std::endl;
+      valid_section = false;
     }
 
-    if (!valid_section) {
-      std::cout << "Error found at section `davg_planner`" << std::endl;
+    if (valid_section) {
+      set_turning_penalty(turning_penalty);
+      set_polygon_edges(polygon_edges);
+      set_inflation_radius(inflation_radius);
+      set_path_blocked_multiplier(path_blocked_multiplier);
+      set_goal_clear_multiplier(goal_clear_multiplier);
     }
     
     return valid_section;
@@ -83,6 +105,10 @@ bool DAVGPlanner::set_config(const nlohmann::json & json)
 
 double DAVGPlanner::get_inflation_radius() const { return inflation_radius_; }
 
+double DAVGPlanner::get_path_blocked_multiplier() const { return path_blocked_multiplier_; }
+
+double DAVGPlanner::get_goal_clear_multiplier() const { return goal_clear_multiplier_; }
+
 bool DAVGPlanner::is_localization_enabled() const { return enable_localization_; }
 
 bool DAVGPlanner::set_inflation_radius(double new_radius)
@@ -92,6 +118,26 @@ bool DAVGPlanner::set_inflation_radius(double new_radius)
     return false;
   }
   inflation_radius_ = new_radius;
+  return true;
+}
+
+bool DAVGPlanner::set_path_blocked_multiplier(double new_multiplier)
+{
+  if (new_multiplier < 0.0) {
+    std::cerr << "path blocked multiplier must be >= 0\n";
+    return false;
+  }
+  path_blocked_multiplier_ = new_multiplier;
+  return true;
+}
+
+bool DAVGPlanner::set_goal_clear_multiplier(double new_multiplier)
+{
+  if (new_multiplier < 0.0) {
+    std::cerr << "goal clear multiplier must be >= 0\n";
+    return false;
+  }
+  goal_clear_multiplier_ = new_multiplier;
   return true;
 }
 
@@ -131,6 +177,7 @@ bool DAVGPlanner::is_segment_colliding(
     const double px = p_a.x + t * ab_x;
     const double py = p_a.y + t * ab_y;
 
+    const double closest = std::hypot(obs.position.x - px, obs.position.y - py);
     const double threshold = obs.radius + inflation_radius - 0.1;
     if (closest < threshold) {
       std::cout << "path to goal is blocked, distance obstacle to safe line: " << closest << " < " << threshold << "\n";

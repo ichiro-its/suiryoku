@@ -65,8 +65,13 @@ public:
       double inflation_radius) const;
 
     double get_inflation_radius() const;
+    double get_path_blocked_multiplier() const;
+    double get_goal_clear_multiplier() const;
+
     bool is_localization_enabled() const;
     bool set_inflation_radius(double new_radius);
+    bool set_path_blocked_multiplier(double new_multiplier);
+    bool set_goal_clear_multiplier(double new_multiplier);
     bool set_polygon_edges(int new_edges);
     bool set_turning_penalty(double new_value);
 
@@ -84,6 +89,8 @@ private:
     double turning_penalty_;
     int polygon_edges_;
     double inflation_radius_;
+    double path_blocked_multiplier_;
+    double goal_clear_multiplier_;
     bool enable_localization_;
 };
 
