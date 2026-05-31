@@ -720,12 +720,11 @@ bool Locomotion::move_to_avoid_obstacles(
       double dist_to_goal = std::hypot(locked_pos.x - target_pos.x, locked_pos.y - target_pos.y);
       bool is_heading_to_goal = (dist_to_goal < 20.0);
 
-      double path_inflation = -5.0; 
-
+      double path_inflation = planner.get_inflation_radius() * planner.get_path_blocked_multiplier(); 
       bool is_path_blocked = planner.is_segment_colliding(robot_pos, locked_pos, all_obstacles, path_inflation);
 
       // check if the final goal is clear
-      double goal_clear_inf = planner.get_inflation_radius() * 1.25;
+      double goal_clear_inf = planner.get_inflation_radius() * planner.get_goal_clear_multiplier();
       bool is_goal_clear = !planner.is_segment_colliding(robot_pos, target_pos, all_obstacles, goal_clear_inf);
 
       if (is_path_blocked || (is_goal_clear && !is_heading_to_goal)) {
