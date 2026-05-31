@@ -673,9 +673,9 @@ bool Locomotion::move_to_avoid_obstacles(
 
       return is_arrived;
     } else {
-      // stop moving if there is no route and no memory
-      std::cout << "no route, stop\n";
-      std::cout << "move to x: " << robot_pos.x << " y: " << robot_pos.y << "\n";
+      // move forward to target if there is no route and no memory
+      std::cout << "no route, move forward to target\n";
+      std::cout << "move to x: " << target_pos.x << " y: " << target_pos.y << "\n";
 
       move_forward_to(robot_pos, 5.0);
       locked_target = std::nullopt;
