@@ -241,6 +241,7 @@ private:
   DAVGPlanner planner;
   std::optional<keisan::Point2> locked_target;
   std::vector<ObstacleMemory> obstacle_memories;
+  int preferred_side = 0; // 1 = left path, -1 = right path, 0 = not set
 };
 
 }  // namespace suiryoku

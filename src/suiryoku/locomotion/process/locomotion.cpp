@@ -600,12 +600,16 @@ bool Locomotion::move_to_avoid_obstacles(
   auto now = steady_clock::now();
 
   // update memory with currently seen obstacles
+  const double merge_radius = planner.get_obstacle_merge_radius();
+  const double ema_alpha = planner.get_obstacle_ema_alpha();
   for (const auto & obs : active_obstacles) {
     bool found = false;
     for (auto & mem : obstacle_memories) {
-      // consider it the same obstacle if it's within 100.0 cm
-      if (std::hypot(obs.position.x - mem.obstacle.position.x, obs.position.y - mem.obstacle.position.y) < 100.0) {
-        mem.obstacle = obs;
+      // filter obstacle if it's within merge radius
+      if (std::hypot(obs.position.x - mem.obstacle.position.x, obs.position.y - mem.obstacle.position.y) < merge_radius) {
+        mem.obstacle.position.x = (1.0 - ema_alpha) * mem.obstacle.position.x + ema_alpha * obs.position.x;
+        mem.obstacle.position.y = (1.0 - ema_alpha) * mem.obstacle.position.y + ema_alpha * obs.position.y;
+        mem.obstacle.radius = (1.0 - ema_alpha) * mem.obstacle.radius + ema_alpha * obs.radius;
         mem.last_seen = now;
         found = true;
         break;
@@ -657,8 +661,8 @@ bool Locomotion::move_to_avoid_obstacles(
     std::cout << "move to x: " << target_pos.x << " y: " << target_pos.y << "\n";
 
     locked_target = std::nullopt;
-    // route.clear()
-    return move_forward_to(target_pos, 5.0); // force move forward to target
+    preferred_side = 0;
+    return move_forward_to(target_pos, 8.0);
   }
 
   // fallback logic when route is broken or empty
@@ -668,7 +672,7 @@ bool Locomotion::move_to_avoid_obstacles(
       std::cout << "no route, use memory\n";
       std::cout << "move to x: " << locked_target.value().x << " y: " << locked_target.value().y << "\n";
 
-      bool is_arrived = move_forward_to(locked_target.value(), 5.0);
+      bool is_arrived = move_forward_to(locked_target.value(), 8.0);
       if (is_arrived) locked_target = std::nullopt;
 
       return is_arrived;
@@ -677,7 +681,7 @@ bool Locomotion::move_to_avoid_obstacles(
       std::cout << "no route, move forward to target\n";
       std::cout << "move to x: " << target_pos.x << " y: " << target_pos.y << "\n";
 
-      move_forward_to(robot_pos, 5.0);
+      move_forward_to(target_pos, 8.0);
       locked_target = std::nullopt;
 
       return true;
@@ -686,16 +690,22 @@ bool Locomotion::move_to_avoid_obstacles(
 
   keisan::Point2 best_suggested_node = route[1];
 
+  // compute which side of the direct path the suggested node is on
+  const double sg_x = target_pos.x - robot_pos.x;
+  const double sg_y = target_pos.y - robot_pos.y;
+  const double suggested_side_cross = sg_x * (best_suggested_node.y - robot_pos.y) - sg_y * (best_suggested_node.x - robot_pos.x);
+  const int suggested_side = (suggested_side_cross >= 0.0) ? 1 : -1;
+
   if (!locked_target.has_value()) {
-    // lock to the first suggestion if memory is empty
-    std::cout << "lock to new target\n";
     locked_target = best_suggested_node;
+    preferred_side = suggested_side;
+    std::cout << "lock to new target\n";
   } else {
     keisan::Point2 locked_pos = locked_target.value();
     double dist_to_locked = std::hypot(locked_pos.x - robot_pos.x, locked_pos.y - robot_pos.y);
 
     // check if robot has arrived at the current target
-    if (dist_to_locked < 15.0) {
+    if (dist_to_locked < 20.0) {
       keisan::Point2 next_target = (route.size() > 2) ? route[2] : route[1];
 
       double dist_to_goal_next = std::hypot(next_target.x - target_pos.x, next_target.y - target_pos.y);
@@ -709,6 +719,9 @@ bool Locomotion::move_to_avoid_obstacles(
       if (!is_shortcut_blocked) {
         if (std::hypot(next_target.x - locked_pos.x, next_target.y - locked_pos.y) > 5.0) {
           locked_target = next_target;
+          // update preferred side
+          const double nx_cross = sg_x * (next_target.y - robot_pos.y) - sg_y * (next_target.x - robot_pos.x);
+          preferred_side = (nx_cross >= 0.0) ? 1 : -1;
           std::cout << "arrived at target, shift to the next target\n";
         }
       } else {
@@ -729,12 +742,25 @@ bool Locomotion::move_to_avoid_obstacles(
 
       if (is_path_blocked || (is_goal_clear && !is_heading_to_goal)) {
         keisan::Point2 new_target = is_goal_clear ? target_pos : best_suggested_node;
-        
-        // only update if the new target is significantly different
-        if (std::hypot(new_target.x - locked_pos.x, new_target.y - locked_pos.y) > 25.0) {
+
+        if (std::hypot(new_target.x - locked_pos.x, new_target.y - locked_pos.y) > planner.get_sticky_threshold()) {
+          bool is_side_flip = (preferred_side != 0) && (suggested_side != preferred_side);
+          double effective_threshold = is_side_flip ? planner.get_sticky_threshold() * 2.5 : planner.get_sticky_threshold();
+
+          if (std::hypot(new_target.x - locked_pos.x, new_target.y - locked_pos.y) > effective_threshold) {
             locked_target = new_target;
-            if (is_path_blocked) std::cout << "path blocked! switching to " << (is_goal_clear ? "GOAL" : "PLANNER NODE") << "\n";
-            else std::cout << "goal clear, switch to final goal\n";
+
+            if (!is_goal_clear) preferred_side = suggested_side;
+
+            if (is_path_blocked) {
+              std::cout << "path blocked! switching to " << (is_goal_clear ? "GOAL" : "PLANNER NODE") << "\n";
+            } else {
+              std::cout << "goal clear, switch to final goal\n";
+            }
+          } else {
+            std::cout << "side-flip blocked by directional persistence (threshold="
+                      << effective_threshold << ")\n";
+          }
         }
       } else {
         double dist_to_r1 = std::hypot(locked_pos.x - route[1].x, locked_pos.y - route[1].y);
@@ -744,12 +770,15 @@ bool Locomotion::move_to_avoid_obstacles(
           dist_to_r2 = std::hypot(locked_pos.x - route[2].x, locked_pos.y - route[2].y);
         }
 
-        bool is_suggestion_goal = (std::hypot(best_suggested_node.x - target_pos.x, best_suggested_node.y - target_pos.y) < 1.0);
         double min_dist_route = std::min(dist_to_r1, dist_to_r2);
 
-        // check if the global route has changed drastically and not already heading to goal
-        if (!is_heading_to_goal && min_dist_route > 60.0) {
+        // only follow a drastically changed route if it is on the same preferred side
+        bool is_side_flip = (preferred_side != 0) && (suggested_side != preferred_side);
+        double drastic_threshold = is_side_flip ? 200.0 : 120.0;
+
+        if (!is_heading_to_goal && min_dist_route > drastic_threshold) {
           locked_target = best_suggested_node;
+          preferred_side = suggested_side;
           std::cout << "route updated! min_dist: " << min_dist_route << ", switching target\n";
         }
       }
@@ -757,7 +786,7 @@ bool Locomotion::move_to_avoid_obstacles(
   }
 
   std::cout << "move to x: " << locked_target.value().x << " y: " << locked_target.value().y << "\n";
-  return move_forward_to(locked_target.value(), 5.0);
+  return move_forward_to(locked_target.value(), 8.0);
 }
 
 bool Locomotion::move_to_left_and_right(const keisan::Point2 & target, double stop_distance)
