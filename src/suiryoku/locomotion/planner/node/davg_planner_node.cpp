@@ -46,11 +46,13 @@ DAVGPlannerNode::DAVGPlannerNode(const rclcpp::NodeOptions &options)
     walking_status_subscriber = create_subscription<WalkingStatus>(
       "walking/status", 10, std::bind(&DAVGPlannerNode::on_odometry_pose, this, std::placeholders::_1));
     fused_position_subscriber = create_subscription<Point2>(
-      "/localization/fused_pose", 10, std::bind(&DAVGPlannerNode::on_fused_pose, this, std::placeholders::_1));
+      "localization/fused_pose", 10, std::bind(&DAVGPlannerNode::on_fused_pose, this, std::placeholders::_1));
     goal_pose_subscriber = create_subscription<aruku_interfaces::msg::Point2>(
       "planner/goal_pose", 10, std::bind(&DAVGPlannerNode::on_goal_pose, this, std::placeholders::_1));
     obstacles_subscriber = create_subscription<suiryoku_interfaces::msg::Obstacles>(
       "planner/active_obstacles", 10, std::bind(&DAVGPlannerNode::on_obstacle, this, std::placeholders::_1));
+    orientation_subscriber = create_subscription<KanseiStatus>(
+      "measurement/status", 10, std::bind(&DAVGPlannerNode::on_orientation, this, std::placeholders::_1));
 
     route_publisher = create_publisher<suiryoku_interfaces::msg::Route>("planner/route", 10);
     visual_route_publisher = create_publisher<nav_msgs::msg::Path>("planner/path_visualization", 10);
@@ -74,10 +76,15 @@ void DAVGPlannerNode::on_fused_pose(const Point2::SharedPtr msg)
 }
 
 void DAVGPlannerNode::on_odometry_pose(const WalkingStatus::SharedPtr msg)
-{ 
+{
   latest_odometry_pose = std::make_shared<Point2>();
   latest_odometry_pose->x = msg->odometry.x;
   latest_odometry_pose->y = msg->odometry.y;
+}
+
+void DAVGPlannerNode::on_orientation(const KanseiStatus::SharedPtr msg)
+{
+  latest_robot_theta = msg->orientation.yaw * M_PI / 180.0;
 }
 
 void DAVGPlannerNode::on_goal_pose(const Point2::SharedPtr msg) 
@@ -120,12 +127,19 @@ void DAVGPlannerNode::run_planner(const Point2::SharedPtr current_pose)
     const keisan::Point2 start_pos(current_pose->x, current_pose->y);
     const keisan::Point2 goal_pos(latest_goal_pose->x, latest_goal_pose->y);
 
-    const double start_theta = std::atan2(goal_pos.y - start_pos.y, goal_pos.x - start_pos.x);
-    const auto route = planner.calculate_path(start_pos, start_theta, goal_pos, latest_obstacles);
+    const double start_theta = latest_robot_theta;
+    const auto route = planner.calculate_path(start_pos, start_theta, goal_pos, latest_obstacles, last_target);
 
     if (route.empty()) {
         RCLCPP_WARN(this->get_logger(), "planner returned an empty path");
+        last_target = std::nullopt;
         return;
+    }
+
+    if (route.size() > 1) {
+        last_target = route[1];
+    } else {
+        last_target = route[0];
     }
 
     RCLCPP_INFO(this->get_logger(), "planner found a route with %zu points", route.size());

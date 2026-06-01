@@ -33,6 +33,7 @@
 #include "aruku_interfaces/msg/status.hpp"
 
  
+#include "kansei_interfaces/msg/status.hpp"
 #include "suiryoku/locomotion/planner/davg_planner.hpp"
 
 namespace suiryoku
@@ -50,11 +51,13 @@ private:
     using Obstacles = suiryoku_interfaces::msg::Obstacles;
     using Route = suiryoku_interfaces::msg::Route;
     using WalkingStatus = aruku_interfaces::msg::Status;
+    using KanseiStatus = kansei_interfaces::msg::Status;
 
     void on_odometry_pose(const WalkingStatus::SharedPtr msg);
     void on_fused_pose(const Point2::SharedPtr msg);
     void on_goal_pose(const aruku_interfaces::msg::Point2::SharedPtr msg);
     void on_obstacle(const Obstacles::SharedPtr msg);
+    void on_orientation(const KanseiStatus::SharedPtr msg);
     void timer_callback();
 
     void run_planner(const Point2::SharedPtr current_pose);
@@ -63,9 +66,10 @@ private:
     rclcpp::Subscription<Point2>::SharedPtr fused_position_subscriber;
     rclcpp::Subscription<Point2>::SharedPtr goal_pose_subscriber;
     rclcpp::Subscription<Obstacles>::SharedPtr obstacles_subscriber;
+    rclcpp::Subscription<KanseiStatus>::SharedPtr orientation_subscriber;
 
     rclcpp::Publisher<Route>::SharedPtr route_publisher;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr visual_route_publisher; // for rviz visualization
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr visual_route_publisher;
 
     rclcpp::TimerBase::SharedPtr timer;
     
@@ -73,7 +77,9 @@ private:
     Point2::SharedPtr latest_odometry_pose;
     Point2::SharedPtr latest_goal_pose;
     std::vector<suiryoku::Obstacle> latest_obstacles;
-    
+    std::optional<keisan::Point2> last_target;
+    double latest_robot_theta = 0.0;
+
     suiryoku::DAVGPlanner planner;
 };
 
