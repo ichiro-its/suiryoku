@@ -41,6 +41,8 @@ DAVGPlanner::DAVGPlanner(double turning_penalty, int polygon_edges, double infla
   inflation_radius_ = inflation_radius;
   path_blocked_multiplier_ = 1.5;
   goal_clear_multiplier_ = 1.5;
+  side_penalty_ = 50.0;
+  sticky_threshold_ = 25.0;
 }
 
 bool DAVGPlanner::load_config(const std::string & path)
@@ -63,31 +65,18 @@ bool DAVGPlanner::set_config(const nlohmann::json & json)
     double inflation_radius;
     double path_blocked_multiplier;
     double goal_clear_multiplier;
+    double obstacle_ema_alpha;
 
-    if (!jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty)) {
-      std::cout << "Error at section `davg_planner`: variable `turning_penalty` not found!" << std::endl;
-      valid_section = false;
-    }
-    if (!jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges)) {
-      std::cout << "Error at section `davg_planner`: variable `polygon_edges` not found!" << std::endl;
-      valid_section = false;
-    }
-    if (!jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius)) {
-      std::cout << "Error at section `davg_planner`: variable `inflation_radius` not found!" << std::endl;
-      valid_section = false;
-    }
-    if (!jitsuyo::assign_val(planner_section, "path_blocked_multiplier", path_blocked_multiplier)) {
-      std::cout << "Error at section `davg_planner`: variable `path_blocked_multiplier` not found!" << std::endl;
-      valid_section = false;
-    }
-    if (!jitsuyo::assign_val(planner_section, "goal_clear_multiplier", goal_clear_multiplier)) {
-      std::cout << "Error at section `davg_planner`: variable `goal_clear_multiplier` not found!" << std::endl;
-      valid_section = false;
-    }
-    if (!jitsuyo::assign_val(planner_section, "enable_localization", enable_localization_)) {
-      std::cout << "Error at section `davg_planner`: variable `enable_localization` not found!" << std::endl;
-      valid_section = false;
-    }
+    valid_section = !jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
+    valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
+    valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
+    valid_section &= jitsuyo::assign_val(planner_section, "path_blocked_multiplier", path_blocked_multiplier);
+    valid_section &= jitsuyo::assign_val(planner_section, "goal_clear_multiplier", goal_clear_multiplier);
+    valid_section &= jitsuyo::assign_val(planner_section, "side_penalty", side_penalty_);
+    valid_section &= jitsuyo::assign_val(planner_section, "obstacle_merge_radius", obstacle_merge_radius_);
+    valid_section &= jitsuyo::assign_val(planner_section, "obstacle_ema_alpha", obstacle_ema_alpha);
+    valid_section &= jitsuyo::assign_val(planner_section, "enable_localization", enable_localization_);
+
 
     if (valid_section) {
       set_turning_penalty(turning_penalty);
@@ -95,6 +84,7 @@ bool DAVGPlanner::set_config(const nlohmann::json & json)
       set_inflation_radius(inflation_radius);
       set_path_blocked_multiplier(path_blocked_multiplier);
       set_goal_clear_multiplier(goal_clear_multiplier);
+      set_obstacle_ema_alpha(obstacle_ema_alpha);
     }
     
     return valid_section;
@@ -108,6 +98,14 @@ double DAVGPlanner::get_inflation_radius() const { return inflation_radius_; }
 double DAVGPlanner::get_path_blocked_multiplier() const { return path_blocked_multiplier_; }
 
 double DAVGPlanner::get_goal_clear_multiplier() const { return goal_clear_multiplier_; }
+
+double DAVGPlanner::get_side_penalty() const { return side_penalty_; }
+
+double DAVGPlanner::get_sticky_threshold() const { return sticky_threshold_; }
+
+double DAVGPlanner::get_obstacle_merge_radius() const { return obstacle_merge_radius_; }
+
+double DAVGPlanner::get_obstacle_ema_alpha() const { return obstacle_ema_alpha_; }
 
 bool DAVGPlanner::is_localization_enabled() const { return enable_localization_; }
 
@@ -154,6 +152,16 @@ bool DAVGPlanner::set_polygon_edges(int new_edges)
 bool DAVGPlanner::set_turning_penalty(double new_value)
 {
   turning_penalty_ = new_value;
+  return true;
+}
+
+bool DAVGPlanner::set_obstacle_ema_alpha(double new_alpha)
+{
+  if (new_alpha < 0.0 || new_alpha > 1.0) {
+    std::cerr << "obstacle EMA alpha must be between 0 and 1\n";
+    return false;
+  }
+  obstacle_ema_alpha_ = new_alpha;
   return true;
 }
 
@@ -239,13 +247,24 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
   const keisan::Point2 & start_pos,
   double start_theta,
   const keisan::Point2 & goal_pos,
-  const std::vector<Obstacle> &obstacles)
+  const std::vector<Obstacle> & obstacles,
+  const std::optional<keisan::Point2> & previous_target)
 {
   auto total_start = high_resolution_clock::now();
 
-  std::cout << "[DAVGPlanner] calculate_path called with " << obstacles.size() << " total obstacles\n";
-  for (size_t i = 0; i < obstacles.size(); ++i) {
-    std::cout << "[DAVGPlanner] -- Obstacle " << i << ": x=" << obstacles[i].position.x << ", y=" << obstacles[i].position.y << ", r=" << obstacles[i].radius << "\n";
+  const double SG_x = goal_pos.x - start_pos.x;
+  const double SG_y = goal_pos.y - start_pos.y;
+  const double SG_dist_sq = SG_x * SG_x + SG_y * SG_y;
+
+  double prev_side = 0.0;
+  if (previous_target.has_value()) {
+    if (SG_dist_sq > 100.0) {
+      prev_side = (SG_x * (previous_target->y - start_pos.y) - SG_y * (previous_target->x - start_pos.x));
+
+      if (std::abs(prev_side) < 8.0 * std::sqrt(SG_dist_sq)) {
+        prev_side = 0.0;
+      }
+    }
   }
 
   // search for active obstacles  
@@ -370,7 +389,17 @@ std::vector<keisan::Point2> DAVGPlanner::calculate_path(
       while (d_theta > M_PI) {d_theta -= 2.0 * M_PI;}
       while (d_theta < -M_PI) {d_theta += 2.0 * M_PI;}
 
-      const double new_g = curr.actual_cost + dist + turning_penalty_ * std::abs(d_theta);
+      double current_side_penalty = 0.0;
+      if (prev_side != 0.0) {
+        double node_side = (SG_x * (ny - start_pos.y) - SG_y * (nx - start_pos.x));
+        if (prev_side * node_side < 0.0) {
+          const double SG_dist = std::sqrt(SG_dist_sq);
+          const double perp_dist = SG_dist > 0.0 ? std::abs(node_side) / SG_dist : 0.0;
+          current_side_penalty = side_penalty_ + perp_dist * 1.5;
+        }
+      }
+
+      const double new_g = curr.actual_cost + dist + turning_penalty_ * std::abs(d_theta) + current_side_penalty;
 
       if (new_g >= costs[neighbor_id]) continue;
 

@@ -54,7 +54,8 @@ public:
         const keisan::Point2 & start_pos,
         double start_theta,
         const keisan::Point2 & goal_pos,
-        const std::vector<Obstacle> & obstacles
+        const std::vector<Obstacle> & obstacles,
+        const std::optional<keisan::Point2> & previous_target = std::nullopt
     );
 
     // returns true if the segment [p_a, p_b] intersects any obstacle inflation zone
@@ -67,6 +68,10 @@ public:
     double get_inflation_radius() const;
     double get_path_blocked_multiplier() const;
     double get_goal_clear_multiplier() const;
+    double get_side_penalty() const;
+    double get_sticky_threshold() const;
+    double get_obstacle_merge_radius() const;
+    double get_obstacle_ema_alpha() const;
 
     bool is_localization_enabled() const;
     bool set_inflation_radius(double new_radius);
@@ -74,6 +79,7 @@ public:
     bool set_goal_clear_multiplier(double new_multiplier);
     bool set_polygon_edges(int new_edges);
     bool set_turning_penalty(double new_value);
+    bool set_obstacle_ema_alpha(double new_alpha);
 
 private:
     using Graph = std::vector<std::vector<std::pair<int, double>>>;
@@ -91,6 +97,10 @@ private:
     double inflation_radius_;
     double path_blocked_multiplier_;
     double goal_clear_multiplier_;
+    double side_penalty_;
+    double sticky_threshold_;
+    double obstacle_merge_radius_;
+    double obstacle_ema_alpha_;
     bool enable_localization_;
 };
 
