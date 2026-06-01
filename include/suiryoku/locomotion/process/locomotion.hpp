@@ -71,6 +71,8 @@ public:
   bool move_follow_head();
   bool move_follow_head(const keisan::Angle<double> & min_tilt);
   bool move_follow_head_with_sec(const keisan::Angle<double> & min_tilt, double delta_sec);
+  bool move_follow_distance(const keisan::Point2 & distance);
+  bool move_follow_distance(const keisan::Point2 & distance, const double & min_distance);
 
   bool move_skew(const keisan::Angle<double> & direction);
   bool move_skew(const keisan::Angle<double> & direction, bool skew_left);
@@ -156,6 +158,7 @@ private:
   double follow_max_ly;
   double follow_min_ly;
   keisan::Angle<double> follow_min_tilt;
+  double follow_min_distance;
   bool is_first_follow_tilt;
   double time_first_follow_tilt;
   double time_move_follow_head;

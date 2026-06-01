@@ -171,8 +171,7 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_section &= jitsuyo::assign_val(follow_section, "max_ly", follow_max_ly);
     valid_section &= jitsuyo::assign_val(follow_section, "min_ly", follow_min_ly);
     valid_section &= jitsuyo::assign_val(follow_section, "min_tilt_", follow_min_tilt_double);
-    valid_section &=
-      jitsuyo::assign_val(follow_section, "time_move_follow_head", time_move_follow_head);
+    valid_section &= jitsuyo::assign_val(follow_section, "min_distance", follow_min_distance);
 
     follow_min_tilt = keisan::make_degree(follow_min_tilt_double);
 
@@ -744,6 +743,48 @@ bool Locomotion::move_follow_head_with_sec(const keisan::Angle<double> & min_til
   x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
 
   return robot->tilt < min_tilt;
+}
+
+bool Locomotion::move_follow_distance(const keisan::Point2 & distance) {
+  return move_follow_distance(distance, follow_min_distance);
+}
+
+bool Locomotion::move_follow_distance(const keisan::Point2 & distance, const double & min_distance)
+{
+  keisan::Point2 delta_distance = distance - keisan::Point2(min_distance, 0.0);
+  keisan::Angle<double> delta_direction = keisan::signed_arctan(distance.y, distance.x);
+
+  double a_speed = 0.0;
+  if (delta_direction.degree() < 0.0) {
+    a_speed = keisan::map(delta_direction.degree(), -30.0, -5.0, follow_max_a, 0.0);
+  } else {
+    a_speed = keisan::map(delta_direction.degree(), 5.0, 30.0, 0.0, -follow_max_a);
+  }
+
+  double x_speed = 0.0;
+  x_speed = keisan::map(std::abs(a_speed), 0.0, follow_max_a, follow_max_x, follow_min_x);
+  x_speed = keisan::map(delta_distance.x, 50.0, 0.0, x_speed, follow_min_x);
+
+  double y_speed = 0.0;
+  if (follow_y_move) {
+    if (delta_distance.y < -10.0) {
+      y_speed = keisan::map(delta_distance.y, -30.0, -10.0, follow_max_ly, follow_min_ly);
+    } else if (delta_distance.y > 10.0) {
+      y_speed = keisan::map(delta_distance.y, 10.0, 30.0, follow_min_ry, follow_max_ry);
+    }
+  }
+
+  double smooth_ratio = 1.0;
+
+  x_speed = keisan::smooth(robot->x_speed, x_speed, smooth_ratio);
+
+  robot->x_speed = x_speed;
+  robot->y_speed = y_speed;
+  robot->a_speed = a_speed;
+  robot->aim_on = false;
+  start();
+
+  return delta_distance.magnitude() < min_distance;
 }
 
 bool Locomotion::move_skew(const keisan::Angle<double> & direction)
