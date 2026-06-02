@@ -447,9 +447,9 @@ void Locomotion::set_config(const nlohmann::json & json)
 
 bool Locomotion::walk_in_position()
 {
-  robot->x_speed = 0;
-  robot->y_speed = 0;
-  robot->a_speed = 0;
+  robot->x_speed = keisan::smooth(robot->x_speed, 0.0, 0.4);
+  robot->y_speed = keisan::smooth(robot->y_speed, 0.0, 0.4);
+  robot->a_speed = keisan::smooth(robot->a_speed, 0.0, 0.4);
   robot->aim_on = false;
   start();
 
@@ -464,17 +464,18 @@ bool Locomotion::walk_in_position_until_stop()
   position_in_belief = 0.0;
 
   if (robot->is_walking) {
-    robot->x_speed = 0;
-    robot->y_speed = 0;
-    robot->a_speed = 0;
+    robot->x_speed = keisan::smooth(robot->x_speed, 0.0, 0.4);
+    robot->y_speed = keisan::smooth(robot->y_speed, 0.0, 0.4);
+    robot->a_speed = keisan::smooth(robot->a_speed, 0.0, 0.4);
     robot->aim_on = false;
-    stop();
 
     bool in_position = std::abs(robot->x_amplitude) < 5.0;
     in_position &= std::abs(robot->y_amplitude) < 5.0;
 
-    if (!in_position) {
-      return false;
+    if (in_position) {
+      stop();
+    } else {
+      start();
     }
   }
 
