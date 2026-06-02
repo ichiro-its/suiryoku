@@ -445,11 +445,11 @@ void Locomotion::set_config(const nlohmann::json & json)
   }
 }
 
-bool Locomotion::walk_in_position()
+bool Locomotion::walk_in_position(double smooth_ratio)
 {
-  robot->x_speed = keisan::smooth(robot->x_speed, 0.0, 0.4);
-  robot->y_speed = keisan::smooth(robot->y_speed, 0.0, 0.4);
-  robot->a_speed = keisan::smooth(robot->a_speed, 0.0, 0.4);
+  robot->x_speed = keisan::smooth(robot->x_speed, 0.0, smooth_ratio);
+  robot->y_speed = keisan::smooth(robot->y_speed, 0.0, smooth_ratio);
+  robot->a_speed = keisan::smooth(robot->a_speed, 0.0, smooth_ratio);
   robot->aim_on = false;
   start();
 
@@ -459,14 +459,14 @@ bool Locomotion::walk_in_position()
   return in_position;
 }
 
-bool Locomotion::walk_in_position_until_stop()
+bool Locomotion::walk_in_position_until_stop(double smooth_ratio)
 {
   position_in_belief = 0.0;
 
   if (robot->is_walking) {
-    robot->x_speed = keisan::smooth(robot->x_speed, 0.0, 0.4);
-    robot->y_speed = keisan::smooth(robot->y_speed, 0.0, 0.4);
-    robot->a_speed = keisan::smooth(robot->a_speed, 0.0, 0.4);
+    robot->x_speed = keisan::smooth(robot->x_speed, 0.0, smooth_ratio);
+    robot->y_speed = keisan::smooth(robot->y_speed, 0.0, smooth_ratio);
+    robot->a_speed = keisan::smooth(robot->a_speed, 0.0, smooth_ratio);
     robot->aim_on = false;
 
     bool in_position = std::abs(robot->x_amplitude) < 5.0;

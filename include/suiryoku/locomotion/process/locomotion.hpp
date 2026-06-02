@@ -63,8 +63,8 @@ public:
   void load_config(const std::string & path);
   void set_config(const nlohmann::json & json);
 
-  bool walk_in_position();
-  bool walk_in_position_until_stop();
+  bool walk_in_position(double smooth_ratio = 1.0);
+  bool walk_in_position_until_stop(double smooth_ratio = 1.0);
 
   void move_backward(const keisan::Angle<double> & direction);
   bool move_backward_to(const keisan::Point2 & target, double stop_distance = 8.0);
