@@ -473,9 +473,7 @@ bool Locomotion::walk_in_position_until_stop(double smooth_ratio)
     in_position &= std::abs(robot->y_amplitude) < 5.0;
 
     if (in_position) {
-      stop();
-    } else {
-      start();
+      return false;
     }
   }
 
