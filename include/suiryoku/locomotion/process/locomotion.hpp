@@ -79,7 +79,8 @@ public:
 
   bool dribble(const keisan::Angle<double> & direction, bool in_dribble_range = false);
   bool pivot(const keisan::Angle<double> & direction);
-  bool pivot_new(const keisan::Angle<double> & direction);
+  bool pivot_new(
+    const keisan::Angle<double> & direction, bool use_distance = false, double distance_x = 0.0);
 
   bool position_until(
     const keisan::Angle<double> & target_pan, const keisan::Angle<double> & target_tilt,
@@ -173,6 +174,7 @@ private:
   double dribble_pan_comp;
 
   keisan::Angle<double> pivot_target_tilt;
+  double pivot_target_distance_x;
   double pivot_max_delta_direction;
   double pivot_pan_range_a_speed;
   double pivot_min_x;
