@@ -1163,20 +1163,22 @@ bool Locomotion::position_kick_range_pan_tilt(
   bool tilt_in_range = tilt > position_min_range_tilt && tilt < position_max_range_tilt;
   bool right_kick_in_range = pan > position_min_range_pan && pan < -position_center_right_range_pan;
   bool left_kick_in_range = pan > position_center_left_range_pan && pan < position_max_range_pan;
-  bool pan_in_range = precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range)
-                                   : (right_kick_in_range || left_kick_in_range);
+
+  // y movement
+  if (!precise_kick) left_kick = pan > 0.0_deg;
+  auto target_pan = is_positioning_center
+    ? (left_kick ? -position_center_right_range_pan : position_center_left_range_pan)
+    : (left_kick ? left_kick_target_pan : right_kick_target_pan);
+
+  bool pan_in_range = is_positioning_center
+    ? std::fabs((pan - target_pan).degree()) < position_min_delta_pan.degree()
+    : precise_kick ? (left_kick ? left_kick_in_range : right_kick_in_range)
+                   : (right_kick_in_range || left_kick_in_range);
+
   bool direction_in_range = std::fabs(delta_direction) < position_min_delta_direction.degree();
 
   if ((tilt_in_range && pan_in_range || in_kick_range) && (direction_in_range || in_goal_range)) {
     return true;
-  }
-
-  // y movement
-  if (!precise_kick) left_kick = pan > 0.0_deg;
-  auto target_pan = left_kick ? left_kick_target_pan : right_kick_target_pan;
-
-  if (is_positioning_center) {
-    target_pan = (left_kick) ? -position_center_right_range_pan : position_center_left_range_pan;
   }
 
   double delta_pan = (target_pan - pan).degree();
