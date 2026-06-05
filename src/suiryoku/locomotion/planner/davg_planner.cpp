@@ -67,7 +67,7 @@ bool DAVGPlanner::set_config(const nlohmann::json & json)
     double goal_clear_multiplier;
     double obstacle_ema_alpha;
 
-    valid_section = !jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
+    valid_section = jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
     valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
     valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
     valid_section &= jitsuyo::assign_val(planner_section, "path_blocked_multiplier", path_blocked_multiplier);
@@ -190,8 +190,6 @@ bool DAVGPlanner::is_segment_colliding(
     if (closest < threshold) {
       std::cout << "path to goal is blocked, distance obstacle to safe line: " << closest << " < " << threshold << "\n";
       return true;
-    } else {
-      std::cout << "path to goal is safe, distance obstacle to safe line: " << closest << " >= " << threshold << "\n";
     }
   }
   return false;
