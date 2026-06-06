@@ -83,13 +83,16 @@ public:
   bool move_follow_head();
   bool move_follow_head(const keisan::Angle<double> & min_tilt);
   bool move_follow_head_with_sec(const keisan::Angle<double> & min_tilt, double delta_sec);
+  bool move_follow_distance(const keisan::Point2 & distance);
+  bool move_follow_distance(const keisan::Point2 & distance, const double & min_distance);
 
   bool move_skew(const keisan::Angle<double> & direction);
   bool move_skew(const keisan::Angle<double> & direction, bool skew_left);
 
   bool dribble(const keisan::Angle<double> & direction, bool in_dribble_range = false);
   bool pivot(const keisan::Angle<double> & direction);
-  bool pivot_new(const keisan::Angle<double> & direction);
+  bool pivot_new(
+    const keisan::Angle<double> & direction, bool use_distance = false, double distance_x = 0.0);
 
   bool position_until(
     const keisan::Angle<double> & target_pan, const keisan::Angle<double> & target_tilt,
@@ -168,6 +171,7 @@ private:
   double follow_max_ly;
   double follow_min_ly;
   keisan::Angle<double> follow_min_tilt;
+  double follow_min_distance;
   bool is_first_follow_tilt;
   double time_first_follow_tilt;
   double time_move_follow_head;
@@ -182,6 +186,7 @@ private:
   double dribble_pan_comp;
 
   keisan::Angle<double> pivot_target_tilt;
+  double pivot_target_distance_x;
   double pivot_max_delta_direction;
   double pivot_pan_range_a_speed;
   double pivot_min_x;
