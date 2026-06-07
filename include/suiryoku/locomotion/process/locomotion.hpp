@@ -21,25 +21,22 @@
 #ifndef SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 #define SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 
-#include <chrono>
 #include <functional>
+#include <limits>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
 #include "suiryoku/locomotion/model/robot.hpp"
-#include "suiryoku/locomotion/planner/davg_planner.hpp"
 
-using namespace std::chrono;
 namespace suiryoku
 {
-struct ObstacleMemory
+struct Obstacle
 {
-  Obstacle obstacle;
-  steady_clock::time_point last_seen;
+  keisan::Point2 position;
+  double radius;
 };
 
 class Locomotion
@@ -70,7 +67,8 @@ public:
   bool move_backward_to(const keisan::Point2 & target, double stop_distance = 8.0);
 
   void move_forward(const keisan::Angle<double> & direction);
-  bool move_forward_to(const keisan::Point2 & target, double stop_distance = 8.0);
+  bool move_forward_to(const keisan::Point2 & target, double stop_distance = 8.0, bool smooth_stop = true);
+  bool move_to_point(const keisan::Point2 & target, double stop_distance = 8.0, bool smooth_stop = true);
   bool move_to_avoid_obstacles(const keisan::Point2 & target_pos, const std::vector<keisan::Point2> & route, const std::vector<Obstacle> & active_obstacles);
 
   bool move_to_left_and_right(const keisan::Point2 & target, double stop_distance = 5.0);
@@ -242,11 +240,17 @@ private:
   keisan::Point2 left_kick_center_distance;
   keisan::Point2 left_kick_center_distance_range;
 
+  keisan::Point2 get_lookahead_point(const std::vector<keisan::Point2> & route, double lookahead_distance) const;
+
   std::shared_ptr<Robot> robot;
-  DAVGPlanner planner;
-  std::optional<keisan::Point2> locked_target;
-  std::vector<ObstacleMemory> obstacle_memories;
-  int preferred_side = 0; // 1 = left path, -1 = right path, 0 = not set
+  double lookahead_distance = 40.0;
+  double nearest_obstacle_distance = std::numeric_limits<double>::max();
+
+  bool escape_rotating_ = false;
+  bool escape_strafing_ = false;
+  int escape_strafe_dir_ = 0;
+  keisan::Point2 escape_obstacle_pos_ = keisan::Point2::zero();
+  double escape_obstacle_radius_ = 0.0;
 };
 
 }  // namespace suiryoku

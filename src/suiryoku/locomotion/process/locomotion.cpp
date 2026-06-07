@@ -19,7 +19,6 @@
 // THE SOFTWARE.
 
 #include "suiryoku/locomotion/process/locomotion.hpp"
-#include "suiryoku/locomotion/planner/davg_planner.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -28,8 +27,6 @@
 #include <limits>
 #include <memory>
 #include <string>
-#include <optional>
-#include <chrono>
 
 #include "jitsuyo/config.hpp"
 #include "keisan/keisan.hpp"
@@ -353,31 +350,6 @@ void Locomotion::set_config(const nlohmann::json & json)
     valid_config = false;
   }
 
-  nlohmann::json planner_section;
-  if (jitsuyo::assign_val(json, "davg_planner", planner_section)) {
-    bool valid_section = true;
-    double turning_penalty;
-    int polygon_edges;
-    double inflation_radius;
-
-    valid_section &= jitsuyo::assign_val(planner_section, "turning_penalty", turning_penalty);
-    valid_section &= jitsuyo::assign_val(planner_section, "polygon_edges", polygon_edges);
-    valid_section &= jitsuyo::assign_val(planner_section, "inflation_radius", inflation_radius);
-
-    if (valid_section) {
-      valid_section &= planner.set_turning_penalty(turning_penalty);
-      valid_section &= planner.set_polygon_edges(polygon_edges);
-      valid_section &= planner.set_inflation_radius(inflation_radius);
-    }
-
-    if (!valid_section) {
-      std::cout << "Error found at section `davg_planner`" << std::endl;
-      valid_config = false;
-    }
-  } else {
-    valid_config = false; 
-  }
-
   nlohmann::json left_kick_center_section;
   if (jitsuyo::assign_val(json, "left_kick_center", left_kick_center_section)) {
     bool valid_section = true;
@@ -468,11 +440,12 @@ bool Locomotion::walk_in_position_until_stop(double smooth_ratio)
     robot->y_speed = keisan::smooth(robot->y_speed, 0.0, smooth_ratio);
     robot->a_speed = keisan::smooth(robot->a_speed, 0.0, smooth_ratio);
     robot->aim_on = false;
+    stop();
 
     bool in_position = std::abs(robot->x_amplitude) < 5.0;
     in_position &= std::abs(robot->y_amplitude) < 5.0;
 
-    if (in_position) {
+    if (!in_position) {
       return false;
     }
   }
@@ -555,7 +528,7 @@ void Locomotion::move_forward(const keisan::Angle<double> & direction)
   start();
 }
 
-bool Locomotion::move_forward_to(const keisan::Point2 & target, double stop_distance)
+bool Locomotion::move_forward_to(const keisan::Point2 & target, double stop_distance, bool smooth_stop)
 {
   double delta_x = (target.x - get_robot_position().x);
   double delta_y = (target.y - get_robot_position().y);
@@ -570,7 +543,7 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target, double stop_dist
   double delta_direction = (direction - robot->orientation).normalize().degree();
 
   double x_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, move_max_x, move_min_x);
-  if (target_distance < 100.0) {
+  if (smooth_stop && target_distance < 100.0) {
     x_speed = keisan::map(target_distance, 0.0, 100.0, move_max_x * 0.25, move_max_x);
   }
 
@@ -591,201 +564,149 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target, double stop_dist
   return false;
 }
 
+bool Locomotion::move_to_point(const keisan::Point2 & target, double stop_distance, bool smooth_stop)
+{
+  double delta_x = target.x - get_robot_position().x;
+  double delta_y = target.y - get_robot_position().y;
+  double target_distance = std::hypot(delta_x, delta_y);
+
+  if (target_distance < stop_distance) {
+    return true;
+  }
+
+  auto direction = keisan::signed_arctan(delta_y, delta_x).normalize();
+  double delta_direction = (direction - robot->orientation).normalize().degree();
+
+  double angle_factor = keisan::map(std::abs(delta_direction), 0.0, 90.0, 1.0, 0.4);
+  double x_speed = move_max_x * angle_factor;
+
+  if (smooth_stop && target_distance < 100.0) {
+    double smooth_factor = keisan::map(target_distance, 0.0, 100.0, 0.25, 1.0);
+    x_speed *= smooth_factor;
+  }
+
+  double a_speed = keisan::map(delta_direction, -45.0, 45.0, move_max_a, -move_max_a);
+  a_speed = keisan::clamp(a_speed, -move_max_a, move_max_a);
+
+  double rotate_threshold = keisan::map(nearest_obstacle_distance, 150.0, 300.0, 15.0, 80.0);
+
+  if (std::abs(delta_direction) > rotate_threshold) {
+    x_speed = 0.0;
+  }
+
+  x_speed = keisan::smooth(robot->x_speed, x_speed, 0.4);
+
+  robot->x_speed = x_speed;
+  robot->y_speed = 0.0;
+  robot->a_speed = a_speed;
+  robot->aim_on = false;
+  start();
+
+  return false;
+}
+
+keisan::Point2 Locomotion::get_lookahead_point(const std::vector<keisan::Point2> & route, double lookahead_distance) const
+{
+  double accumulated = 0.0;
+  for (size_t i = 0; i + 1 < route.size(); ++i) {
+    double seg_x = route[i + 1].x - route[i].x;
+    double seg_y = route[i + 1].y - route[i].y;
+    double seg_len = std::hypot(seg_x, seg_y);
+    if (accumulated + seg_len >= lookahead_distance) {
+      double ratio = (lookahead_distance - accumulated) / seg_len;
+      return {route[i].x + ratio * seg_x, route[i].y + ratio * seg_y};
+    }
+    accumulated += seg_len;
+  }
+  return route.back();
+}
+
 bool Locomotion::move_to_avoid_obstacles(
   const keisan::Point2 & target_pos,
   const std::vector<keisan::Point2> & route,
   const std::vector<Obstacle> & active_obstacles)
 {
-  auto now = steady_clock::now();
+  auto robot_pos = get_robot_position();
 
-  // update memory with currently seen obstacles
-  const double merge_radius = planner.get_obstacle_merge_radius();
-  const double ema_alpha = planner.get_obstacle_ema_alpha();
+  nearest_obstacle_distance = std::numeric_limits<double>::max();
   for (const auto & obs : active_obstacles) {
-    bool found = false;
-    for (auto & mem : obstacle_memories) {
-      // filter obstacle if it's within merge radius
-      if (std::hypot(obs.position.x - mem.obstacle.position.x, obs.position.y - mem.obstacle.position.y) < merge_radius) {
-        mem.obstacle.position.x = (1.0 - ema_alpha) * mem.obstacle.position.x + ema_alpha * obs.position.x;
-        mem.obstacle.position.y = (1.0 - ema_alpha) * mem.obstacle.position.y + ema_alpha * obs.position.y;
-        mem.obstacle.radius = (1.0 - ema_alpha) * mem.obstacle.radius + ema_alpha * obs.radius;
-        mem.last_seen = now;
-        found = true;
-        break;
-      }
-    }
+    double dist = std::hypot(obs.position.x - robot_pos.x, obs.position.y - robot_pos.y) - obs.radius;
+    nearest_obstacle_distance = std::min(nearest_obstacle_distance, dist);
+  }
 
-    if (!found) {
-      obstacle_memories.push_back({obs, now});
+  const Obstacle * triggering_obs = nullptr;
+  double min_inside_dist = std::numeric_limits<double>::max();
+  for (const auto & obs : active_obstacles) {
+    double dist = std::hypot(obs.position.x - robot_pos.x, obs.position.y - robot_pos.y);
+    if (dist < obs.radius && dist < min_inside_dist) {
+      min_inside_dist = dist;
+      triggering_obs = &obs;
     }
   }
 
-  // remove obstacles that haven't been seen for 5 seconds
-  obstacle_memories.erase(
-    std::remove_if(
-      obstacle_memories.begin(), obstacle_memories.end(),
-      [&](const ObstacleMemory & mem) {
-        return duration_cast<seconds>(now - mem.last_seen).count() >= 5;
-      }),
-    obstacle_memories.end());
-
-  // collect all obstacles from memory
-  std::vector<Obstacle> all_obstacles;
-  for (const auto & mem : obstacle_memories) {
-    all_obstacles.push_back(mem.obstacle);
+  if (triggering_obs != nullptr && !escape_rotating_ && !escape_strafing_) {
+    escape_rotating_ = true;
+    escape_obstacle_pos_ = triggering_obs->position;
+    escape_obstacle_radius_ = triggering_obs->radius;
+    std::cout << "robot inside obstacle at " << escape_obstacle_pos_.x << ", " << escape_obstacle_pos_.y << "\n";
   }
 
-  keisan::Point2 robot_pos = get_robot_position();
-  // worst case occur when robot/ target position inside obstacle
-  bool is_worst_case = false;
-  for (const auto & obs : all_obstacles) {
-    double dist_robot = std::hypot(obs.position.x - robot_pos.x, obs.position.y - robot_pos.y);
-    double dist_goal = std::hypot(obs.position.x - target_pos.x, obs.position.y - target_pos.y);
-    
-    if (dist_robot <= obs.radius || dist_goal <= obs.radius) {
-      if (dist_robot <= obs.radius) {
-        std::cout << "robot inside obstacle at " << obs.position.x << ", " << obs.position.y << "\n";
-      }
-      if (dist_goal <= obs.radius) {
-        std::cout << "goal inside obstacle at " << obs.position.x << ", " << obs.position.y << "\n";
-      }
+  if (escape_rotating_) {
+    auto dir_to_target = keisan::signed_arctan(
+      target_pos.y - robot_pos.y,
+      target_pos.x - robot_pos.x).normalize();
+    double delta_dir = (dir_to_target - robot->orientation).normalize().degree();
 
-      is_worst_case = true;
-      break;
+    if (std::abs(delta_dir) <= 20.0) {
+      double orientation_rad = robot->orientation.radian();
+      double fwd_x = std::cos(orientation_rad);
+      double fwd_y = std::sin(orientation_rad);
+      double obs_to_robot_x = robot_pos.x - escape_obstacle_pos_.x;
+      double obs_to_robot_y = robot_pos.y - escape_obstacle_pos_.y;
+      double cross_z = fwd_x * obs_to_robot_y - fwd_y * obs_to_robot_x;
+      escape_strafe_dir_ = (cross_z > 0.0) ? -1 : 1;
+      escape_rotating_ = false;
+      escape_strafing_ = true;
+      std::cout << "escape rotate done, strafing " << (escape_strafe_dir_ == 1 ? "left" : "right") << "\n";
+    } else {
+      double a_speed = keisan::map(delta_dir, -25.0, 25.0, move_max_a, -move_max_a);
+      a_speed = std::clamp(a_speed, -move_max_a, move_max_a);
+      robot->x_speed = 0.0;
+      robot->y_speed = 0.0;
+      robot->a_speed = a_speed;
+      robot->aim_on = false;
+      start();
+      return false;
     }
   }
 
-  if (is_worst_case) {
-    std::cout << "force move forward to target\n";
-    std::cout << "move to x: " << target_pos.x << " y: " << target_pos.y << "\n";
+  if (escape_strafing_) {
+    double dist = std::hypot(robot_pos.x - escape_obstacle_pos_.x, robot_pos.y - escape_obstacle_pos_.y);
 
-    locked_target = std::nullopt;
-    preferred_side = 0;
-    return move_forward_to(target_pos, 8.0);
+    if (dist >= escape_obstacle_radius_ * 1.5) {
+      escape_strafing_ = false;
+      escape_strafe_dir_ = 0;
+      std::cout << "escape done, resuming normal routing\n";
+    } else {
+      auto dir_to_target = keisan::signed_arctan(
+        target_pos.y - robot_pos.y,
+        target_pos.x - robot_pos.x).normalize();
+      if (escape_strafe_dir_ == 1) {
+        move_left(dir_to_target);
+      } else {
+        move_right(dir_to_target);
+      }
+      return false;
+    }
   }
 
-  // fallback logic when route is broken or empty
   if (route.size() < 2) {
-    if (locked_target.has_value()) {
-      // keep moving to the last known target
-      std::cout << "no route, use memory\n";
-      std::cout << "move to x: " << locked_target.value().x << " y: " << locked_target.value().y << "\n";
-
-      bool is_arrived = move_forward_to(locked_target.value(), 8.0);
-      if (is_arrived) locked_target = std::nullopt;
-
-      return is_arrived;
-    } else {
-      // move forward to target if there is no route and no memory
-      std::cout << "no route, move forward to target\n";
-      std::cout << "move to x: " << target_pos.x << " y: " << target_pos.y << "\n";
-
-      move_forward_to(target_pos, 8.0);
-      locked_target = std::nullopt;
-
-      return true;
-    }
+    return move_to_point(target_pos, 8.0, true);
   }
 
-  keisan::Point2 best_suggested_node = route[1];
-
-  // compute which side of the direct path the suggested node is on
-  const double sg_x = target_pos.x - robot_pos.x;
-  const double sg_y = target_pos.y - robot_pos.y;
-  const double suggested_side_cross = sg_x * (best_suggested_node.y - robot_pos.y) - sg_y * (best_suggested_node.x - robot_pos.x);
-  const int suggested_side = (suggested_side_cross >= 0.0) ? 1 : -1;
-
-  if (!locked_target.has_value()) {
-    locked_target = best_suggested_node;
-    preferred_side = suggested_side;
-    std::cout << "lock to new target\n";
-  } else {
-    keisan::Point2 locked_pos = locked_target.value();
-    double dist_to_locked = std::hypot(locked_pos.x - robot_pos.x, locked_pos.y - robot_pos.y);
-
-    // check if robot has arrived at the current target
-    if (dist_to_locked < 20.0) {
-      keisan::Point2 next_target = (route.size() > 2) ? route[2] : route[1];
-
-      double dist_to_goal_next = std::hypot(next_target.x - target_pos.x, next_target.y - target_pos.y);
-      bool is_heading_to_goal_next = (dist_to_goal_next < 1.0);
-
-      double relaxed_inf_next = is_heading_to_goal_next ? 0.0 : planner.get_inflation_radius() * 0.75;
-
-      // check if it is safe to move to the next target before switching
-      bool is_shortcut_blocked = planner.is_segment_colliding(robot_pos, next_target, all_obstacles, relaxed_inf_next);
-
-      if (!is_shortcut_blocked) {
-        if (std::hypot(next_target.x - locked_pos.x, next_target.y - locked_pos.y) > 5.0) {
-          locked_target = next_target;
-          // update preferred side
-          const double nx_cross = sg_x * (next_target.y - robot_pos.y) - sg_y * (next_target.x - robot_pos.x);
-          preferred_side = (nx_cross >= 0.0) ? 1 : -1;
-          std::cout << "arrived at target, shift to the next target\n";
-        }
-      } else {
-        std::cout << "arrived at target, next target blocked\n";
-      }
-
-    } else {
-      // check if the current path is blocked by obstacles
-      double dist_to_goal = std::hypot(locked_pos.x - target_pos.x, locked_pos.y - target_pos.y);
-      bool is_heading_to_goal = (dist_to_goal < 20.0);
-
-      double path_inflation = planner.get_inflation_radius() * planner.get_path_blocked_multiplier(); 
-      bool is_path_blocked = planner.is_segment_colliding(robot_pos, locked_pos, all_obstacles, path_inflation);
-
-      // check if the final goal is clear
-      double goal_clear_inf = planner.get_inflation_radius() * planner.get_goal_clear_multiplier();
-      bool is_goal_clear = !planner.is_segment_colliding(robot_pos, target_pos, all_obstacles, goal_clear_inf);
-
-      if (is_path_blocked || (is_goal_clear && !is_heading_to_goal)) {
-        keisan::Point2 new_target = is_goal_clear ? target_pos : best_suggested_node;
-
-        if (std::hypot(new_target.x - locked_pos.x, new_target.y - locked_pos.y) > planner.get_sticky_threshold()) {
-          bool is_side_flip = (preferred_side != 0) && (suggested_side != preferred_side);
-          double effective_threshold = is_side_flip ? planner.get_sticky_threshold() * 2.5 : planner.get_sticky_threshold();
-
-          if (std::hypot(new_target.x - locked_pos.x, new_target.y - locked_pos.y) > effective_threshold) {
-            locked_target = new_target;
-
-            if (!is_goal_clear) preferred_side = suggested_side;
-
-            if (is_path_blocked) {
-              std::cout << "path blocked! switching to " << (is_goal_clear ? "GOAL" : "PLANNER NODE") << "\n";
-            } else {
-              std::cout << "goal clear, switch to final goal\n";
-            }
-          } else {
-            std::cout << "side-flip blocked by directional persistence (threshold="
-                      << effective_threshold << ")\n";
-          }
-        }
-      } else {
-        double dist_to_r1 = std::hypot(locked_pos.x - route[1].x, locked_pos.y - route[1].y);
-
-        double dist_to_r2 = std::numeric_limits<double>::infinity();
-        if (route.size() > 2) {
-          dist_to_r2 = std::hypot(locked_pos.x - route[2].x, locked_pos.y - route[2].y);
-        }
-
-        double min_dist_route = std::min(dist_to_r1, dist_to_r2);
-
-        // only follow a drastically changed route if it is on the same preferred side
-        bool is_side_flip = (preferred_side != 0) && (suggested_side != preferred_side);
-        double drastic_threshold = is_side_flip ? 200.0 : 120.0;
-
-        if (!is_heading_to_goal && min_dist_route > drastic_threshold) {
-          locked_target = best_suggested_node;
-          preferred_side = suggested_side;
-          std::cout << "route updated! min_dist: " << min_dist_route << ", switching target\n";
-        }
-      }
-    }
-  }
-
-  std::cout << "move to x: " << locked_target.value().x << " y: " << locked_target.value().y << "\n";
-  return move_forward_to(locked_target.value(), 8.0);
+  keisan::Point2 lookahead_pt = get_lookahead_point(route, lookahead_distance);
+  bool is_final_goal = (route.size() == 2);
+  return move_to_point(lookahead_pt, 8.0, is_final_goal);
 }
 
 bool Locomotion::move_to_left_and_right(const keisan::Point2 & target, double stop_distance)
