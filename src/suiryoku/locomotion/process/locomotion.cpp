@@ -785,7 +785,7 @@ bool Locomotion::move_follow_distance(const keisan::Point2 & distance, const dou
   robot->aim_on = false;
   start();
 
-  return delta_distance.magnitude() < min_distance;
+  return distance.magnitude() < min_distance;
 }
 
 bool Locomotion::move_skew(const keisan::Angle<double> & direction)
