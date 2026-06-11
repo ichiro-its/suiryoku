@@ -607,16 +607,43 @@ bool Locomotion::move_to_point(const keisan::Point2 & target, double stop_distan
 
 keisan::Point2 Locomotion::get_lookahead_point(const std::vector<keisan::Point2> & route, double lookahead_distance) const
 {
-  double accumulated = 0.0;
+  auto robot_pos = get_robot_position();
+
+  double min_dist = std::numeric_limits<double>::max();
+  size_t closest_seg = 0;
+  double closest_t = 0.0;
+
   for (size_t i = 0; i + 1 < route.size(); ++i) {
-    double seg_x = route[i + 1].x - route[i].x;
-    double seg_y = route[i + 1].y - route[i].y;
-    double seg_len = std::hypot(seg_x, seg_y);
-    if (accumulated + seg_len >= lookahead_distance) {
-      double ratio = (lookahead_distance - accumulated) / seg_len;
-      return {route[i].x + ratio * seg_x, route[i].y + ratio * seg_y};
+    double sx = route[i + 1].x - route[i].x;
+    double sy = route[i + 1].y - route[i].y;
+    double seg_len_sq = sx * sx + sy * sy;
+    double t = 0.0;
+    if (seg_len_sq > 0.0) {
+      t = ((robot_pos.x - route[i].x) * sx + (robot_pos.y - route[i].y) * sy) / seg_len_sq;
+      t = keisan::clamp(t, 0.0, 1.0);
     }
-    accumulated += seg_len;
+    double px = route[i].x + t * sx;
+    double py = route[i].y + t * sy;
+    double d = std::hypot(robot_pos.x - px, robot_pos.y - py);
+    if (d < min_dist) {
+      min_dist = d;
+      closest_seg = i;
+      closest_t = t;
+    }
+  }
+
+  double accumulated = 0.0;
+  for (size_t i = closest_seg; i + 1 < route.size(); ++i) {
+    double sx = route[i + 1].x - route[i].x;
+    double sy = route[i + 1].y - route[i].y;
+    double seg_len = std::hypot(sx, sy);
+    double start_t = (i == closest_seg) ? closest_t : 0.0;
+    double remaining = seg_len * (1.0 - start_t);
+    if (accumulated + remaining >= lookahead_distance) {
+      double ratio = start_t + (lookahead_distance - accumulated) / seg_len;
+      return {route[i].x + ratio * sx, route[i].y + ratio * sy};
+    }
+    accumulated += remaining;
   }
   return route.back();
 }
