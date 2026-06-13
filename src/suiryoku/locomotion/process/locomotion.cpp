@@ -1422,6 +1422,11 @@ bool Locomotion::position_basket(
 
 bool Locomotion::is_time_to_follow() { return (robot->tilt - follow_min_tilt).degree() > 20.0; }
 
+bool Locomotion::is_time_to_follow_distance(const keisan::Point2 & distance)
+{
+  return distance.magnitude() > 2 * follow_min_distance;
+}
+
 bool Locomotion::pivot_fulfilled() { return (robot->tilt - pivot_target_tilt).degree() < 0.0; }
 
 bool Locomotion::in_pan_kick_range()
