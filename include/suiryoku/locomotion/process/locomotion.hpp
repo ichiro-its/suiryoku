@@ -117,6 +117,7 @@ public:
     const keisan::Angle<double> direction);
 
   bool is_time_to_follow();
+  bool is_time_to_follow_distance(const keisan::Point2 & distance);
   bool pivot_fulfilled();
   bool in_pan_kick_range();
   bool in_tilt_kick_range();
