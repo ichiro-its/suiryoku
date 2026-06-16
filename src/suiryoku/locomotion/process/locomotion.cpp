@@ -957,7 +957,7 @@ bool Locomotion::move_follow_distance(const keisan::Point2 & distance, const dou
   robot->aim_on = false;
   start();
 
-  return delta_distance.magnitude() < min_distance;
+  return distance.magnitude() < min_distance;
 }
 
 bool Locomotion::move_skew(const keisan::Angle<double> & direction)
@@ -1593,6 +1593,11 @@ bool Locomotion::position_basket(
 }
 
 bool Locomotion::is_time_to_follow() { return (robot->tilt - follow_min_tilt).degree() > 20.0; }
+
+bool Locomotion::is_time_to_follow_distance(const keisan::Point2 & distance)
+{
+  return distance.magnitude() > 2 * follow_min_distance;
+}
 
 bool Locomotion::pivot_fulfilled() { return (robot->tilt - pivot_target_tilt).degree() < 0.0; }
 
