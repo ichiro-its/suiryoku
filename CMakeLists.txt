@@ -24,7 +24,6 @@ find_package(kansei_interfaces REQUIRED)
 find_package(keisan REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
 find_package(suiryoku_interfaces REQUIRED)
 find_package(tachimawari REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
@@ -54,7 +53,6 @@ ament_target_dependencies(${PROJECT_NAME}
   keisan
   rclcpp
   std_msgs
-  nav_msgs
   suiryoku_interfaces
   tachimawari)
 
@@ -120,7 +118,6 @@ ament_export_dependencies(
   keisan
   rclcpp
   std_msgs
-  nav_msgs
   suiryoku_interfaces
   tachimawari)
 ament_export_include_directories("include")
