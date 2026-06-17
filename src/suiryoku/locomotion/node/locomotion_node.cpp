@@ -43,20 +43,20 @@ LocomotionNode::LocomotionNode(
 : locomotion(locomotion), robot(locomotion->get_robot()), walking_state(false), set_odometry(false)
 {
   set_walking_publisher = node->create_publisher<SetWalking>(
-    aruku::WalkingNode::set_walking_topic(), 10);
+    "walking/set_walking", 10);
 
   measurement_status_subscriber = node->create_subscription<MeasurementStatus>(
-    kansei::measurement::MeasurementNode::status_topic(), 10,
+    "measurement/status", 10,
     [this](const MeasurementStatus::SharedPtr message) {
       this->robot->is_calibrated = message->is_calibrated;
       this->robot->orientation = keisan::make_degree(message->orientation.yaw);
     });
 
   set_odometry_publisher = node->create_publisher<Point2>(
-    aruku::WalkingNode::set_odometry_topic(), 10);
+    "walking/set_odometry", 10);
 
   walking_status_subscriber = node->create_subscription<WalkingStatus>(
-    aruku::WalkingNode::status_topic(), 10,
+    "walking/status", 10,
     [this](const WalkingStatus::SharedPtr message)
     {
       this->robot->is_walking = message->is_running;
