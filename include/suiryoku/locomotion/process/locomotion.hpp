@@ -247,11 +247,11 @@ private:
   double lookahead_distance = 40.0;
   double nearest_obstacle_distance = std::numeric_limits<double>::max();
 
-  bool escape_rotating_ = false;
-  bool escape_strafing_ = false;
-  int escape_strafe_dir_ = 0;
-  keisan::Point2 escape_obstacle_pos_ = keisan::Point2::zero();
-  double escape_obstacle_radius_ = 0.0;
+  bool escape_rotating = false;
+  bool escape_strafing = false;
+  int escape_strafe_dir = 0;
+  keisan::Point2 escape_obstacle_pos = keisan::Point2::zero();
+  double escape_obstacle_radius = 0.0;
 };
 
 }  // namespace suiryoku

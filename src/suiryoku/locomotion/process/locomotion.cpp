@@ -477,16 +477,14 @@ void Locomotion::move_backward(const keisan::Angle<double> & direction)
 
 bool Locomotion::move_backward_to(const keisan::Point2 & target, double stop_distance)
 {
-  double delta_x = (get_robot_position().x - target.x);
-  double delta_y = (get_robot_position().y - target.y);
-
-  double target_distance = std::hypot(delta_x, delta_y);
+  auto delta = get_robot_position() - target;
+  double target_distance = delta.magnitude();
 
   if (target_distance < stop_distance) {
     return true;
   }
 
-  auto direction = keisan::signed_arctan(delta_y, delta_x).normalize();
+  auto direction = keisan::signed_arctan(delta.y, delta.x).normalize();
   auto delta_direction = (direction - robot->orientation).normalize().degree();
 
   double x_speed =
@@ -530,16 +528,14 @@ void Locomotion::move_forward(const keisan::Angle<double> & direction)
 
 bool Locomotion::move_forward_to(const keisan::Point2 & target, double stop_distance, bool smooth_stop)
 {
-  double delta_x = (target.x - get_robot_position().x);
-  double delta_y = (target.y - get_robot_position().y);
-
-  double target_distance = std::hypot(delta_x, delta_y);
+  auto delta = target - get_robot_position();
+  double target_distance = delta.magnitude();
 
   if (target_distance < stop_distance) {
     return true;
   }
 
-  auto direction = keisan::signed_arctan(delta_y, delta_x).normalize();
+  auto direction = keisan::signed_arctan(delta.y, delta.x).normalize();
   double delta_direction = (direction - robot->orientation).normalize().degree();
 
   double x_speed = keisan::map(std::abs(delta_direction), 0.0, 15.0, move_max_x, move_min_x);
@@ -635,7 +631,7 @@ keisan::Point2 Locomotion::get_lookahead_point(const std::vector<keisan::Point2>
   for (size_t i = closest_seg; i + 1 < route.size(); ++i) {
     double sx = route[i + 1].x - route[i].x;
     double sy = route[i + 1].y - route[i].y;
-    double seg_len = std::hypot(sx, sy);
+    double seg_len = (route[i + 1] - route[i]).magnitude();
     double start_t = (i == closest_seg) ? closest_t : 0.0;
     double remaining = seg_len * (1.0 - start_t);
     if (accumulated + remaining >= lookahead_distance) {
@@ -656,7 +652,7 @@ bool Locomotion::move_to_avoid_obstacles(
 
   nearest_obstacle_distance = std::numeric_limits<double>::max();
   for (const auto & obs : active_obstacles) {
-    double dist = std::hypot(obs.position.x - robot_pos.x, obs.position.y - robot_pos.y) - obs.radius;
+    double dist = (obs.position - robot_pos).magnitude() - obs.radius;
     nearest_obstacle_distance = std::min(nearest_obstacle_distance, dist);
   }
 
@@ -670,14 +666,14 @@ bool Locomotion::move_to_avoid_obstacles(
     }
   }
 
-  if (triggering_obs != nullptr && !escape_rotating_ && !escape_strafing_) {
-    escape_rotating_ = true;
-    escape_obstacle_pos_ = triggering_obs->position;
-    escape_obstacle_radius_ = triggering_obs->radius;
-    std::cout << "robot inside obstacle at " << escape_obstacle_pos_.x << ", " << escape_obstacle_pos_.y << "\n";
+  if (triggering_obs != nullptr && !escape_rotating && !escape_strafing) {
+    escape_rotating = true;
+    escape_obstacle_pos = triggering_obs->position;
+    escape_obstacle_radius = triggering_obs->radius;
+    std::cout << "robot inside obstacle at " << escape_obstacle_pos.x << ", " << escape_obstacle_pos.y << "\n";
   }
 
-  if (escape_rotating_) {
+  if (escape_rotating) {
     auto dir_to_target = keisan::signed_arctan(
       target_pos.y - robot_pos.y,
       target_pos.x - robot_pos.x).normalize();
@@ -686,13 +682,13 @@ bool Locomotion::move_to_avoid_obstacles(
     if (std::abs(delta_dir) <= 20.0) {
       double fwd_x = robot->orientation.cos().radian();
       double fwd_y = robot->orientation.sin().radian();
-      double obs_to_robot_x = robot_pos.x - escape_obstacle_pos_.x;
-      double obs_to_robot_y = robot_pos.y - escape_obstacle_pos_.y;
+      double obs_to_robot_x = robot_pos.x - escape_obstacle_pos.x;
+      double obs_to_robot_y = robot_pos.y - escape_obstacle_pos.y;
       double cross_z = fwd_x * obs_to_robot_y - fwd_y * obs_to_robot_x;
-      escape_strafe_dir_ = (cross_z > 0.0) ? -1 : 1;
-      escape_rotating_ = false;
-      escape_strafing_ = true;
-      std::cout << "escape rotate done, strafing " << (escape_strafe_dir_ == 1 ? "left" : "right") << "\n";
+      escape_strafe_dir = (cross_z > 0.0) ? -1 : 1;
+      escape_rotating = false;
+      escape_strafing = true;
+      std::cout << "escape rotate done, strafing " << (escape_strafe_dir == 1 ? "left" : "right") << "\n";
     } else {
       double a_speed = keisan::map(delta_dir, -25.0, 25.0, move_max_a, -move_max_a);
       a_speed = std::clamp(a_speed, -move_max_a, move_max_a);
@@ -705,18 +701,18 @@ bool Locomotion::move_to_avoid_obstacles(
     }
   }
 
-  if (escape_strafing_) {
-    double dist = std::hypot(robot_pos.x - escape_obstacle_pos_.x, robot_pos.y - escape_obstacle_pos_.y);
+  if (escape_strafing) {
+    double dist = (robot_pos - escape_obstacle_pos).magnitude();
 
-    if (dist >= escape_obstacle_radius_ * 1.5) {
-      escape_strafing_ = false;
-      escape_strafe_dir_ = 0;
+    if (dist >= escape_obstacle_radius * 1.5) {
+      escape_strafing = false;
+      escape_strafe_dir = 0;
       std::cout << "escape done, resuming normal routing\n";
     } else {
       auto dir_to_target = keisan::signed_arctan(
         target_pos.y - robot_pos.y,
         target_pos.x - robot_pos.x).normalize();
-      if (escape_strafe_dir_ == 1) {
+      if (escape_strafe_dir == 1) {
         move_left(dir_to_target);
       } else {
         move_right(dir_to_target);
