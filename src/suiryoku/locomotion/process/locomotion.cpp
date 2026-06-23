@@ -566,9 +566,8 @@ bool Locomotion::move_forward_to(const keisan::Point2 & target, double stop_dist
 
 bool Locomotion::move_to_point(const keisan::Point2 & target, double stop_distance, bool smooth_stop)
 {
-  double delta_x = target.x - get_robot_position().x;
-  double delta_y = target.y - get_robot_position().y;
-  double target_distance = std::hypot(delta_x, delta_y);
+  auto delta_position = target - get_robot_position();
+  double target_distance = delta_position.magnitude();
 
   if (target_distance < stop_distance) {
     return true;
@@ -664,7 +663,7 @@ bool Locomotion::move_to_avoid_obstacles(
   const Obstacle * triggering_obs = nullptr;
   double min_inside_dist = std::numeric_limits<double>::max();
   for (const auto & obs : active_obstacles) {
-    double dist = std::hypot(obs.position.x - robot_pos.x, obs.position.y - robot_pos.y);
+    double dist = (obs.position - robot_pos).magnitude();
     if (dist < obs.radius && dist < min_inside_dist) {
       min_inside_dist = dist;
       triggering_obs = &obs;
@@ -685,9 +684,8 @@ bool Locomotion::move_to_avoid_obstacles(
     double delta_dir = (dir_to_target - robot->orientation).normalize().degree();
 
     if (std::abs(delta_dir) <= 20.0) {
-      double orientation_rad = robot->orientation.radian();
-      double fwd_x = std::cos(orientation_rad);
-      double fwd_y = std::sin(orientation_rad);
+      double fwd_x = robot->orientation.cos().radian();
+      double fwd_y = robot->orientation.sin().radian();
       double obs_to_robot_x = robot_pos.x - escape_obstacle_pos_.x;
       double obs_to_robot_y = robot_pos.y - escape_obstacle_pos_.y;
       double cross_z = fwd_x * obs_to_robot_y - fwd_y * obs_to_robot_x;
