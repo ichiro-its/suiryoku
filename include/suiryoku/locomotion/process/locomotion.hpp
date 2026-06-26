@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ichiro ITS
+// Copyright (c) 2021-2026 Ichiro ITS
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,11 @@
 #ifndef SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 #define SUIRYOKU__LOCOMOTION__PROCESS__LOCOMOTION_HPP_
 
+#include <functional>
+#include <limits>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "keisan/keisan.hpp"
 #include "nlohmann/json.hpp"
@@ -30,6 +33,11 @@
 
 namespace suiryoku
 {
+struct Obstacle
+{
+  keisan::Point2 position;
+  double radius;
+};
 
 class Locomotion
 {
@@ -52,14 +60,16 @@ public:
   void load_config(const std::string & path);
   void set_config(const nlohmann::json & json);
 
-  bool walk_in_position();
-  bool walk_in_position_until_stop();
+  bool walk_in_position(double smooth_ratio = 1.0);
+  bool walk_in_position_until_stop(double smooth_ratio = 1.0);
 
   void move_backward(const keisan::Angle<double> & direction);
   bool move_backward_to(const keisan::Point2 & target, double stop_distance = 8.0);
 
   void move_forward(const keisan::Angle<double> & direction);
-  bool move_forward_to(const keisan::Point2 & target, double stop_distance = 8.0);
+  bool move_forward_to(const keisan::Point2 & target, double stop_distance = 8.0, bool smooth_stop = true);
+  bool move_to_point(const keisan::Point2 & target, double stop_distance = 8.0, bool smooth_stop = true);
+  bool move_to_avoid_obstacles(const keisan::Point2 & target_pos, const std::vector<keisan::Point2> & route, const std::vector<Obstacle> & active_obstacles);
 
   bool move_to_left_and_right(const keisan::Point2 & target, double stop_distance = 5.0);
   void move_left(const keisan::Angle<double> & direction);
@@ -231,7 +241,17 @@ private:
   keisan::Point2 left_kick_center_distance;
   keisan::Point2 left_kick_center_distance_range;
 
+  keisan::Point2 get_lookahead_point(const std::vector<keisan::Point2> & route, double lookahead_distance) const;
+
   std::shared_ptr<Robot> robot;
+  double lookahead_distance = 40.0;
+  double nearest_obstacle_distance = std::numeric_limits<double>::max();
+
+  bool escape_rotating = false;
+  bool escape_strafing = false;
+  int escape_strafe_dir = 0;
+  keisan::Point2 escape_obstacle_pos = keisan::Point2::zero();
+  double escape_obstacle_radius = 0.0;
 };
 
 }  // namespace suiryoku
