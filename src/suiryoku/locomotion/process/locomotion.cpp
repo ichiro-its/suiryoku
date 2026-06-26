@@ -569,7 +569,7 @@ bool Locomotion::move_to_point(const keisan::Point2 & target, double stop_distan
     return true;
   }
 
-  auto direction = keisan::signed_arctan(delta_y, delta_x).normalize();
+  auto direction = keisan::signed_arctan(delta_position.y, delta_position.x).normalize();
   double delta_direction = (direction - robot->orientation).normalize().degree();
 
   double angle_factor = keisan::map(std::abs(delta_direction), 0.0, 90.0, 1.0, 0.4);
@@ -680,8 +680,8 @@ bool Locomotion::move_to_avoid_obstacles(
     double delta_dir = (dir_to_target - robot->orientation).normalize().degree();
 
     if (std::abs(delta_dir) <= 20.0) {
-      double fwd_x = robot->orientation.cos().radian();
-      double fwd_y = robot->orientation.sin().radian();
+      double fwd_x = robot->orientation.cos();
+      double fwd_y = robot->orientation.sin();
       double obs_to_robot_x = robot_pos.x - escape_obstacle_pos.x;
       double obs_to_robot_y = robot_pos.y - escape_obstacle_pos.y;
       double cross_z = fwd_x * obs_to_robot_y - fwd_y * obs_to_robot_x;
